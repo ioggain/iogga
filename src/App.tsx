@@ -73,6 +73,7 @@ import {
   watchCollectionDocs,
   saveDocIn,
   deleteDocIn,
+  fetchDocIn,
   incrementPlanAccepted,
   type AuthUser,
   type UserProfile
@@ -359,6 +360,28 @@ export default function App() {
     const full = digits.length === 10 ? `52${digits}` : digits;
     return `https://wa.me/${full}?text=${encodeURIComponent(text)}`;
   };
+
+  // ---- Invitaciones virales por WhatsApp (sin acceso a contactos) ----
+  // El link abre la app mostrando una invitación personalizada.
+  const inviteText = (plan: Plan) =>
+    `🎉 *${plan.userName}* te está invitando:\n\n📍 ${plan.activity}\n🕐 ${plan.startTime} · ${plan.location}\n\nMira tu invitación aquí 👇\n${window.location.origin}/?inv=${plan.id}\n\n_IOGGA es web: no descargas nada, no ocupa espacio y tus datos están seguros._`;
+
+  const sharePlanWhatsApp = (plan: Plan) => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(inviteText(plan))}`, '_blank');
+  };
+
+  // Si alguien llega con un link de invitación (?inv=ID), mostrarla de inmediato
+  const [invitationPlan, setInvitationPlan] = useState<Plan | null>(null);
+  useEffect(() => {
+    const invId = new URLSearchParams(window.location.search).get('inv');
+    if (!invId) return;
+    fetchDocIn<Plan>('plans', invId).then(p => {
+      if (p) {
+        setInvitationPlan(p);
+        setIsIntro(false);
+      }
+    });
+  }, []);
   // Al abrir "Editar Perfil", precargar lo que ya tiene guardado
   useEffect(() => {
     if (showEditProfile) {
@@ -1541,7 +1564,17 @@ export default function App() {
                               >
                                 <Edit3 size={14} />
                               </button>
-                              <button 
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  sharePlanWhatsApp(plan);
+                                }}
+                                title="Invitar por WhatsApp"
+                                className="p-2.5 bg-green-500/20 backdrop-blur-md text-green-200 rounded-full hover:bg-green-500/40 transition-colors border border-green-500/20"
+                              >
+                                <MessageSquare size={14} />
+                              </button>
+                              <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDeletePlan(plan.id);
@@ -2974,20 +3007,15 @@ export default function App() {
                           className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4"
                         >
                           <p className="text-xs font-bold text-iogga-primary uppercase tracking-widest">
-                            {newPlan.guests === 'groups' ? 'Seleccionar Grupos' : 'Invitar Amigos'}
+                            Invitar Amigos
                           </p>
-                          <div className="space-y-3">
-                            {(newPlan.guests === 'groups' ? ['Gym', 'Trabajo', 'Uni', 'Viajes'] : ['Ana', 'Carlos', 'Sofía', 'Mejores Amigos', 'Familia']).map(name => (
-                              <div key={name} className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold">
-                                    {name[0]}
-                                  </div>
-                                  <span className="text-sm text-white/80">{name}</span>
-                                </div>
-                                <input type="checkbox" className="accent-iogga-primary w-4 h-4 rounded" />
-                              </div>
-                            ))}
+                          <div className="flex items-start gap-3">
+                            <div className="p-2.5 rounded-2xl bg-green-500/15 text-green-400 shrink-0">
+                              <MessageSquare size={18} />
+                            </div>
+                            <p className="text-xs text-zinc-400 leading-relaxed">
+                              Al publicar, te daremos un botón para <span className="text-white font-bold">mandar la invitación por WhatsApp</span> a quien tú quieras: amigos, grupos o ambos. Ellos verán una invitación especial con tu nombre — sin descargar nada.
+                            </p>
                           </div>
                         </motion.div>
                       )}
@@ -3690,16 +3718,20 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* WhatsApp Text Preview block */}
+                {/* Invitación real por WhatsApp con link que abre la app */}
                 <div className="space-y-2.5">
-                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block font-sans">Texto del mensaje a compartir:</span>
+                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block font-sans">Invita a tus amigos (sin que descarguen nada):</span>
                   <div className="p-4 rounded-[24px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-medium text-xs relative italic leading-relaxed">
-                    "¡Hola! Mi plan para hoy es: {lastPublishedPlan.activity} a las {lastPublishedPlan.startTime} en {lastPublishedPlan.location}. ¿Te unes? Descubre más aquí en iogga."
-                    <div className="mt-3 flex gap-1.5 items-center text-[8px] font-black text-emerald-400 uppercase tracking-widest">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      Listo para enviar por WhatsApp
-                    </div>
+                    "🎉 {currentUser?.name || 'Tú'} te está invitando: {lastPublishedPlan.activity} · {lastPublishedPlan.startTime} en {lastPublishedPlan.location}. Mira tu invitación aquí 👉 iogga.com/?inv=…"
                   </div>
+                  <button
+                    onClick={() => sharePlanWhatsApp(lastPublishedPlan)}
+                    className="w-full py-4 bg-green-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                  >
+                    <MessageSquare size={16} />
+                    Enviar invitación por WhatsApp
+                  </button>
+                  <p className="text-[10px] text-zinc-600 text-center">Tus amigos verán una invitación especial con tu nombre al abrir el link.</p>
                 </div>
 
                 {/* Connection Channel Selector */}
@@ -4105,6 +4137,79 @@ export default function App() {
           />
         )}
         {showValidateModal && <ValidateCodeModal validatorUid={currentUser?.uid || null} onClose={() => setShowValidateModal(false)} />}
+
+        {/* Invitación recibida por link compartido (iogga.com/?inv=ID) */}
+        {invitationPlan && (
+          <div className="fixed inset-0 z-[320] flex items-end sm:items-center justify-center">
+            <div className="absolute inset-0 bg-black/85 backdrop-blur-md" />
+            <motion.div
+              initial={{ opacity: 0, y: 60, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              className="relative w-full sm:max-w-md bg-zinc-950 border border-iogga-primary/30 rounded-t-[32px] sm:rounded-[32px] overflow-hidden max-h-[90vh] overflow-y-auto"
+            >
+              {invitationPlan.image && (
+                <div className="h-44 w-full relative">
+                  <img src={invitationPlan.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
+                </div>
+              )}
+              <div className="p-6 pb-10 space-y-5 -mt-6 relative">
+                <div className="text-center space-y-3">
+                  <div className="flex justify-center">
+                    <img src={invitationPlan.userAvatar} className="w-16 h-16 rounded-full border-4 border-iogga-primary shadow-xl object-cover" referrerPolicy="no-referrer" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-iogga-primary uppercase tracking-[0.3em]">Invitación especial para ti</p>
+                    <h3 className="font-black text-2xl text-white mt-1">{invitationPlan.userName} te invita</h3>
+                    <p className="text-lg font-bold text-white/90 mt-2">"{invitationPlan.activity}"</p>
+                  </div>
+                  <div className="flex justify-center gap-4 text-xs text-zinc-400 font-bold">
+                    <span className="flex items-center gap-1"><Clock size={12} /> {invitationPlan.startTime}</span>
+                    <span className="flex items-center gap-1"><MapPin size={12} /> {invitationPlan.location}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 pt-2">
+                  {invitationPlan.whatsapp ? (
+                    <a
+                      href={waLink(invitationPlan.whatsapp, `¡Hola ${invitationPlan.userName}! Vi tu invitación a "${invitationPlan.activity}" en IOGGA y ¡me apunto! 🙌`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => {
+                        handleAcceptPlan(invitationPlan.id);
+                        setInvitationPlan(null);
+                      }}
+                      className="w-full py-5 bg-green-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest text-center active:scale-95 transition-all shadow-xl shadow-green-500/20"
+                    >
+                      ✓ Me apunto — Avisar por WhatsApp
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        handleAcceptPlan(invitationPlan.id);
+                        setInvitationPlan(null);
+                      }}
+                      className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-iogga-primary/20"
+                    >
+                      ✓ Me apunto
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setInvitationPlan(null)}
+                    className="w-full py-4 bg-white/5 border border-white/10 text-zinc-400 rounded-[20px] font-bold text-xs uppercase tracking-widest active:scale-95 transition-all"
+                  >
+                    Solo explorar IOGGA
+                  </button>
+                </div>
+
+                <p className="text-[10px] text-zinc-600 text-center leading-relaxed">
+                  IOGGA es una app web: no se descarga, no ocupa espacio y tus datos están seguros.
+                  Instálala desde el menú de tu navegador si quieres tenerla como app. ✨
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        )}
 
         {/* Legales: Aviso de Privacidad y Términos (textos genéricos de MVP) */}
         {showLegal && (

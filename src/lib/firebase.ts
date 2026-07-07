@@ -185,6 +185,17 @@ export async function deleteDocIn(name: 'plans' | 'promos', id: string): Promise
   await deleteDoc(doc(db, name, id));
 }
 
+// Para abrir invitaciones desde un link compartido (iogga.com/?inv=ID)
+export async function fetchDocIn<T>(name: 'plans' | 'promos', id: string): Promise<T | null> {
+  if (!db) return null;
+  try {
+    const snap = await getDoc(doc(db, name, id));
+    return snap.exists() ? ({ ...(snap.data() as T), id } as T) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function incrementPlanAccepted(planId: string): Promise<void> {
   if (!db) return;
   await updateDoc(doc(db, 'plans', planId), { acceptedCount: increment(1) }).catch(() => {});

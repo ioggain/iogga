@@ -21,13 +21,16 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 
+// Configuración del proyecto Firebase "iogga". Estas claves web son públicas
+// por diseño (la seguridad real está en las reglas de Firestore).
+// Se pueden sobreescribir con variables VITE_FIREBASE_* en un archivo .env.
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyBbloSdceYuypqjrakX7c3pKJXu2aVr3Qc',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'iogga-b932b.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'iogga-b932b',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'iogga-b932b.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '371002889074',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:371002889074:web:359c44e475906963eb03eb',
 };
 
 export const isFirebaseEnabled = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
@@ -70,11 +73,16 @@ export async function registerUser(name: string, email: string, password: string
   if (!auth || !db) throw new Error('demo');
   const cred = await createUserWithEmailAndPassword(auth, email, password);
   await updateProfile(cred.user, { displayName: name });
-  await setDoc(doc(db, 'users', cred.user.uid), {
-    name,
-    email,
-    createdAt: serverTimestamp(),
-  });
+  // Guardar el perfil no debe impedir el registro si las reglas aún no están publicadas
+  try {
+    await setDoc(doc(db, 'users', cred.user.uid), {
+      name,
+      email,
+      createdAt: serverTimestamp(),
+    });
+  } catch {
+    // el perfil se puede volver a guardar después
+  }
   return { uid: cred.user.uid, name, email };
 }
 

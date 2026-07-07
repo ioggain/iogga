@@ -9,6 +9,24 @@ service cloud.firestore {
       allow create, update: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Planes: cualquiera puede explorarlos (estilo TikTok, sin login).
+    // Publicar requiere cuenta; editar/borrar solo el dueño.
+    match /plans/{planId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+    }
+
+    // Promociones de negocios: cualquiera puede verlas.
+    // Publicar requiere cuenta; editar/borrar solo el dueño.
+    match /promos/{promoId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+    }
+
     // Canjes QR: un usuario logueado crea su código;
     // el negocio (cualquier usuario logueado) lo lee y lo marca como usado.
     match /redemptions/{code} {

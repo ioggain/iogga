@@ -24,6 +24,7 @@ export type UserMode = 'person' | 'business';
 
 export interface Plan {
   id: string;
+  uid?: string; // dueño del plan (usuario de Firebase)
   userName: string;
   userAvatar: string;
   userBio?: string;
@@ -62,6 +63,8 @@ export interface GroupedPlan {
 
 export interface Promotion {
   id: string;
+  uid?: string; // dueño de la promoción (negocio)
+  timestamp?: number;
   businessName: string;
   businessLogo: string;
   businessBio?: string;

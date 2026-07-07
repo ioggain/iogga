@@ -65,9 +65,17 @@ import {
   watchAuth,
   registerUser,
   loginUser,
+  loginWithGoogle,
   logoutUser,
   authErrorMessage,
-  type AuthUser
+  watchProfile,
+  saveProfile,
+  watchCollectionDocs,
+  saveDocIn,
+  deleteDocIn,
+  incrementPlanAccepted,
+  type AuthUser,
+  type UserProfile
 } from './lib/firebase';
 import { RedeemQRModal, ValidateCodeModal } from './components/qr';
 
@@ -268,8 +276,20 @@ export default function App() {
   });
   const [mode, setMode] = useState<UserMode>('person');
   const [activeTab, setActiveTab] = useState('home');
-  const [plans, setPlans] = useState<Plan[]>(MOCK_PLANS);
-  const [promos, setPromos] = useState<Promotion[]>(MOCK_PROMOS);
+  // Con Firebase conectado la app inicia EN BLANCO y se llena con datos reales
+  // de los usuarios en tiempo real. Sin Firebase, usa datos de ejemplo.
+  const [plans, setPlans] = useState<Plan[]>(isFirebaseEnabled ? [] : MOCK_PLANS);
+  const [promos, setPromos] = useState<Promotion[]>(isFirebaseEnabled ? [] : MOCK_PROMOS);
+
+  useEffect(() => {
+    if (!isFirebaseEnabled) return;
+    const unsubPlans = watchCollectionDocs<Plan>('plans', setPlans);
+    const unsubPromos = watchCollectionDocs<Promotion>('promos', setPromos);
+    return () => {
+      unsubPlans();
+      unsubPromos();
+    };
+  }, []);
   const [showCreatePlan, setShowCreatePlan] = useState(false);
   const [showCreatePromo, setShowCreatePromo] = useState(false);
   const [selectedPromo, setSelectedPromo] = useState<Promotion | null>(null);
@@ -324,6 +344,30 @@ export default function App() {
   const [redeemPromo, setRedeemPromo] = useState<Promotion | null>(null);
   const [showValidateModal, setShowValidateModal] = useState(false);
 
+  // Formulario de "Editar Perfil" (se guarda en Firestore)
+  const [editName, setEditName] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editPhoto, setEditPhoto] = useState('');
+  // Al abrir "Editar Perfil", precargar lo que ya tiene guardado
+  useEffect(() => {
+    if (showEditProfile) {
+      setEditName(userProfile.name || currentUser?.name || '');
+      setEditBio(userProfile.bio || '');
+      setEditLocation(userProfile.location || '');
+      setEditPhoto(userProfile.photoURL || '');
+    }
+  }, [showEditProfile]);
+
+  const AVATAR_PRESETS = [
+    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80',
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
+    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80',
+  ];
+
   // Mantener la sesión iniciada (Firebase recuerda al usuario entre visitas)
   useEffect(() => {
     const unsubscribe = watchAuth(user => {
@@ -332,6 +376,29 @@ export default function App() {
     });
     return unsubscribe;
   }, []);
+
+  // Perfil extendido del usuario (bio, ubicación, foto) para el medidor de perfil
+  const [userProfile, setUserProfile] = useState<UserProfile>({});
+  useEffect(() => {
+    if (!currentUser) {
+      setUserProfile({});
+      return;
+    }
+    return watchProfile(currentUser.uid, setUserProfile);
+  }, [currentUser?.uid]);
+
+  // ¿Este plan es mío? (con Firebase: por dueño; en demo: el usuario de ejemplo)
+  const isMyPlan = (p: Plan) => (p.uid ? p.uid === currentUser?.uid : p.userName === 'Eduardo');
+
+  // Medidor "completa tu perfil": 5 pasos sencillos
+  const profileSteps: { label: string; done: boolean }[] = [
+    { label: 'Crear tu cuenta', done: !!currentUser },
+    { label: 'Tu nombre', done: !!(currentUser?.name && currentUser.name.length > 1) },
+    { label: 'Tu biografía', done: !!userProfile.bio },
+    { label: 'Tu ubicación', done: !!userProfile.location },
+    { label: 'Tu foto', done: !!userProfile.photoURL },
+  ];
+  const profileDone = profileSteps.filter(s => s.done).length;
   const [selectedChannel, setSelectedChannel] = useState<'both' | 'whatsapp' | 'iogga'>('both');
   const [dismissedMatchIds, setDismissedMatchIds] = useState<string[]>([]);
 
@@ -467,9 +534,34 @@ export default function App() {
   }, []);
 
   const handlePublishPlan = () => {
+    // Momento clave: publicar requiere cuenta (estilo TikTok: explorar es libre)
+    if (isFirebaseEnabled && !isLoggedIn) {
+      setLoginActionToResume(() => handlePublishPlan);
+      setShowLoginModal(true);
+      return;
+    }
     const randomPhoto = `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=800&q=80`;
-    
+
     if (editingPlanId) {
+      const edited = plans.find(p => p.id === editingPlanId);
+      if (edited) {
+        const updated = {
+          ...edited,
+          activity: newPlan.activity || edited.activity,
+          startTime: newPlan.startTime || edited.startTime,
+          endTime: newPlan.endTime || edited.endTime,
+          location: newPlan.location || edited.location,
+          budget: newPlan.budget as any,
+          budgetAmount: newPlan.budgetAmount,
+          transport: newPlan.transport as any,
+          transportNote: newPlan.transportNote,
+          guests: newPlan.guests as any,
+          isPublic: newPlan.isPublic ?? edited.isPublic,
+          image: newPlan.image || edited.image,
+          tags: (newPlan.activity || '').toLowerCase().split(' ')
+        };
+        void saveDocIn('plans', updated.id, updated);
+      }
       setPlans(plans.map(p => p.id === editingPlanId ? {
         ...p,
         activity: newPlan.activity || p.activity,
@@ -489,8 +581,9 @@ export default function App() {
     } else {
       const plan: Plan = {
         id: Math.random().toString(36).substr(2, 9),
-        userName: 'Eduardo',
-        userAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
+        uid: currentUser?.uid,
+        userName: currentUser?.name || 'Eduardo',
+        userAvatar: userProfile.photoURL || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
         activity: newPlan.activity || 'Plan sin nombre',
         startTime: newPlan.startTime || '00:00',
         endTime: newPlan.endTime || '00:00',
@@ -506,6 +599,7 @@ export default function App() {
         image: newPlan.image || randomPhoto,
         tags: (newPlan.activity || '').toLowerCase().split(' ')
       };
+      void saveDocIn('plans', plan.id, plan);
       setPlans([plan, ...plans]);
       setLastPublishedPlan(plan);
       setShowMatchCelebration(true);
@@ -528,7 +622,26 @@ export default function App() {
   };
 
   const handlePublishPromo = () => {
+    // Momento clave: publicar una oferta requiere cuenta
+    if (isFirebaseEnabled && !isLoggedIn) {
+      setLoginActionToResume(() => handlePublishPromo);
+      setShowLoginModal(true);
+      return;
+    }
     if (editingPromoId) {
+      const edited = promos.find(p => p.id === editingPromoId);
+      if (edited) {
+        void saveDocIn('promos', edited.id, {
+          ...edited,
+          title: newPromo.title || edited.title,
+          description: newPromo.description || edited.description,
+          price: newPromo.price || edited.price,
+          offer: newPromo.offer || edited.offer,
+          location: newPromo.location || edited.location,
+          image: promoImage || edited.image,
+          tags: (newPromo.title || '').toLowerCase().split(' ')
+        });
+      }
       setPromos(promos.map(p => p.id === editingPromoId ? {
         ...p,
         title: newPromo.title || p.title,
@@ -543,7 +656,9 @@ export default function App() {
     } else {
       const promo: Promotion = {
         id: Math.random().toString(36).substr(2, 9),
-        businessName: businessProfile.name || 'La Cabalita',
+        uid: currentUser?.uid,
+        timestamp: Date.now(),
+        businessName: businessProfile.name || currentUser?.name || 'Mi Negocio',
         businessLogo: businessProfile.logo || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=150&q=80',
         title: newPromo.title || 'Promo',
         description: newPromo.description || '',
@@ -551,12 +666,14 @@ export default function App() {
         offer: newPromo.offer || '',
         image: promoImage || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
         location: businessProfile.location || 'Chihuahua, MX',
-        realTimeSearchers: Math.floor(Math.random() * 25) + 5,
-        qrScans: Math.floor(Math.random() * 40) + 10,
-        salesCount: Math.floor(Math.random() * 15) + 2,
-        totalEarnings: Math.floor(Math.random() * 5000) + 1000,
+        // Estadísticas reales: inician en cero y crecen con el uso
+        realTimeSearchers: 0,
+        qrScans: 0,
+        salesCount: 0,
+        totalEarnings: 0,
         tags: (newPromo.title || '').toLowerCase().split(' ')
       };
+      void saveDocIn('promos', promo.id, promo);
       setPromos([promo, ...promos]);
       setSelectedPromoForMatches(promo); // Show matches immediately
     }
@@ -573,13 +690,11 @@ export default function App() {
   };
 
   const handleStart = () => {
-    // Show login/register before starting so they have a personalized experience
-    setLoginActionToResume(() => {
-      setIsIntro(false);
-      setShowCreatePlan(true);
-      setActiveTab('search');
-    });
-    setShowLoginModal(true);
+    // Estilo TikTok: entrar y explorar es libre, sin pedir cuenta.
+    // El login solo aparece en momentos clave (publicar, aceptar, canjear).
+    setIsIntro(false);
+    setShowCreatePlan(true);
+    setActiveTab('search');
   };
 
   const handleSkipIntro = () => {
@@ -590,7 +705,11 @@ export default function App() {
   };
 
   const handleAcceptPlan = (id: string) => {
-    setAcceptedPlanIds([...acceptedPlanIds, id]);
+    // Momento clave: aceptar un plan requiere cuenta (explorar sigue siendo libre)
+    ensureLoggedIn(() => {
+      setAcceptedPlanIds(prev => (prev.includes(id) ? prev : [...prev, id]));
+      void incrementPlanAccepted(id);
+    });
   };
 
   const handleIgnorePlan = (id: string) => {
@@ -628,6 +747,7 @@ export default function App() {
   };
 
   const handleDeletePlan = (id: string) => {
+    void deleteDocIn('plans', id);
     setPlans(plans.filter(p => p.id !== id));
   };
 
@@ -1274,6 +1394,23 @@ export default function App() {
                     <>
                       {searchFilter === 'plans' ? (
                         <div className="grid grid-cols-2 gap-4">
+                          {plans.filter(p => searchSubFilter === 'public' ? p.isPublic : !p.isPublic).length === 0 && (
+                            <div className="col-span-2 py-16 flex flex-col items-center gap-4 text-center">
+                              <div className="p-5 rounded-full bg-iogga-primary/10 border border-iogga-primary/20">
+                                <Sparkles size={28} className="text-iogga-primary" />
+                              </div>
+                              <div className="space-y-1">
+                                <p className="font-black text-white text-lg">Aún no hay planes por aquí</p>
+                                <p className="text-xs text-zinc-500 max-w-[240px] leading-relaxed">¡Sé de los primeros! Publica tu plan y deja que otros se unan.</p>
+                              </div>
+                              <button
+                                onClick={() => setShowCreatePlan(true)}
+                                className="px-6 py-3 bg-iogga-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
+                              >
+                                Crear mi primer plan
+                              </button>
+                            </div>
+                          )}
                           {plans
                             .filter(p => searchSubFilter === 'public' ? p.isPublic : !p.isPublic)
                             .map((plan, index) => (
@@ -1357,7 +1494,7 @@ export default function App() {
                 </div>
                 {mode === 'person' ? (
                   <div className="space-y-4">
-                    {plans.filter(p => p.userName === 'Eduardo').map(plan => (
+                    {plans.filter(p => isMyPlan(p)).map(plan => (
                       <div key={plan.id} className="space-y-2">
                         <div 
                           onClick={() => setSelectedPlanForDetails(plan)}
@@ -1590,9 +1727,9 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {promos.map((promo, idx) => (
-                      <motion.div 
-                        key={promo.id} 
+                    {promos.filter(p => (p.uid ? p.uid === currentUser?.uid : true)).map((promo, idx) => (
+                      <motion.div
+                        key={promo.id}
                         id={idx === 0 ? "tutorial-business-offer-card" : undefined}
                         animate={isWiggleMode ? { 
                           rotate: [0, -1, 1, -1, 1, 0],
@@ -1631,6 +1768,7 @@ export default function App() {
                                 <button 
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    void deleteDocIn('promos', promo.id);
                                     setPromos(promos.filter(p => p.id !== promo.id));
                                   }}
                                   className="p-2.5 bg-red-500 text-white rounded-full shadow-2xl animate-bounce"
@@ -2233,8 +2371,43 @@ export default function App() {
                           <Star size={14} className="opacity-30" />
                         </div>
                       </div>
-                      <p className="text-zinc-500 text-sm">{currentUser?.email || '@edu_hdz'} • Chihuahua, MX</p>
+                      <p className="text-zinc-500 text-sm">{currentUser?.email || '@edu_hdz'} • {userProfile.location || 'Chihuahua, MX'}</p>
                     </div>
+                  </div>
+                )}
+
+                {/* Medidor: Completa tu perfil (invitación, nunca obligación) */}
+                {mode === 'person' && profileDone < 5 && (
+                  <div className="px-6 pt-2">
+                    <button
+                      onClick={() => {
+                        if (!currentUser) {
+                          setIsRegistering(true);
+                          setShowLoginModal(true);
+                        } else {
+                          setShowEditProfile(true);
+                        }
+                      }}
+                      className="w-full p-5 rounded-3xl bg-gradient-to-r from-iogga-primary/20 to-iogga-accent/10 border border-iogga-primary/30 text-left space-y-3 active:scale-[0.98] transition-transform"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-black text-white">
+                          {currentUser ? 'Completa tu perfil' : 'Crea tu cuenta gratis'}
+                        </span>
+                        <span className="text-xs font-black text-iogga-primary bg-iogga-primary/10 border border-iogga-primary/30 px-3 py-1 rounded-full">
+                          {profileDone} de 5
+                        </span>
+                      </div>
+                      <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-iogga-primary to-iogga-accent transition-all duration-500"
+                          style={{ width: `${(profileDone / 5) * 100}%` }}
+                        />
+                      </div>
+                      <p className="text-[11px] text-zinc-400 font-medium">
+                        Siguiente paso: <span className="text-white font-bold">{profileSteps.find(s => !s.done)?.label}</span> · Un perfil completo recibe más invitaciones ✨
+                      </p>
+                    </button>
                   </div>
                 )}
 
@@ -2338,7 +2511,7 @@ export default function App() {
                       </div>
                       <div className="space-y-3">
                         {/* Invitations (Not yet accepted/ignored) */}
-                        {plans.filter(p => p.userName !== 'Eduardo' && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id)).slice(0, 2).map(plan => (
+                        {plans.filter(p => !isMyPlan(p) && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id)).slice(0, 2).map(plan => (
                           <div key={plan.id} className="p-4 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-between opacity-60">
                             <div className="flex items-center gap-3">
                               <img src={plan.userAvatar} className="w-8 h-8 rounded-full" />
@@ -2380,7 +2553,7 @@ export default function App() {
                             </div>
                           </div>
                         ))}
-                        {acceptedPlanIds.length === 0 && plans.filter(p => p.userName !== 'Eduardo' && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id)).length === 0 && (
+                        {acceptedPlanIds.length === 0 && plans.filter(p => !isMyPlan(p) && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id)).length === 0 && (
                           <p className="text-xs text-zinc-500 px-2 italic text-center">No hay planes pendientes...</p>
                         )}
                       </div>
@@ -2391,7 +2564,7 @@ export default function App() {
                       <p className="text-xs font-bold text-iogga-accent uppercase tracking-widest px-2">Ofertas Personalizadas</p>
                       <div className="grid grid-cols-2 gap-3">
                         {promos.filter(p => {
-                          const userPlans = plans.filter(pl => pl.userName === 'Eduardo');
+                          const userPlans = plans.filter(pl => isMyPlan(pl));
                           const userTags = userPlans.flatMap(pl => pl.tags);
                           return p.tags.some(t => userTags.includes(t)) || userPlans.length === 0;
                         }).slice(0, 4).map(promo => (
@@ -2962,29 +3135,47 @@ export default function App() {
               <div className="space-y-6">
                 <div className="flex flex-col items-center gap-4">
                   <div className="relative group">
-                    <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&q=80" className="w-24 h-24 rounded-full border-4 border-iogga-primary/20 shadow-xl" referrerPolicy="no-referrer" />
-                    <button className="absolute bottom-0 right-0 w-8 h-8 bg-iogga-primary text-white rounded-full flex items-center justify-center shadow-lg border-2 border-zinc-900">
+                    <img src={editPhoto || userProfile.photoURL || AVATAR_PRESETS[0]} className="w-24 h-24 rounded-full border-4 border-iogga-primary/20 shadow-xl object-cover" referrerPolicy="no-referrer" />
+                    <button
+                      onClick={() => {
+                        const current = editPhoto || userProfile.photoURL || '';
+                        const idx = AVATAR_PRESETS.indexOf(current);
+                        setEditPhoto(AVATAR_PRESETS[(idx + 1) % AVATAR_PRESETS.length]);
+                      }}
+                      className="absolute bottom-0 right-0 w-8 h-8 bg-iogga-primary text-white rounded-full flex items-center justify-center shadow-lg border-2 border-zinc-900"
+                    >
                       <Camera size={14} />
                     </button>
                   </div>
-                  <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Cambiar Foto</p>
+                  <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Toca la cámara para cambiar tu foto</p>
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Nombre Completo</label>
-                    <input type="text" defaultValue="Omar Eduardo" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
+                    <input type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Tu nombre" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Biografía</label>
-                    <textarea defaultValue="Explorador de la ciudad y amante de los buenos planes." className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-medium outline-none focus:ring-2 focus:ring-iogga-primary transition-all h-24 resize-none" />
+                    <textarea value={editBio} onChange={e => setEditBio(e.target.value)} placeholder="Cuéntanos de ti: ¿qué planes te gustan?" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-medium outline-none focus:ring-2 focus:ring-iogga-primary transition-all h-24 resize-none" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Ubicación</label>
-                    <input type="text" defaultValue="Chihuahua, MX" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
+                    <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="Ej. Chihuahua, MX" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
                   </div>
                 </div>
-                <button 
-                  onClick={() => setShowEditProfile(false)}
+                <button
+                  onClick={async () => {
+                    if (currentUser) {
+                      await saveProfile(currentUser.uid, {
+                        name: editName.trim() || currentUser.name,
+                        bio: editBio.trim(),
+                        location: editLocation.trim(),
+                        photoURL: editPhoto || userProfile.photoURL || null,
+                      }).catch(() => {});
+                      if (editName.trim()) setCurrentUser({ ...currentUser, name: editName.trim() });
+                    }
+                    setShowEditProfile(false);
+                  }}
                   className="w-full py-4 bg-iogga-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-iogga-primary/20 active:scale-95 transition-transform"
                 >
                   Guardar Cambios
@@ -3106,7 +3297,7 @@ export default function App() {
                         <span className="text-[10px] text-white/60 uppercase tracking-widest">Anfitrión</span>
                       </div>
                     </div>
-                    {selectedPlanForDetails.userName === 'Eduardo' && (
+                    {isMyPlan(selectedPlanForDetails) && (
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -3801,7 +3992,40 @@ export default function App() {
                     <div className="flex-grow border-t border-white/5"></div>
                   </div>
 
-                  <button 
+                  {isFirebaseEnabled && (
+                    <button
+                      type="button"
+                      disabled={authBusy}
+                      onClick={async () => {
+                        setAuthError('');
+                        setAuthBusy(true);
+                        try {
+                          const user = await loginWithGoogle();
+                          setCurrentUser(user);
+                          setIsLoggedIn(true);
+                          setShowLoginModal(false);
+                          triggerBeta("¡Sesión Iniciada!", `Bienvenido${user.name ? `, ${user.name}` : ''} a IOGGA Chihuahua.`);
+                          if (loginActionToResume) {
+                            loginActionToResume();
+                            setLoginActionToResume(null);
+                          }
+                        } catch (err) {
+                          const code = (err as { code?: string })?.code || '';
+                          if (!code.includes('popup-closed') && !code.includes('cancelled')) {
+                            setAuthError(authErrorMessage(err));
+                          }
+                        } finally {
+                          setAuthBusy(false);
+                        }
+                      }}
+                      className="w-full py-4 bg-white text-zinc-900 rounded-[20px] font-black text-sm tracking-wide active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 40.4 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+                      Continuar con Google
+                    </button>
+                  )}
+
+                  <button
                     type="button"
                     onClick={() => {
                       setIsLoggedIn(false);

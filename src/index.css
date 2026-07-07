@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=Lexend:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", sans-serif;
+  --font-lexend: "Lexend", sans-serif;
+  
+  --color-iogga-primary: #6366f1; /* Indigo for Personal */
+  --color-iogga-accent: #14b8a6; /* Teal for Business */
+  --color-iogga-dark: #09090b;
+}
+
+@layer base {
+  body {
+    @apply bg-zinc-950 text-zinc-100 antialiased text-base overflow-x-hidden;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
+  }
+}
+
+.glass {
+  @apply bg-zinc-900/80 backdrop-blur-md border border-white/5;
+}
+
+/* Responsive Mobile Container */
+.app-container {
+  @apply w-full h-screen max-w-md mx-auto relative overflow-hidden flex flex-col;
+  @apply sm:h-[844px] sm:my-8 sm:rounded-[48px] sm:border-[12px] sm:border-zinc-900 sm:shadow-2xl;
+}
+
+.iphone-notch {
+  @apply hidden sm:block absolute top-0 left-1/2 -translate-x-1/2 w-40 h-8 bg-zinc-900 rounded-b-2xl z-50;
+}
+
+/* Hide scrollbar but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Standard Touch Targets */
+button, a, input {
+  @apply min-h-[44px];
+}
+
+/* Image Aspect Ratios */
+.aspect-mobile-card {
+  aspect-ratio: 4 / 5;
+}

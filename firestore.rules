@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Perfiles de usuarios: cada quien puede leer perfiles,
+    // pero solo editar el suyo.
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Canjes QR: un usuario logueado crea su código;
+    // el negocio (cualquier usuario logueado) lo lee y lo marca como usado.
+    match /redemptions/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+        && request.resource.data.status == 'redeemed'
+        && resource.data.status == 'pending';
+    }
+  }
+}

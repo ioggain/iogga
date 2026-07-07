@@ -78,6 +78,7 @@ import {
   type UserProfile
 } from './lib/firebase';
 import { RedeemQRModal, ValidateCodeModal } from './components/qr';
+import { pickImage } from './lib/images';
 
 interface AppNotification {
   id: string;
@@ -343,12 +344,21 @@ export default function App() {
   const [authBusy, setAuthBusy] = useState(false);
   const [redeemPromo, setRedeemPromo] = useState<Promotion | null>(null);
   const [showValidateModal, setShowValidateModal] = useState(false);
+  const [showLegal, setShowLegal] = useState<'privacy' | 'terms' | null>(null);
 
   // Formulario de "Editar Perfil" (se guarda en Firestore)
   const [editName, setEditName] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editLocation, setEditLocation] = useState('');
   const [editPhoto, setEditPhoto] = useState('');
+  const [editWhatsapp, setEditWhatsapp] = useState('');
+
+  // Link directo a WhatsApp (México +52 por defecto si dan 10 dígitos)
+  const waLink = (phone: string, text: string) => {
+    const digits = phone.replace(/\D/g, '');
+    const full = digits.length === 10 ? `52${digits}` : digits;
+    return `https://wa.me/${full}?text=${encodeURIComponent(text)}`;
+  };
   // Al abrir "Editar Perfil", precargar lo que ya tiene guardado
   useEffect(() => {
     if (showEditProfile) {
@@ -356,6 +366,7 @@ export default function App() {
       setEditBio(userProfile.bio || '');
       setEditLocation(userProfile.location || '');
       setEditPhoto(userProfile.photoURL || '');
+      setEditWhatsapp(userProfile.whatsapp || '');
     }
   }, [showEditProfile]);
 
@@ -394,11 +405,20 @@ export default function App() {
   const profileSteps: { label: string; done: boolean }[] = [
     { label: 'Crear tu cuenta', done: !!currentUser },
     { label: 'Tu nombre', done: !!(currentUser?.name && currentUser.name.length > 1) },
+    { label: 'Tu foto real', done: !!userProfile.photoURL },
+    { label: 'Tu WhatsApp (para coordinar tus planes)', done: !!userProfile.whatsapp },
     { label: 'Tu biografía', done: !!userProfile.bio },
     { label: 'Tu ubicación', done: !!userProfile.location },
-    { label: 'Tu foto', done: !!userProfile.photoURL },
   ];
   const profileDone = profileSteps.filter(s => s.done).length;
+
+  // Analíticas REALES del negocio: suman los canjes QR validados de sus promos
+  const myPromos = promos.filter(p => (p.uid ? p.uid === currentUser?.uid : !isFirebaseEnabled));
+  const bizTotals = {
+    earnings: myPromos.reduce((s, p) => s + (p.totalEarnings || 0), 0),
+    scans: myPromos.reduce((s, p) => s + (p.qrScans || 0), 0),
+    sales: myPromos.reduce((s, p) => s + (p.salesCount || 0), 0),
+  };
   const [selectedChannel, setSelectedChannel] = useState<'both' | 'whatsapp' | 'iogga'>('both');
   const [dismissedMatchIds, setDismissedMatchIds] = useState<string[]>([]);
 
@@ -582,6 +602,7 @@ export default function App() {
       const plan: Plan = {
         id: Math.random().toString(36).substr(2, 9),
         uid: currentUser?.uid,
+        whatsapp: userProfile.whatsapp || undefined,
         userName: currentUser?.name || 'Eduardo',
         userAvatar: userProfile.photoURL || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
         activity: newPlan.activity || 'Plan sin nombre',
@@ -1257,8 +1278,8 @@ export default function App() {
                       <div className="p-5 rounded-[32px] bg-zinc-900 border border-white/5 space-y-1">
                         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ventas</span>
                         <div className="flex items-end gap-2">
-                          <span className="text-3xl font-black text-white">42</span>
-                          <span className="text-xs font-bold text-green-500 mb-1">↑ 8%</span>
+                          <span className="text-3xl font-black text-white">{bizTotals.sales}</span>
+                          <span className="text-xs font-bold text-green-500 mb-1">● en vivo</span>
                         </div>
                       </div>
                     </div>
@@ -1269,7 +1290,7 @@ export default function App() {
                         <Plus size={18} className="text-iogga-primary cursor-pointer" onClick={() => setShowCreatePromo(true)} />
                       </div>
                       <div className="space-y-3">
-                        {promos.map(promo => (
+                        {myPromos.map(promo => (
                           <div key={promo.id} className="p-4 rounded-[32px] bg-white/5 border border-white/10 flex items-center gap-4">
                             <img src={promo.image} className="w-16 h-16 rounded-2xl object-cover" />
                             <div className="flex-1">
@@ -2138,11 +2159,11 @@ export default function App() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-zinc-400 text-sm">Total Ventas</p>
-                          <p className="text-4xl font-bold">$12,450.00</p>
+                          <p className="text-4xl font-bold">${bizTotals.earnings.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
                         </div>
                         <div className="flex flex-col items-end">
-                          <span className="text-xs text-green-500 font-bold">+12.5%</span>
-                          <span className="text-[10px] text-zinc-500">vs mes pasado</span>
+                          <span className="text-xs text-green-500 font-bold">● En vivo</span>
+                          <span className="text-[10px] text-zinc-500">canjes QR validados</span>
                         </div>
                       </div>
                       
@@ -2152,16 +2173,16 @@ export default function App() {
                             <QrCode size={14} className="text-iogga-accent" />
                             <p className="text-xs text-zinc-400">QRs</p>
                           </div>
-                          <p className="text-xl font-bold">142</p>
+                          <p className="text-xl font-bold">{bizTotals.scans}</p>
                           <p className="text-[10px] text-zinc-500">Escaneos totales</p>
                         </div>
                         <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
                           <div className="flex items-center gap-2 mb-2">
                             <Users size={14} className="text-indigo-400" />
-                            <p className="text-xs text-zinc-400">Clientes</p>
+                            <p className="text-xs text-zinc-400">Canjes</p>
                           </div>
-                          <p className="text-xl font-bold">28</p>
-                          <p className="text-[10px] text-zinc-500">Nuevos este mes</p>
+                          <p className="text-xl font-bold">{bizTotals.sales}</p>
+                          <p className="text-[10px] text-zinc-500">Clientes atendidos</p>
                         </div>
                       </div>
 
@@ -2377,7 +2398,7 @@ export default function App() {
                 )}
 
                 {/* Medidor: Completa tu perfil (invitación, nunca obligación) */}
-                {mode === 'person' && profileDone < 5 && (
+                {mode === 'person' && profileDone < profileSteps.length && (
                   <div className="px-6 pt-2">
                     <button
                       onClick={() => {
@@ -2395,13 +2416,13 @@ export default function App() {
                           {currentUser ? 'Completa tu perfil' : 'Crea tu cuenta gratis'}
                         </span>
                         <span className="text-xs font-black text-iogga-primary bg-iogga-primary/10 border border-iogga-primary/30 px-3 py-1 rounded-full">
-                          {profileDone} de 5
+                          {profileDone} de {profileSteps.length}
                         </span>
                       </div>
                       <div className="h-2 rounded-full bg-white/10 overflow-hidden">
                         <div
                           className="h-full rounded-full bg-gradient-to-r from-iogga-primary to-iogga-accent transition-all duration-500"
-                          style={{ width: `${(profileDone / 5) * 100}%` }}
+                          style={{ width: `${(profileDone / profileSteps.length) * 100}%` }}
                         />
                       </div>
                       <p className="text-[11px] text-zinc-400 font-medium">
@@ -2634,21 +2655,30 @@ export default function App() {
                 label="Analítica" 
                 color="text-iogga-accent" 
               />
-              <NavButton 
+              <NavButton
                 id="nav-search"
-                active={activeTab === 'search'} 
-                onClick={() => setActiveTab('search')} 
-                icon={<Globe size={26} />} 
-                label="Explora" 
-                color="text-iogga-accent" 
+                active={activeTab === 'search'}
+                onClick={() => setActiveTab('search')}
+                icon={<Globe size={26} />}
+                label="Explora"
+                color="text-iogga-accent"
               />
-              <NavButton 
+              {/* Escáner de canjes: siempre al centro, como Authenticator */}
+              <button
+                id="nav-scan"
+                onClick={() => setShowValidateModal(true)}
+                className="relative -mt-8 w-16 h-16 rounded-full bg-iogga-accent text-white flex flex-col items-center justify-center shadow-2xl shadow-iogga-accent/40 border-4 border-zinc-950 active:scale-90 transition-transform"
+              >
+                <QrCode size={26} />
+                <span className="absolute -bottom-5 text-[9px] font-black uppercase tracking-widest text-iogga-accent">Escanear</span>
+              </button>
+              <NavButton
                 id="nav-active"
-                active={activeTab === 'active'} 
-                onClick={() => setActiveTab('active')} 
-                icon={<LayoutGrid size={26} />} 
-                label="Mis Ofertas" 
-                color="text-iogga-accent" 
+                active={activeTab === 'active'}
+                onClick={() => setActiveTab('active')}
+                icon={<LayoutGrid size={26} />}
+                label="Mis Ofertas"
+                color="text-iogga-accent"
               />
               <NavButton 
                 id="nav-profile"
@@ -2973,10 +3003,10 @@ export default function App() {
                       className="space-y-6"
                     >
                       <label className="text-lg font-bold text-white block">Dale un toque visual</label>
-                      <button 
-                        onClick={() => {
-                          const keyword = newPlan.activity || 'activity';
-                          setNewPlan({...newPlan, image: `https://picsum.photos/seed/${keyword}${Math.random()}/800/600`});
+                      <button
+                        onClick={async () => {
+                          const img = await pickImage(900);
+                          if (img) setNewPlan({...newPlan, image: img});
                         }}
                         className="w-full aspect-video rounded-3xl bg-white/5 flex flex-col items-center justify-center border-2 border-dashed border-white/10 text-zinc-500 overflow-hidden relative group"
                       >
@@ -2985,14 +3015,14 @@ export default function App() {
                         ) : (
                           <>
                             <PlusCircle size={32} />
-                            <p className="text-xs mt-2 font-bold uppercase tracking-widest">Agregar Foto</p>
+                            <p className="text-xs mt-2 font-bold uppercase tracking-widest">Subir Foto</p>
                           </>
                         )}
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <span className="text-xs font-bold text-white uppercase tracking-widest">Generar Foto Aleatoria</span>
+                          <span className="text-xs font-bold text-white uppercase tracking-widest">{newPlan.image ? 'Cambiar Foto' : 'Subir Foto'}</span>
                         </div>
                       </button>
-                      <p className="text-xs text-zinc-500 text-center italic">Se generará una foto basada en tu actividad</p>
+                      <p className="text-xs text-zinc-500 text-center italic">Sube una foto real desde tu galería o cámara</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -3033,8 +3063,11 @@ export default function App() {
               });
             }} title={editingPromoId ? "Editar Producto" : "Publicar Producto"}>
               <div className="space-y-6">
-                <button 
-                  onClick={() => setPromoImage(`https://picsum.photos/seed/${newPromo.title || 'promo'}${Math.random()}/400/300`)}
+                <button
+                  onClick={async () => {
+                    const img = await pickImage(900);
+                    if (img) setPromoImage(img);
+                  }}
                   className="w-full aspect-video rounded-2xl bg-white/5 flex flex-col items-center justify-center border-2 border-dashed border-white/10 text-zinc-500 overflow-hidden relative group"
                 >
                   {promoImage ? (
@@ -3042,7 +3075,7 @@ export default function App() {
                   ) : (
                     <>
                       <PlusCircle size={32} />
-                      <p className="text-xs mt-2 font-bold uppercase tracking-widest">Agregar Foto</p>
+                      <p className="text-xs mt-2 font-bold uppercase tracking-widest">Subir Foto Real</p>
                     </>
                   )}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -3137,17 +3170,16 @@ export default function App() {
                   <div className="relative group">
                     <img src={editPhoto || userProfile.photoURL || AVATAR_PRESETS[0]} className="w-24 h-24 rounded-full border-4 border-iogga-primary/20 shadow-xl object-cover" referrerPolicy="no-referrer" />
                     <button
-                      onClick={() => {
-                        const current = editPhoto || userProfile.photoURL || '';
-                        const idx = AVATAR_PRESETS.indexOf(current);
-                        setEditPhoto(AVATAR_PRESETS[(idx + 1) % AVATAR_PRESETS.length]);
+                      onClick={async () => {
+                        const img = await pickImage(300, 0.8);
+                        if (img) setEditPhoto(img);
                       }}
                       className="absolute bottom-0 right-0 w-8 h-8 bg-iogga-primary text-white rounded-full flex items-center justify-center shadow-lg border-2 border-zinc-900"
                     >
                       <Camera size={14} />
                     </button>
                   </div>
-                  <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Toca la cámara para cambiar tu foto</p>
+                  <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Toca la cámara y sube tu foto real</p>
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-1.5">
@@ -3162,6 +3194,11 @@ export default function App() {
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Ubicación</label>
                     <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="Ej. Chihuahua, MX" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
                   </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">WhatsApp (10 dígitos)</label>
+                    <input type="tel" value={editWhatsapp} onChange={e => setEditWhatsapp(e.target.value)} placeholder="Ej. 6141234567" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
+                    <p className="text-[10px] text-zinc-600 ml-4">Solo lo verán quienes acepten tus planes, para coordinar directo.</p>
+                  </div>
                 </div>
                 <button
                   onClick={async () => {
@@ -3171,6 +3208,7 @@ export default function App() {
                         bio: editBio.trim(),
                         location: editLocation.trim(),
                         photoURL: editPhoto || userProfile.photoURL || null,
+                        whatsapp: editWhatsapp.replace(/\D/g, ''),
                       }).catch(() => {});
                       if (editName.trim()) setCurrentUser({ ...currentUser, name: editName.trim() });
                     }
@@ -3336,18 +3374,30 @@ export default function App() {
                   >
                     Ignorar
                   </button>
-                  <a 
-                    href={`https://wa.me/526141234567?text=${encodeURIComponent(`¡Hola ${selectedPlanForDetails.userName}! Vi tu plan para "${selectedPlanForDetails.activity}" en iogga Chihuahua y me gustaría unirme. ¿Sigue en pie? 🙌`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => {
-                      handleAcceptPlan(selectedPlanForDetails.id);
-                      setSelectedPlanForDetails(null);
-                    }}
-                    className="flex-[2] py-4 rounded-2xl bg-iogga-primary text-white font-black shadow-lg shadow-iogga-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-center flex items-center justify-center text-xs uppercase tracking-wider"
-                  >
-                    Aceptar y Mandar WhatsApp
-                  </a>
+                  {selectedPlanForDetails.whatsapp ? (
+                    <a
+                      href={waLink(selectedPlanForDetails.whatsapp, `¡Hola ${selectedPlanForDetails.userName}! Acepté tu plan "${selectedPlanForDetails.activity}" en IOGGA. ¿Sigue en pie? 🙌`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => {
+                        handleAcceptPlan(selectedPlanForDetails.id);
+                        setSelectedPlanForDetails(null);
+                      }}
+                      className="flex-[2] py-4 rounded-2xl bg-green-500 text-white font-black shadow-lg shadow-green-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-center flex items-center justify-center text-xs uppercase tracking-wider"
+                    >
+                      Aceptar y Mandar WhatsApp
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        handleAcceptPlan(selectedPlanForDetails.id);
+                        setSelectedPlanForDetails(null);
+                      }}
+                      className="flex-[2] py-4 rounded-2xl bg-iogga-primary text-white font-black shadow-lg shadow-iogga-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-center flex items-center justify-center text-xs uppercase tracking-wider"
+                    >
+                      Aceptar Plan
+                    </button>
+                  )}
                 </div>
               </div>
             </Modal>
@@ -3504,7 +3554,8 @@ export default function App() {
                         setShowEditProfile(true);
                       }}
                     />
-                    <SettingsItem icon={<Shield size={18} />} label="Privacidad y Seguridad" />
+                    <SettingsItem icon={<Shield size={18} />} label="Aviso de Privacidad" onClick={() => { setShowSettingsMenu(false); setShowLegal('privacy'); }} />
+                    <SettingsItem icon={<CheckCircle2 size={18} />} label="Términos y Condiciones" onClick={() => { setShowSettingsMenu(false); setShowLegal('terms'); }} />
                     <SettingsItem icon={<Bell size={18} />} label="Notificaciones" />
                     <SettingsItem icon={<Smartphone size={18} />} label="Dispositivos" />
                   </div>
@@ -4048,12 +4099,52 @@ export default function App() {
         {/* QR real: canje del cliente y validación del negocio */}
         {redeemPromo && (
           <RedeemQRModal
-            promo={{ id: redeemPromo.id, title: redeemPromo.title, businessName: redeemPromo.businessName }}
+            promo={{ id: redeemPromo.id, title: redeemPromo.title, businessName: redeemPromo.businessName, uid: redeemPromo.uid || null, price: redeemPromo.price }}
             user={currentUser}
             onClose={() => setRedeemPromo(null)}
           />
         )}
-        {showValidateModal && <ValidateCodeModal onClose={() => setShowValidateModal(false)} />}
+        {showValidateModal && <ValidateCodeModal validatorUid={currentUser?.uid || null} onClose={() => setShowValidateModal(false)} />}
+
+        {/* Legales: Aviso de Privacidad y Términos (textos genéricos de MVP) */}
+        {showLegal && (
+          <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowLegal(null)} />
+            <div className="relative w-full sm:max-w-md bg-zinc-950 border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-6 pb-10 space-y-4 max-h-[85vh] overflow-y-auto">
+              <div className="flex items-center justify-between">
+                <h3 className="font-black text-lg text-white uppercase tracking-tight">
+                  {showLegal === 'privacy' ? 'Aviso de Privacidad' : 'Términos y Condiciones'}
+                </h3>
+                <button onClick={() => setShowLegal(null)} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 text-white/60">
+                  <X size={18} />
+                </button>
+              </div>
+              {showLegal === 'privacy' ? (
+                <div className="space-y-3 text-xs text-zinc-400 leading-relaxed">
+                  <p><span className="text-white font-bold">IOGGA</span> (en adelante "la Plataforma"), con base en Chihuahua, México, es responsable del tratamiento de tus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP).</p>
+                  <p><span className="text-white font-bold">Datos que recabamos:</span> nombre, correo electrónico, número de WhatsApp (opcional), fotografía de perfil (opcional), ubicación aproximada y la actividad que publiques en la Plataforma (planes, promociones y canjes).</p>
+                  <p><span className="text-white font-bold">Finalidades:</span> crear y administrar tu cuenta; conectar planes personales con promociones comerciales; permitir la validación de códigos de canje entre usuarios y negocios; y mostrar estadísticas de uso a los negocios.</p>
+                  <p><span className="text-white font-bold">Compartición:</span> tu nombre y foto son visibles para otros usuarios. Tu número de WhatsApp solo se muestra a quienes interactúan con tus planes, para coordinar directamente. No vendemos tus datos a terceros.</p>
+                  <p><span className="text-white font-bold">Derechos ARCO:</span> puedes acceder, rectificar, cancelar u oponerte al tratamiento de tus datos escribiendo a <span className="text-white">soporte@iogga.com</span>. También puedes eliminar tu cuenta en cualquier momento.</p>
+                  <p><span className="text-white font-bold">Seguridad:</span> los datos se almacenan en la infraestructura de Google Firebase con controles de acceso y cifrado en tránsito.</p>
+                  <p className="text-zinc-600">Última actualización: julio de 2026. Este aviso puede actualizarse; los cambios se publicarán en la Plataforma.</p>
+                </div>
+              ) : (
+                <div className="space-y-3 text-xs text-zinc-400 leading-relaxed">
+                  <p>Al usar <span className="text-white font-bold">IOGGA</span> aceptas estos términos. Si no estás de acuerdo, no uses la Plataforma.</p>
+                  <p><span className="text-white font-bold">1. El servicio.</span> IOGGA conecta planes personales con promociones de negocios en tiempo real. IOGGA no es parte de las transacciones entre usuarios y negocios: los precios, la calidad y la entrega de productos o servicios son responsabilidad exclusiva del negocio.</p>
+                  <p><span className="text-white font-bold">2. Tu cuenta.</span> Debes ser mayor de 18 años. Eres responsable de la información que publiques y de mantener la confidencialidad de tu acceso.</p>
+                  <p><span className="text-white font-bold">3. Códigos de canje.</span> Los códigos QR generados por la Plataforma son personales, válidos por 24 horas y de un solo uso. Su validación es realizada por el negocio correspondiente. IOGGA no garantiza la disponibilidad de una promoción al momento del canje.</p>
+                  <p><span className="text-white font-bold">4. Encuentros entre usuarios.</span> Los planes se realizan bajo tu propia responsabilidad. Te recomendamos reunirte en lugares públicos y verificar la identidad de las personas. IOGGA no supervisa los encuentros ni se hace responsable de lo que ocurra en ellos.</p>
+                  <p><span className="text-white font-bold">5. Contenido.</span> No publiques contenido ilegal, ofensivo o engañoso. Podemos retirar contenido y suspender cuentas que violen estos términos.</p>
+                  <p><span className="text-white font-bold">6. Responsabilidad.</span> La Plataforma se ofrece "tal cual", en etapa MVP. En la medida permitida por la ley, IOGGA no será responsable por daños indirectos derivados del uso del servicio.</p>
+                  <p><span className="text-white font-bold">7. Contacto.</span> soporte@iogga.com · Chihuahua, México.</p>
+                  <p className="text-zinc-600">Última actualización: julio de 2026.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </>
     )}
 

@@ -138,6 +138,7 @@ export interface UserProfile {
   bio?: string;
   location?: string;
   photoURL?: string | null;
+  whatsapp?: string; // para el botón "Hablar por WhatsApp" al hacer match
 }
 
 export function watchProfile(uid: string, callback: (profile: UserProfile) => void): () => void {
@@ -209,9 +210,23 @@ export interface Redemption {
   promoId: string;
   promoTitle: string;
   businessName: string;
+  businessUid?: string | null; // dueño de la promo: solo él puede validar
+  priceAmount: number; // monto de la promo (para analíticas y futuros pagos)
   userName: string;
+  uid?: string | null;
   status: 'pending' | 'redeemed';
+  createdAtMs: number; // para expiración (24 horas)
 }
+
+// Convierte "$120", "$1,250.50 MXN", "120 pesos" -> 120 / 1250.5
+export function parsePrice(price: string | undefined): number {
+  if (!price) return 0;
+  const clean = price.replace(/[^0-9.]/g, '');
+  const n = parseFloat(clean);
+  return Number.isFinite(n) ? n : 0;
+}
+
+const REDEMPTION_TTL_MS = 24 * 60 * 60 * 1000; // los códigos duran 24 horas
 
 function generateCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin caracteres confusos (0/O, 1/I)
@@ -235,7 +250,7 @@ function demoWrite(data: Record<string, Redemption>): void {
 }
 
 export async function createRedemption(
-  promo: { id: string; title: string; businessName: string },
+  promo: { id: string; title: string; businessName: string; uid?: string | null; price?: string },
   user: AuthUser | null
 ): Promise<Redemption> {
   const redemption: Redemption = {
@@ -243,13 +258,16 @@ export async function createRedemption(
     promoId: promo.id,
     promoTitle: promo.title,
     businessName: promo.businessName,
+    businessUid: promo.uid || null,
+    priceAmount: parsePrice(promo.price),
     userName: user?.name || 'Invitado',
+    uid: user?.uid || null,
     status: 'pending',
+    createdAtMs: Date.now(),
   };
   if (db) {
     await setDoc(doc(db, 'redemptions', redemption.code), {
       ...redemption,
-      uid: user?.uid || null,
       createdAt: serverTimestamp(),
     });
   } else {
@@ -262,9 +280,25 @@ export async function createRedemption(
 
 export type ValidationResult =
   | { ok: true; redemption: Redemption }
-  | { ok: false; reason: 'not-found' | 'already-used' | 'error'; redemption?: Redemption };
+  | {
+      ok: false;
+      reason: 'not-found' | 'already-used' | 'expired' | 'wrong-business' | 'error';
+      redemption?: Redemption;
+    };
 
-export async function validateRedemption(rawCode: string): Promise<ValidationResult> {
+function checkRedemption(redemption: Redemption, validatorUid?: string | null): ValidationResult | null {
+  if (redemption.status === 'redeemed') return { ok: false, reason: 'already-used', redemption };
+  if (redemption.createdAtMs && Date.now() - redemption.createdAtMs > REDEMPTION_TTL_MS) {
+    return { ok: false, reason: 'expired', redemption };
+  }
+  // El código solo lo puede validar el negocio dueño de la promoción
+  if (redemption.businessUid && validatorUid && redemption.businessUid !== validatorUid) {
+    return { ok: false, reason: 'wrong-business', redemption };
+  }
+  return null; // válido
+}
+
+export async function validateRedemption(rawCode: string, validatorUid?: string | null): Promise<ValidationResult> {
   const code = rawCode.trim().toUpperCase().replace(/^IOGGA:/, '');
   if (!code) return { ok: false, reason: 'not-found' };
 
@@ -274,8 +308,15 @@ export async function validateRedemption(rawCode: string): Promise<ValidationRes
       const snap = await getDoc(ref);
       if (!snap.exists()) return { ok: false, reason: 'not-found' };
       const redemption = snap.data() as Redemption;
-      if (redemption.status === 'redeemed') return { ok: false, reason: 'already-used', redemption };
-      await updateDoc(ref, { status: 'redeemed', redeemedAt: serverTimestamp() });
+      const problem = checkRedemption(redemption, validatorUid);
+      if (problem) return problem;
+      await updateDoc(ref, { status: 'redeemed', redeemedAt: serverTimestamp(), redeemedBy: validatorUid || null });
+      // Reflejar el canje en las analíticas reales de la promoción
+      await updateDoc(doc(db, 'promos', redemption.promoId), {
+        qrScans: increment(1),
+        salesCount: increment(1),
+        totalEarnings: increment(redemption.priceAmount || 0),
+      }).catch(() => {});
       return { ok: true, redemption: { ...redemption, status: 'redeemed' } };
     } catch {
       return { ok: false, reason: 'error' };
@@ -285,7 +326,8 @@ export async function validateRedemption(rawCode: string): Promise<ValidationRes
   const data = demoRead();
   const redemption = data[code];
   if (!redemption) return { ok: false, reason: 'not-found' };
-  if (redemption.status === 'redeemed') return { ok: false, reason: 'already-used', redemption };
+  const problem = checkRedemption(redemption, validatorUid);
+  if (problem) return problem;
   redemption.status = 'redeemed';
   demoWrite(data);
   return { ok: true, redemption };

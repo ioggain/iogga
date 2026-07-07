@@ -25,6 +25,7 @@ export type UserMode = 'person' | 'business';
 export interface Plan {
   id: string;
   uid?: string; // dueño del plan (usuario de Firebase)
+  whatsapp?: string; // para el botón "Hablar por WhatsApp" al aceptar
   userName: string;
   userAvatar: string;
   userBio?: string;

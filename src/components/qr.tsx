@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
+import jsQR from 'jsqr';
 import { QrCode, X, CheckCircle2, XCircle, Camera, Loader2, Download, Keyboard } from 'lucide-react';
 import {
   createRedemption,
@@ -130,10 +131,7 @@ export function ValidateCodeModal({ onClose, validatorUid }: { onClose: () => vo
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const canScan =
-    typeof window !== 'undefined' &&
-    'BarcodeDetector' in window &&
-    !!navigator.mediaDevices?.getUserMedia;
+  const canScan = typeof window !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
 
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -159,29 +157,46 @@ export function ValidateCodeModal({ onClose, validatorUid }: { onClose: () => vo
       if (!videoRef.current) return;
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
-      const Detector = (window as any).BarcodeDetector;
-      const detector = new Detector({ formats: ['qr_code'] });
+      const hasNative = 'BarcodeDetector' in window;
+      const detector = hasNative ? new (window as any).BarcodeDetector({ formats: ['qr_code'] }) : null;
+      const canvas = document.createElement('canvas');
+      const canvasCtx = canvas.getContext('2d', { willReadFrequently: true })!;
+
+      const readFrame = async (): Promise<string | null> => {
+        const video = videoRef.current!;
+        if (detector) {
+          const codes = await detector.detect(video);
+          return codes.length > 0 ? String(codes[0].rawValue || '') : null;
+        }
+        // Respaldo universal (iPhone): leer el QR con jsQR desde un canvas
+        if (!video.videoWidth) return null;
+        const scale = Math.min(1, 480 / video.videoWidth);
+        canvas.width = Math.round(video.videoWidth * scale);
+        canvas.height = Math.round(video.videoHeight * scale);
+        canvasCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = canvasCtx.getImageData(0, 0, canvas.width, canvas.height);
+        const found = jsQR(imageData.data, imageData.width, imageData.height);
+        return found ? found.data : null;
+      };
+
       const tick = async () => {
         if (!streamRef.current || !videoRef.current) return;
         try {
-          const codes = await detector.detect(videoRef.current);
-          if (codes.length > 0) {
-            const raw = String(codes[0].rawValue || '');
+          const raw = await readFrame();
+          if (raw) {
             // Solo aceptamos códigos generados por IOGGA
-            if (!raw.startsWith('IOGGA:')) {
-              requestAnimationFrame(tick);
+            if (raw.startsWith('IOGGA:')) {
+              const clean = raw.replace(/^IOGGA:/, '').trim().toUpperCase();
+              setCode(clean);
+              stopCamera();
+              await validate(clean);
               return;
             }
-            const clean = raw.replace(/^IOGGA:/, '').trim().toUpperCase();
-            setCode(clean);
-            stopCamera();
-            await validate(clean);
-            return;
           }
         } catch {
           // seguir intentando
         }
-        requestAnimationFrame(tick);
+        setTimeout(() => requestAnimationFrame(tick), 120); // ~8 lecturas/seg: fluido sin quemar batería
       };
       requestAnimationFrame(tick);
     } catch {

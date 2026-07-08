@@ -76,11 +76,16 @@ import {
   deleteDocIn,
   fetchDocIn,
   incrementPlanAccepted,
+  acceptPlanAs,
+  saveBusinessProfile,
+  watchMyRedemptions,
+  type Redemption,
   type AuthUser,
   type UserProfile
 } from './lib/firebase';
 import { RedeemQRModal, ValidateCodeModal } from './components/qr';
 import { pickImage } from './lib/images';
+import { playChime } from './lib/sound';
 
 interface AppNotification {
   id: string;
@@ -269,13 +274,13 @@ export default function App() {
   const [showEditBusinessProfile, setShowEditBusinessProfile] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [businessProfile, setBusinessProfile] = useState({
-    name: 'La Cabalita',
-    bio: 'El mejor café artesanal y repostería fina en un ambiente acogedor.',
-    logo: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=150&q=80',
+    name: '',
+    bio: '',
+    logo: 'https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=150&q=80',
     cover: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80',
-    location: 'Av. Reforma 450',
-    phone: '+52 81 1234 5678',
-    email: 'hola@lacabalita.com'
+    location: '',
+    phone: '',
+    email: ''
   });
   const [mode, setMode] = useState<UserMode>('person');
   const [activeTab, setActiveTab] = useState('home');
@@ -426,8 +431,12 @@ export default function App() {
     parts.push(`${firstName} desea: ${plan.activity}.`);
 
     const when = [plan.dateLabel, plan.startTime ? `a las ${plan.startTime}` : ''].filter(Boolean).join(' ');
-    if (plan.location && when) parts.push(`Estará en ${plan.location} ${when}.`);
-    else if (plan.location) parts.push(`Estará en ${plan.location}.`);
+    const allPlaces = [plan.location, ...(plan.locations || [])].filter(l => l && l.trim());
+    const place = allPlaces.length > 1
+      ? allPlaces.slice(0, -1).join(', ') + ' y ' + allPlaces[allPlaces.length - 1]
+      : allPlaces[0] || '';
+    if (place && when) parts.push(`Estará en ${place} ${when}.`);
+    else if (place) parts.push(`Estará en ${place}.`);
     else if (when) parts.push(`Será ${when}.`);
 
     const transport =
@@ -511,6 +520,46 @@ export default function App() {
     }
     return watchProfile(currentUser.uid, setUserProfile);
   }, [currentUser?.uid]);
+
+  // Al cargar el perfil, restaurar también el negocio guardado (una cuenta, dos caras)
+  useEffect(() => {
+    if (userProfile.business) {
+      setBusinessProfile(prev => ({ ...prev, ...userProfile.business }));
+      setHasBusiness(true);
+    }
+  }, [userProfile.business]);
+
+  // Ventas REALES del negocio (canjes validados) para las gráficas
+  const [myRedemptions, setMyRedemptions] = useState<Redemption[]>([]);
+  useEffect(() => {
+    if (!currentUser || currentUser.isAnonymous) {
+      setMyRedemptions([]);
+      return;
+    }
+    return watchMyRedemptions(currentUser.uid, setMyRedemptions);
+  }, [currentUser?.uid]);
+
+  // Serie de ventas por día (últimos 7 días) a partir de canjes reales
+  const salesSeries = (promoId?: string) => {
+    const days: { name: string; sales: number }[] = [];
+    const DOWS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      const end = start + 24 * 60 * 60 * 1000;
+      const total = myRedemptions
+        .filter(r => r.status === 'redeemed' && (r.redeemedAtMs || r.createdAtMs) >= start && (r.redeemedAtMs || r.createdAtMs) < end)
+        .filter(r => !promoId || r.promoId === promoId)
+        .reduce((s, r) => s + (r.priceAmount || 0), 0);
+      days.push({ name: DOWS[d.getDay()], sales: total });
+    }
+    // Tendencia: promedio móvil de 3 días
+    return days.map((d, i) => {
+      const win = days.slice(Math.max(0, i - 2), i + 1);
+      return { ...d, trend: Math.round(win.reduce((s, x) => s + x.sales, 0) / win.length) };
+    });
+  };
 
   // ¿Este plan es mío? (con Firebase: por dueño; en demo: el usuario de ejemplo)
   const isMyPlan = (p: Plan) => (p.uid ? p.uid === currentUser?.uid : p.userName === 'Eduardo');
@@ -733,6 +782,7 @@ export default function App() {
         comment: newPlan.comment,
         date: newPlan.date,
         dateLabel: newPlan.dateLabel,
+        locations: (newPlan.locations || []).filter(l => l.trim()),
         startTime: newPlan.startTime || '00:00',
         endTime: newPlan.endTime || '00:00',
         location: newPlan.location || 'Ubicación',
@@ -839,12 +889,14 @@ export default function App() {
   const handleStart = () => {
     // Estilo TikTok: entrar y explorar es libre, sin pedir cuenta.
     // El login solo aparece en momentos clave (publicar, aceptar, canjear).
+    playChime('lluvia'); // lluvia de notitas de cristal ✨
     setIsIntro(false);
     setShowCreatePlan(true);
     setActiveTab('search');
   };
 
   const handleSkipIntro = () => {
+    playChime('lluvia');
     // Continue directly as guest (not logged in)
     setIsLoggedIn(false);
     setIsIntro(false);
@@ -855,7 +907,11 @@ export default function App() {
     // Momento clave: aceptar un plan requiere cuenta (explorar sigue siendo libre)
     ensureLoggedIn(() => {
       setAcceptedPlanIds(prev => (prev.includes(id) ? prev : [...prev, id]));
-      void incrementPlanAccepted(id);
+      if (currentUser) {
+        void acceptPlanAs(id, currentUser, userProfile.photoURL);
+      } else {
+        void incrementPlanAccepted(id);
+      }
     });
   };
 
@@ -948,14 +1004,19 @@ export default function App() {
   }, []);
 
   const toggleMode = (newMode: UserMode) => {
-    if (newMode === 'business' && !hasBusiness) {
-      triggerBeta("Función Inhabilitada", "La sección de negocios está inhabilitada porque seleccionaste 'No tengo negocio' en tu perfil.");
-      return;
-    }
+    // Sin barreras: cualquiera puede entrar al modo negocio y explorar
     setMode(newMode);
     setShowModeMenu(false);
     if (newMode === 'business') {
+      setHasBusiness(true);
       setActiveTab('analytics');
+      // Primera vez sin perfil de negocio: recorrido guiado de la sección
+      if (!businessProfile.name && !localStorage.getItem('iogga_biz_tour')) {
+        localStorage.setItem('iogga_biz_tour', '1');
+        setTutorialMode('business');
+        setTutorialStep(0);
+        setShowTutorial(true);
+      }
     } else {
       setActiveTab('home');
     }
@@ -1062,7 +1123,13 @@ export default function App() {
                 onClick={handleRefresh}
                 className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-full transition-all duration-500 shadow-lg active:scale-95 ${mode === 'person' ? 'bg-iogga-primary/10 text-iogga-primary' : 'bg-iogga-accent/10 text-iogga-accent'}`}
               >
-                {mode === 'person' ? <User size={20} strokeWidth={2.5} className="shrink-0" /> : <Store size={20} strokeWidth={2.5} className="shrink-0" />}
+                {mode === 'person'
+                  ? (userProfile.photoURL
+                      ? <img src={userProfile.photoURL} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" />
+                      : <User size={20} strokeWidth={2.5} className="shrink-0" />)
+                  : (businessProfile.logo && businessProfile.name
+                      ? <img src={businessProfile.logo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" />
+                      : <Store size={20} strokeWidth={2.5} className="shrink-0" />)}
               </button>
               <div className="relative">
                 <button 
@@ -2062,6 +2129,15 @@ export default function App() {
                 exit={{ opacity: 0, y: -20 }}
                 className="p-4 space-y-6"
               >
+                {mode === 'business' && !isLoggedIn && (
+                  <button
+                    onClick={() => setShowLoginModal(true)}
+                    className="w-full p-4 rounded-3xl bg-iogga-accent/10 border border-iogga-accent/30 text-left flex items-center gap-3"
+                  >
+                    <Shield size={18} className="text-iogga-accent shrink-0" />
+                    <p className="text-xs text-zinc-300 font-medium">Hay clientes interesados en tu negocio. <span className="text-iogga-accent font-black">Inicia sesión</span> para abrir tus notificaciones.</p>
+                  </button>
+                )}
                 <div className="flex items-center justify-between px-1">
                   <div>
                     <h2 className="text-2xl font-black text-white">Notificaciones</h2>
@@ -2275,7 +2351,7 @@ export default function App() {
                         </div>
                         <div className="h-48 w-full">
                           <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={MOCK_SALES_DATA}>
+                            <AreaChart data={salesSeries()}>
                               <defs>
                                 <linearGradient id="colorSalesProd" x1="0" y1="0" x2="0" y2="1">
                                   <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3}/>
@@ -2376,7 +2452,7 @@ export default function App() {
                         </div>
                         <div className="h-48 w-full">
                           <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={MOCK_SALES_DATA}>
+                            <AreaChart data={salesSeries(selectedProductAnalytics?.id)}>
                               <defs>
                                 <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
                                   <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3}/>
@@ -2546,7 +2622,7 @@ export default function App() {
                 ) : (
                   <div className="p-6 flex flex-col items-center text-center space-y-4">
                     <div className="relative">
-                      <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80" className="w-24 h-24 rounded-full border-4 border-zinc-900 shadow-xl" referrerPolicy="no-referrer" />
+                      <img src={userProfile.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80"} className="w-24 h-24 rounded-full border-4 border-zinc-900 shadow-xl object-cover" referrerPolicy="no-referrer" />
                       <button className="absolute bottom-0 right-0 p-2 bg-zinc-800 rounded-full shadow-lg text-iogga-primary border border-white/10">
                         <Edit3 size={16} />
                       </button>
@@ -2810,7 +2886,7 @@ export default function App() {
                 onDoubleClick={() => toggleMode('business')}
                 icon={
                   <div className="relative">
-                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80" className="w-7 h-7 rounded-full border border-white/20 object-cover" />
+                    <img src={userProfile.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80"} className="w-7 h-7 rounded-full border border-white/20 object-cover" referrerPolicy="no-referrer" />
                     <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-iogga-primary rounded-full border border-zinc-950 flex items-center justify-center shadow-lg">
                       <User size={8} className="text-white" />
                     </div>
@@ -2862,7 +2938,7 @@ export default function App() {
                 onDoubleClick={() => toggleMode('person')}
                 icon={
                   <div className="relative">
-                    <img src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=150&q=80" className="w-7 h-7 rounded-lg border border-white/20 object-cover" />
+                    <img src={businessProfile.logo || "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=150&q=80"} className="w-7 h-7 rounded-lg border border-white/20 object-cover" referrerPolicy="no-referrer" />
                     <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-iogga-accent rounded-full border border-zinc-950 flex items-center justify-center shadow-lg">
                       <Store size={8} className="text-white" />
                     </div>
@@ -3146,6 +3222,34 @@ export default function App() {
                           autoFocus
                         />
                       </div>
+                      {(newPlan.locations || []).map((loc, i) => (
+                        <div key={i} className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder={`Ubicación ${i + 2}`}
+                            className="flex-1 h-14 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                            value={loc}
+                            onChange={e => {
+                              const locs = [...(newPlan.locations || [])];
+                              locs[i] = e.target.value;
+                              setNewPlan({...newPlan, locations: locs});
+                            }}
+                          />
+                          <button
+                            onClick={() => setNewPlan({...newPlan, locations: (newPlan.locations || []).filter((_, j) => j !== i)})}
+                            className="w-14 h-14 rounded-[20px] bg-white/5 border border-white/10 text-zinc-500 flex items-center justify-center active:scale-90"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => setNewPlan({...newPlan, locations: [...(newPlan.locations || []), '']})}
+                        className="w-full py-3 bg-white/5 border border-dashed border-white/15 text-zinc-400 rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 flex items-center justify-center gap-2"
+                      >
+                        <Plus size={14} />
+                        Agregar otra ubicación
+                      </button>
                     </motion.div>
                   )}
 
@@ -3544,8 +3648,19 @@ export default function App() {
                   />
                 </div>
 
-                <button 
-                  onClick={() => setShowEditBusinessProfile(false)}
+                <button
+                  onClick={async () => {
+                    let owner = currentUser;
+                    if (isFirebaseEnabled && !owner) {
+                      owner = await ensureAnonSession();
+                      if (owner) setCurrentUser(owner);
+                    }
+                    if (owner) {
+                      await saveBusinessProfile(owner.uid, businessProfile).catch(() => {});
+                    }
+                    setHasBusiness(true);
+                    setShowEditBusinessProfile(false);
+                  }}
                   className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform"
                 >
                   Guardar Cambios
@@ -3614,6 +3729,50 @@ export default function App() {
                       <MessageSquare size={16} />
                       Invitar más amigos por WhatsApp
                     </button>
+                  )}
+
+                  {/* Quiénes se unieron: visible con cuenta; borroso si publicaste sin registrarte */}
+                  {isMyPlan(selectedPlanForDetails) && (selectedPlanForDetails.acceptedBy?.length || 0) > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                        Se unieron ({selectedPlanForDetails.acceptedBy!.length})
+                      </p>
+                      {currentUser?.isAnonymous ? (
+                        <button
+                          onClick={() => {
+                            setSelectedPlanForDetails(null);
+                            setIsRegistering(true);
+                            setShowLoginModal(true);
+                          }}
+                          className="w-full p-4 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/30 flex items-center gap-3 text-left"
+                        >
+                          <div className="flex -space-x-2">
+                            {selectedPlanForDetails.acceptedBy!.slice(0, 3).map((a, i) => (
+                              <div key={i} className="w-8 h-8 rounded-full bg-zinc-700 border-2 border-zinc-950 blur-[3px]" />
+                            ))}
+                          </div>
+                          <p className="text-xs text-zinc-300 font-medium flex-1">
+                            <span className="blur-[5px] select-none">{selectedPlanForDetails.acceptedBy![0].name}</span> y más se unieron — <span className="text-iogga-primary font-black">crea tu cuenta gratis para verlos</span>
+                          </p>
+                        </button>
+                      ) : (
+                        <div className="space-y-2">
+                          {selectedPlanForDetails.acceptedBy!.map((a, i) => (
+                            <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
+                              {a.photo ? (
+                                <img src={a.photo} className="w-9 h-9 rounded-full object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                <div className="w-9 h-9 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center text-xs font-black">
+                                  {a.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <span className="text-sm font-bold text-white">{a.name}</span>
+                              <CheckCircle2 size={16} className="text-green-400 ml-auto" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {renderPlanTechnicalDetails(selectedPlanForDetails)}
@@ -3804,6 +3963,24 @@ export default function App() {
           {showSettingsMenu && (
             <Modal onClose={() => setShowSettingsMenu(false)} title="Configuración">
               <div className="space-y-6">
+                {/* Interruptor de modo estilo Uber/DiDi: siempre a la mano */}
+                <button
+                  onClick={() => {
+                    setShowSettingsMenu(false);
+                    toggleMode(mode === 'person' ? 'business' : 'person');
+                  }}
+                  className={`w-full p-5 rounded-3xl flex items-center justify-between transition-all active:scale-[0.98] ${mode === 'person' ? 'bg-iogga-accent text-white shadow-xl shadow-iogga-accent/20' : 'bg-iogga-primary text-white shadow-xl shadow-iogga-primary/20'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    {mode === 'person' ? <Store size={22} /> : <User size={22} />}
+                    <div className="text-left">
+                      <p className="font-black text-sm uppercase tracking-wide">{mode === 'person' ? 'Cambiar a Negocio' : 'Cambiar a Personal'}</p>
+                      <p className="text-[10px] opacity-80">{mode === 'person' ? 'Publica ofertas y valida canjes QR' : 'Vuelve a tus planes personales'}</p>
+                    </div>
+                  </div>
+                  <ArrowRight size={18} />
+                </button>
+
                 <div className="space-y-2">
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2">Cuenta y Seguridad</p>
                   <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden">
@@ -3876,7 +4053,7 @@ export default function App() {
                       label="Centro de Ayuda" 
                       onClick={() => {
                         setShowSettingsMenu(false);
-                        triggerBeta("Centro de Ayuda", "Contacta a soporte@iogga.com si requieres asistencia técnica adicional durante tus pruebas de MVP.");
+                        triggerBeta("Centro de Ayuda", "Contacta a admin@iogga.com si requieres asistencia técnica adicional durante tus pruebas de MVP.");
                       }}
                     />
                     <SettingsItem 
@@ -3955,7 +4132,7 @@ export default function App() {
                 <div className="space-y-2.5">
                   <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block font-sans">Invita a tus amigos (sin que descarguen nada):</span>
                   <div className="p-4 rounded-[24px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-medium text-xs relative italic leading-relaxed">
-                    "🎉 {currentUser?.name || 'Tú'} te está invitando: {lastPublishedPlan.activity} · {lastPublishedPlan.startTime} en {lastPublishedPlan.location}. Mira tu invitación aquí 👉 iogga.com/?inv=…"
+                    "{buildInviteMessage(lastPublishedPlan)}" + link mágico 👉 iogga.com/?inv=…
                   </div>
                   <button
                     onClick={() => sharePlanWhatsApp(lastPublishedPlan)}
@@ -4393,7 +4570,7 @@ export default function App() {
                   </div>
                   <div>
                     <p className="text-[10px] font-black text-iogga-primary uppercase tracking-[0.3em]">Tienes una invitación 💌</p>
-                    <h3 className="font-black text-2xl text-white mt-1">{invitationPlan.userName} te invita</h3>
+                    <h3 className="font-black text-2xl text-white mt-1">Intención compartida ✨</h3>
                   </div>
                   <p className="text-sm text-white/90 leading-relaxed px-2">
                     {buildInviteMessage(invitationPlan)}
@@ -4437,8 +4614,8 @@ export default function App() {
                 </div>
 
                 <p className="text-[10px] text-zinc-600 text-center leading-relaxed">
-                  IOGGA es una app web: no se descarga, no ocupa espacio y tus datos están seguros.
-                  Instálala desde el menú de tu navegador si quieres tenerla como app. ✨
+                  🔒 Al aceptar solo se comparte tu nombre — nada más. IOGGA es web:
+                  no se descarga, no ocupa espacio y tus datos están protegidos. ✨
                 </p>
               </div>
             </motion.div>
@@ -4464,7 +4641,7 @@ export default function App() {
                   <p><span className="text-white font-bold">Datos que recabamos:</span> nombre, correo electrónico, número de WhatsApp (opcional), fotografía de perfil (opcional), ubicación aproximada y la actividad que publiques en la Plataforma (planes, promociones y canjes).</p>
                   <p><span className="text-white font-bold">Finalidades:</span> crear y administrar tu cuenta; conectar planes personales con promociones comerciales; permitir la validación de códigos de canje entre usuarios y negocios; y mostrar estadísticas de uso a los negocios.</p>
                   <p><span className="text-white font-bold">Compartición:</span> tu nombre y foto son visibles para otros usuarios. Tu número de WhatsApp solo se muestra a quienes interactúan con tus planes, para coordinar directamente. No vendemos tus datos a terceros.</p>
-                  <p><span className="text-white font-bold">Derechos ARCO:</span> puedes acceder, rectificar, cancelar u oponerte al tratamiento de tus datos escribiendo a <span className="text-white">soporte@iogga.com</span>. También puedes eliminar tu cuenta en cualquier momento.</p>
+                  <p><span className="text-white font-bold">Derechos ARCO:</span> puedes acceder, rectificar, cancelar u oponerte al tratamiento de tus datos escribiendo a <span className="text-white">admin@iogga.com</span>. También puedes eliminar tu cuenta en cualquier momento.</p>
                   <p><span className="text-white font-bold">Seguridad:</span> los datos se almacenan en la infraestructura de Google Firebase con controles de acceso y cifrado en tránsito.</p>
                   <p className="text-zinc-600">Última actualización: julio de 2026. Este aviso puede actualizarse; los cambios se publicarán en la Plataforma.</p>
                 </div>
@@ -4477,7 +4654,7 @@ export default function App() {
                   <p><span className="text-white font-bold">4. Encuentros entre usuarios.</span> Los planes se realizan bajo tu propia responsabilidad. Te recomendamos reunirte en lugares públicos y verificar la identidad de las personas. IOGGA no supervisa los encuentros ni se hace responsable de lo que ocurra en ellos.</p>
                   <p><span className="text-white font-bold">5. Contenido.</span> No publiques contenido ilegal, ofensivo o engañoso. Podemos retirar contenido y suspender cuentas que violen estos términos.</p>
                   <p><span className="text-white font-bold">6. Responsabilidad.</span> La Plataforma se ofrece "tal cual", en etapa MVP. En la medida permitida por la ley, IOGGA no será responsable por daños indirectos derivados del uso del servicio.</p>
-                  <p><span className="text-white font-bold">7. Contacto.</span> soporte@iogga.com · Chihuahua, México.</p>
+                  <p><span className="text-white font-bold">7. Contacto.</span> admin@iogga.com · Chihuahua, México.</p>
                   <p className="text-zinc-600">Última actualización: julio de 2026.</p>
                 </div>
               )}
@@ -4529,8 +4706,8 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
   const steps = {
     person: [
       {
-        title: "¡Bienvenido a IOGGA!",
-        description: "La app donde tus planes cobran vida y conectar es más fácil que nunca. Vamos a darte un recorrido rápido.",
+        title: "IOGGA ✨",
+        description: "La app para salir del móvil y entrar en la vida. Crea momentos mágicos, sin chats, espontáneamente. Comparte tu intención y deja que la magia haga el resto.",
         targetId: null,
         icon: <Sparkles className="text-iogga-primary" size={32} />
       },

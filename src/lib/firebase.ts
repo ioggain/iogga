@@ -8,6 +8,9 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signInAnonymously,
+  linkWithCredential,
+  linkWithPopup,
+  EmailAuthProvider,
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
@@ -18,6 +21,7 @@ import {
   getFirestore,
   collection,
   query,
+  where,
   orderBy,
   limit,
   onSnapshot,
@@ -27,6 +31,7 @@ import {
   updateDoc,
   deleteDoc,
   increment,
+  arrayUnion,
   serverTimestamp,
   type Firestore,
 } from 'firebase/firestore';
@@ -99,7 +104,11 @@ export async function ensureAnonSession(): Promise<AuthUser | null> {
 
 export async function registerUser(name: string, email: string, password: string): Promise<AuthUser> {
   if (!auth || !db) throw new Error('demo');
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  // Si venía como invitado anónimo, VINCULAMOS la cuenta en lugar de crear otra:
+  // así conserva sus planes, su negocio y todo lo que ya hizo.
+  const cred = auth.currentUser?.isAnonymous
+    ? await linkWithCredential(auth.currentUser, EmailAuthProvider.credential(email, password))
+    : await createUserWithEmailAndPassword(auth, email, password);
   await updateProfile(cred.user, { displayName: name });
   // Guardar el perfil no debe impedir el registro si las reglas aún no están publicadas
   try {
@@ -126,7 +135,24 @@ export async function loginUser(email: string, password: string): Promise<AuthUs
 
 export async function loginWithGoogle(): Promise<AuthUser> {
   if (!auth || !db) throw new Error('demo');
-  const cred = await signInWithPopup(auth, new GoogleAuthProvider());
+  const provider = new GoogleAuthProvider();
+  let cred;
+  if (auth.currentUser?.isAnonymous) {
+    // Invitado anónimo: vincular su cuenta de Google conservando todos sus datos
+    try {
+      cred = await linkWithPopup(auth.currentUser, provider);
+    } catch (err) {
+      // Ese Google ya tiene cuenta en IOGGA: iniciar sesión normal con ella
+      const code = (err as { code?: string })?.code || '';
+      if (code.includes('credential-already-in-use') || code.includes('email-already-in-use')) {
+        cred = await signInWithPopup(auth, provider);
+      } else {
+        throw err;
+      }
+    }
+  } else {
+    cred = await signInWithPopup(auth, provider);
+  }
   const user: AuthUser = {
     uid: cred.user.uid,
     name: cred.user.displayName || cred.user.email?.split('@')[0] || 'Usuario',
@@ -151,6 +177,16 @@ export function logoutUser(): void {
 
 // ---------- Perfil del usuario (para el medidor "completa tu perfil") ----------
 
+export interface BusinessProfile {
+  name?: string;
+  bio?: string;
+  logo?: string;
+  cover?: string;
+  location?: string;
+  phone?: string;
+  email?: string;
+}
+
 export interface UserProfile {
   name?: string;
   email?: string;
@@ -158,6 +194,7 @@ export interface UserProfile {
   location?: string;
   photoURL?: string | null;
   whatsapp?: string; // para el botón "Hablar por WhatsApp" al hacer match
+  business?: BusinessProfile; // perfil de negocio del usuario (mismo modelo que Facebook: una cuenta, dos caras)
 }
 
 export function watchProfile(uid: string, callback: (profile: UserProfile) => void): () => void {
@@ -220,6 +257,32 @@ export async function incrementPlanAccepted(planId: string): Promise<void> {
   await updateDoc(doc(db, 'plans', planId), { acceptedCount: increment(1) }).catch(() => {});
 }
 
+// Registrar QUIÉN aceptó el plan (nombre y foto) para mostrarlo al creador
+export async function acceptPlanAs(planId: string, user: AuthUser, photoURL?: string | null): Promise<void> {
+  if (!db) return;
+  await updateDoc(doc(db, 'plans', planId), {
+    acceptedCount: increment(1),
+    acceptedBy: arrayUnion({ uid: user.uid, name: user.name, photo: photoURL || null }),
+  }).catch(() => {});
+}
+
+// Guardar el perfil de negocio dentro del documento del usuario
+export async function saveBusinessProfile(uid: string, business: BusinessProfile): Promise<void> {
+  if (!db) return;
+  await setDoc(doc(db, 'users', uid), { business: sanitize(business), updatedAt: serverTimestamp() }, { merge: true });
+}
+
+// Canjes del negocio en tiempo real (para la gráfica de ventas REAL)
+export function watchMyRedemptions(businessUid: string, callback: (items: Redemption[]) => void): () => void {
+  if (!db) return () => {};
+  const q = query(collection(db, 'redemptions'), where('businessUid', '==', businessUid));
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => d.data() as Redemption)),
+    () => callback([])
+  );
+}
+
 export function authErrorMessage(err: unknown): string {
   const code = (err as { code?: string })?.code || '';
   if (code.includes('invalid-credential') || code.includes('wrong-password') || code.includes('user-not-found')) {
@@ -246,6 +309,7 @@ export interface Redemption {
   uid?: string | null;
   status: 'pending' | 'redeemed';
   createdAtMs: number; // para expiración (24 horas)
+  redeemedAtMs?: number; // para la gráfica de ventas por día
 }
 
 // Convierte "$120", "$1,250.50 MXN", "120 pesos" -> 120 / 1250.5
@@ -340,12 +404,30 @@ export async function validateRedemption(rawCode: string, validatorUid?: string 
       const redemption = snap.data() as Redemption;
       const problem = checkRedemption(redemption, validatorUid);
       if (problem) return problem;
-      await updateDoc(ref, { status: 'redeemed', redeemedAt: serverTimestamp(), redeemedBy: validatorUid || null });
+      await updateDoc(ref, { status: 'redeemed', redeemedAt: serverTimestamp(), redeemedAtMs: Date.now(), redeemedBy: validatorUid || null });
       // Reflejar el canje en las analíticas reales de la promoción
       await updateDoc(doc(db, 'promos', redemption.promoId), {
         qrScans: increment(1),
         salesCount: increment(1),
         totalEarnings: increment(redemption.priceAmount || 0),
+      }).catch(() => {});
+      // Libro contable de IOGGA: base para pagos en la app y comisión por transacción.
+      // Hoy la venta se cobra en el local (offline); cuando activemos pagos, aquí
+      // se registrará el cobro y la comisión ya está calculada.
+      const IOGGA_COMMISSION_RATE = 0.05;
+      await setDoc(doc(db, 'ledger', code), {
+        type: 'redemption',
+        code,
+        promoId: redemption.promoId,
+        promoTitle: redemption.promoTitle,
+        businessUid: redemption.businessUid || null,
+        businessName: redemption.businessName,
+        amount: redemption.priceAmount || 0,
+        commissionRate: IOGGA_COMMISSION_RATE,
+        commissionAmount: Math.round((redemption.priceAmount || 0) * IOGGA_COMMISSION_RATE * 100) / 100,
+        paymentStatus: 'offline', // 'offline' hoy; 'paid_in_app' cuando activemos pagos
+        createdAt: serverTimestamp(),
+        createdAtMs: Date.now(),
       }).catch(() => {});
       return { ok: true, redemption: { ...redemption, status: 'redeemed' } };
     } catch {

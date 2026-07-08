@@ -46,6 +46,8 @@ export interface Plan {
   transportType?: string;
   guests: 'public' | 'friends';
   acceptedCount: number;
+  acceptedBy?: { uid: string; name: string; photo?: string | null }[]; // quiénes aceptaron
+  locations?: string[]; // ubicaciones adicionales
   timestamp: number;
   isPublic: boolean;
   image?: string;

@@ -66,6 +66,7 @@ import {
   registerUser,
   loginUser,
   loginWithGoogle,
+  ensureAnonSession,
   logoutUser,
   authErrorMessage,
   watchProfile,
@@ -333,7 +334,7 @@ export default function App() {
 
   // Auth & Business States
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [hasBusiness, setHasBusiness] = useState(true);
+  const [hasBusiness, setHasBusiness] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -361,10 +362,99 @@ export default function App() {
     return `https://wa.me/${full}?text=${encodeURIComponent(text)}`;
   };
 
+  // ---- Selector de fecha en 1 toque: Hoy · Mañana · días de la semana · 📅 ----
+  const DOW = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const dateOptions = (() => {
+    const opts: { iso: string; label: string; chip: string }[] = [];
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const dow = DOW[d.getDay()];
+      opts.push({
+        iso,
+        label: i === 0 ? 'hoy' : i === 1 ? 'mañana' : `el ${dow}`,
+        chip: i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : dow.charAt(0).toUpperCase() + dow.slice(1, 3),
+      });
+    }
+    return opts;
+  })();
+  const customDateLabel = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return `el ${d} de ${MONTHS[m - 1]}`;
+  };
+
+  // Nombre del invitado que publica sin registrarse (para firmar su invitación)
+  const [guestName, setGuestName] = useState('');
+
+  // Categoría seleccionada en Explorar (modo persona)
+  const [personExploreCategory, setPersonExploreCategory] = useState('Todos');
+  const matchesCategory = (p: Plan) =>
+    personExploreCategory === 'Todos' ||
+    p.tags.some(t => t.includes(personExploreCategory.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''))) ||
+    p.activity.toLowerCase().includes(personExploreCategory.toLowerCase());
+
+  // ---- Fotos sugeridas por actividad (solo se cargan miniaturas ligeras) ----
+  const PHOTO_BANK: [RegExp, string[]][] = [
+    [/caf|coffee|desayun/i, ['1509042239860-f550ce710b93', '1541167760496-162955ed8a9f', '1495474472287-4d71bcdd2085']],
+    [/cine|peli|movie/i, ['1489599849927-2ee91cede3ba', '1585647347483-22b66260dfff', '1517604931442-7e0c8ed2963c']],
+    [/taco|pastor/i, ['1565299585323-38d6b0865b47', '1551504734-5ee1c4a1479b', '1613514785940-daed07799d9b']],
+    [/sushi|roll/i, ['1579871494447-9811cf80d66c', '1553621042-f6e147245754', '1611143669185-af224c5e3252']],
+    [/yoga|medita/i, ['1544367567-0f2fcb009e0b', '1506126613408-eca07ce68773', '1599901860904-17e6ed7083a0']],
+    [/boliche|bol/i, ['1538510127047-9744fd2fa212', '1628432136678-43ff9be34064', '1596727147705-61a532a659bd']],
+    [/gym|ejercicio|pesas/i, ['1534438327276-14e5300c3a48', '1571019613454-1cb2f99b2d8b', '1517836357463-d25dfeac3438']],
+    [/parque|picnic|aire/i, ['1511671782779-c97d3d27a1d4', '1526307616774-60d0098f7642', '1504280390367-361c6d9f38f4']],
+    [/cerve|bar|alitas|chel/i, ['1514933651103-005eec06c04b', '1575037614876-c38a4d44f5b8', '1546726747-421c6d69c929']],
+    [/museo|arte|cultura/i, ['1518998053502-5388618f9ee8', '1554907984-15263bfd63bd', '1580136579312-94651dfd596d']],
+    [/concierto|música|musica|jam/i, ['1501281668745-f7f57925c3b4', '1470229722913-7c0e2dbbafd3', '1493225457124-a3eb161ffa5f']],
+    [/scooter|bici|paseo|rodada/i, ['1558981403-c5f9899a28bc', '1571068316344-75bc76f77890', '1485965120184-e220f721d03e']],
+  ];
+  const suggestedPhotos = (activity: string): string[] => {
+    const found = PHOTO_BANK.find(([re]) => re.test(activity || ''));
+    const ids = found ? found[1] : ['1529156069898-49953e39b3ac', '1517457373958-b7bdd4587205', '1492684223066-81342ee5ff30'];
+    return ids.map(id => `https://images.unsplash.com/photo-${id}`);
+  };
+
+  // ---- Fórmula universal del mensaje de invitación ----
+  // Construye una frase natural con TODO lo que el usuario proporcionó,
+  // saltándose con gramática correcta lo que no puso.
+  const buildInviteMessage = (plan: Plan) => {
+    const parts: string[] = [];
+    const firstName = (plan.userName || 'Alguien').split(' ')[0];
+    parts.push(`${firstName} desea: ${plan.activity}.`);
+
+    const when = [plan.dateLabel, plan.startTime ? `a las ${plan.startTime}` : ''].filter(Boolean).join(' ');
+    if (plan.location && when) parts.push(`Estará en ${plan.location} ${when}.`);
+    else if (plan.location) parts.push(`Estará en ${plan.location}.`);
+    else if (when) parts.push(`Será ${when}.`);
+
+    const transport =
+      plan.transport === 'has-transport' ? 'Tiene transporte' :
+      plan.transport === 'each-arrives' ? 'Cada quien llega' :
+      plan.transport === 'no-transport' ? 'Sin transporte' : '';
+    if (transport) parts.push(`${transport}${plan.transportNote ? ` (${plan.transportNote})` : ''}.`);
+
+    const budget =
+      plan.budget === 'invites' ? `Invita ${firstName}` :
+      plan.budget === 'split' ? 'Cada quien paga lo suyo' :
+      plan.budget === 'no-money' ? 'Plan sin costo' : '';
+    if (budget) parts.push(`${budget}${plan.budgetAmount ? ` (${plan.budgetAmount})` : ''}.`);
+
+    if (plan.comment) parts.push(`"${plan.comment}".`);
+
+    const offerId = plan.inviterSelectedOfferId || userSelectedOfferIds[plan.id];
+    const offer = offerId ? promos.find(p => p.id === offerId) : null;
+    if (offer) parts.push(`Tiene una oferta: ${offer.title} en ${offer.businessName}.`);
+
+    return parts.join(' ');
+  };
+
   // ---- Invitaciones virales por WhatsApp (sin acceso a contactos) ----
   // El link abre la app mostrando una invitación personalizada.
   const inviteText = (plan: Plan) =>
-    `🎉 *${plan.userName}* te está invitando:\n\n📍 ${plan.activity}\n🕐 ${plan.startTime} · ${plan.location}\n\nMira tu invitación aquí 👇\n${window.location.origin}/?inv=${plan.id}\n\n_IOGGA es web: no descargas nada, no ocupa espacio y tus datos están seguros._`;
+    `💌 *Tienes una invitación*\n\n${buildInviteMessage(plan)}\n\n¿Te apuntas? Confirma aquí 👇\n${window.location.origin}/?inv=${plan.id}\n\n_IOGGA: sal del celular, empieza a vivir. Es web: sin descargas, sin ocupar espacio._`;
 
   const sharePlanWhatsApp = (plan: Plan) => {
     window.open(`https://wa.me/?text=${encodeURIComponent(inviteText(plan))}`, '_blank');
@@ -406,7 +496,8 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = watchAuth(user => {
       setCurrentUser(user);
-      if (user) setIsLoggedIn(true);
+      // Los invitados anónimos pueden publicar, pero no cuentan como "registrados"
+      if (user && !user.isAnonymous) setIsLoggedIn(true);
     });
     return unsubscribe;
   }, []);
@@ -576,13 +667,23 @@ export default function App() {
     return () => window.removeEventListener('open-create-promo', handleOpenCreatePromo);
   }, []);
 
-  const handlePublishPlan = () => {
-    // Momento clave: publicar requiere cuenta (estilo TikTok: explorar es libre)
-    if (isFirebaseEnabled && !isLoggedIn) {
-      setLoginActionToResume(() => handlePublishPlan);
+  const handlePublishPlan = async () => {
+    // Publicar NO exige registro: se crea una sesión silenciosa.
+    // El registro se pide después, cuando alguien acepte su plan.
+    let publisher = currentUser;
+    if (isFirebaseEnabled && !publisher) {
+      publisher = await ensureAnonSession();
+      if (publisher) setCurrentUser(publisher);
+    }
+    if (isFirebaseEnabled && !publisher) {
+      // Respaldo: si el acceso anónimo no está habilitado, pedir login normal
+      setLoginActionToResume(() => { void handlePublishPlan(); });
       setShowLoginModal(true);
       return;
     }
+    const publisherName = publisher && !publisher.isAnonymous
+      ? publisher.name
+      : (guestName.trim() || 'Alguien');
     const randomPhoto = `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=800&q=80`;
 
     if (editingPlanId) {
@@ -624,11 +725,14 @@ export default function App() {
     } else {
       const plan: Plan = {
         id: Math.random().toString(36).substr(2, 9),
-        uid: currentUser?.uid,
+        uid: publisher?.uid,
         whatsapp: userProfile.whatsapp || undefined,
-        userName: currentUser?.name || 'Eduardo',
+        userName: publisherName,
         userAvatar: userProfile.photoURL || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
         activity: newPlan.activity || 'Plan sin nombre',
+        comment: newPlan.comment,
+        date: newPlan.date,
+        dateLabel: newPlan.dateLabel,
         startTime: newPlan.startTime || '00:00',
         endTime: newPlan.endTime || '00:00',
         location: newPlan.location || 'Ubicación',
@@ -719,7 +823,6 @@ export default function App() {
       };
       void saveDocIn('promos', promo.id, promo);
       setPromos([promo, ...promos]);
-      setSelectedPromoForMatches(promo); // Show matches immediately
     }
     setShowCreatePromo(false);
     setPromoImage(null);
@@ -730,7 +833,7 @@ export default function App() {
       offer: '',
       location: ''
     });
-    setActiveTab('active');
+    setActiveTab('profile'); // al publicar, llevar al perfil del negocio
   };
 
   const handleStart = () => {
@@ -862,7 +965,7 @@ export default function App() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-zinc-900">
       <div className={`app-container transition-all duration-700 ${isIntro ? 'bg-zinc-950' : (mode === 'person' ? 'bg-indigo-950' : 'bg-teal-950')} flex flex-col relative`}>
         {isIntro ? (
-          <div className="flex flex-col items-center justify-center p-8 text-center relative overflow-hidden h-full">
+          <div className="flex flex-col items-center [justify-content:safe_center] p-8 pb-[max(3rem,env(safe-area-inset-bottom))] text-center relative overflow-y-auto no-scrollbar h-full">
             {/* Background Glow */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-iogga-primary/20 blur-[120px] rounded-full" />
             
@@ -1016,7 +1119,7 @@ export default function App() {
           <div className="flex items-center gap-3">
             {mode === 'business' && (
               <button
-                onClick={() => setShowValidateModal(true)}
+                onClick={() => ensureLoggedIn(() => setShowValidateModal(true))}
                 title="Validar código QR de un cliente"
                 className="w-10 h-10 flex items-center justify-center rounded-full bg-iogga-accent/20 text-iogga-accent transition-colors shadow-lg active:scale-90"
               >
@@ -1319,9 +1422,9 @@ export default function App() {
                             <div className="flex-1">
                               <h4 className="font-bold text-white text-sm">{promo.title}</h4>
                               <div className="flex items-center gap-3 mt-1">
-                                <div className="flex items-center gap-1 text-[10px] text-zinc-500">
+                                <div onClick={!isLoggedIn ? () => setShowLoginModal(true) : undefined} className="flex items-center gap-1 text-[10px] text-zinc-500">
                                   <Users size={10} />
-                                  {promo.realTimeSearchers} Interesados
+                                  <span className={!isLoggedIn ? 'blur-[4px] select-none cursor-pointer' : ''}>{promo.realTimeSearchers}</span> Interesados
                                 </div>
                                 <div className="flex items-center gap-1 text-[10px] text-zinc-500">
                                   <QrCode size={10} />
@@ -1409,7 +1512,11 @@ export default function App() {
                     <div className="flex items-center justify-between">
                       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                         {['Todos', 'Café', 'Cine', 'Deporte', 'Fiesta', 'Comida'].map(cat => (
-                          <button key={cat} className="px-4 py-1.5 rounded-full text-xs font-bold bg-white/5 text-white/40 border border-white/10 whitespace-nowrap">
+                          <button
+                            key={cat}
+                            onClick={() => setPersonExploreCategory(cat)}
+                            className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${personExploreCategory === cat ? 'bg-iogga-primary text-white border-iogga-primary' : 'bg-white/5 text-white/40 border-white/10'}`}
+                          >
                             {cat}
                           </button>
                         ))}
@@ -1431,14 +1538,14 @@ export default function App() {
                         .filter(g => businessExploreCategory === 'Todos' || g.category === businessExploreCategory)
                         .filter(g => g.subCategory.toLowerCase().includes(searchQuery.toLowerCase()) || g.category.toLowerCase().includes(searchQuery.toLowerCase()))
                         .map((group, index) => (
-                          <GroupedPlanCard key={group.id} group={group} rank={index + 1} />
+                          <GroupedPlanCard key={group.id} group={group} rank={index + 1} locked={!isLoggedIn} onUnlock={() => setShowLoginModal(true)} />
                         ))}
                     </motion.div>
                   ) : (
                     <>
                       {searchFilter === 'plans' ? (
                         <div className="grid grid-cols-2 gap-4">
-                          {plans.filter(p => searchSubFilter === 'public' ? p.isPublic : !p.isPublic).length === 0 && (
+                          {plans.filter(p => (searchSubFilter === 'public' ? p.isPublic : !p.isPublic) && matchesCategory(p)).length === 0 && (
                             <div className="col-span-2 py-16 flex flex-col items-center gap-4 text-center">
                               <div className="p-5 rounded-full bg-iogga-primary/10 border border-iogga-primary/20">
                                 <Sparkles size={28} className="text-iogga-primary" />
@@ -1456,7 +1563,7 @@ export default function App() {
                             </div>
                           )}
                           {plans
-                            .filter(p => searchSubFilter === 'public' ? p.isPublic : !p.isPublic)
+                            .filter(p => (searchSubFilter === 'public' ? p.isPublic : !p.isPublic) && matchesCategory(p))
                             .map((plan, index) => (
                               <motion.div 
                                 key={plan.id} 
@@ -1616,7 +1723,7 @@ export default function App() {
                                 className="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-xs text-center flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all"
                               >
                                 <Edit3 size={14} />
-                                Editar Plan
+                                Editar
                               </button>
                               <button 
                                 onClick={(e) => {
@@ -1626,7 +1733,7 @@ export default function App() {
                                 className="flex-[2] py-3.5 bg-iogga-accent/20 hover:bg-iogga-accent/30 text-iogga-accent rounded-2xl font-black text-xs text-center border border-iogga-accent/20 flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all"
                               >
                                 <LayoutGrid size={14} />
-                                Ver ofertas para este plan
+                                Ofertas
                               </button>
                               <button 
                                 onClick={(e) => {
@@ -1781,6 +1888,23 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {promos.filter(p => (p.uid ? p.uid === currentUser?.uid : true)).length === 0 && (
+                      <div className="py-16 flex flex-col items-center gap-4 text-center">
+                        <div className="p-5 rounded-full bg-iogga-accent/10 border border-iogga-accent/20">
+                          <PackagePlus size={28} className="text-iogga-accent" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="font-black text-white text-lg">Publica tu primera oferta</p>
+                          <p className="text-xs text-zinc-500 max-w-[260px] leading-relaxed">Las personas con planes cerca de ti la verán al instante. Sin registro: solo se pide al validar canjes.</p>
+                        </div>
+                        <button
+                          onClick={() => setShowCreatePromo(true)}
+                          className="px-6 py-3 bg-iogga-accent text-white rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
+                        >
+                          Crear oferta
+                        </button>
+                      </div>
+                    )}
                     {promos.filter(p => (p.uid ? p.uid === currentUser?.uid : true)).map((promo, idx) => (
                       <motion.div
                         key={promo.id}
@@ -2486,28 +2610,30 @@ export default function App() {
                         <Store size={20} />
                       </div>
                       <div className="text-left">
-                        <p className="font-bold text-white text-sm">Gestionar Negocio Comercial</p>
-                        <p className="text-[10px] text-zinc-500 leading-tight">Desmarca si no tienes un local en Chihuahua</p>
+                        <p className="font-bold text-white text-sm">Tengo negocio</p>
+                        <p className="text-[10px] text-zinc-500 leading-tight">Actívalo para crear el perfil de tu negocio</p>
                       </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={!hasBusiness} 
+                      <input
+                        type="checkbox"
+                        checked={hasBusiness}
                         onChange={(e) => {
                           const val = e.target.checked;
-                          setHasBusiness(!val);
+                          setHasBusiness(val);
                           if (val) {
-                            setMode('person'); // Force user mode back
-                            triggerBeta("Modo Negocio Inhabilitado", "Has configurado tu perfil como 'Sin Negocio'. Las funciones comerciales de IOGGA han sido inhabilitadas temporalmente.");
+                            // Al activarlo, llevar directo a crear el perfil del negocio
+                            toggleMode('business');
+                            setActiveTab('profile');
+                            setShowEditBusinessProfile(true);
                           } else {
-                            triggerBeta("Modo Negocio Habilitado", "Has habilitado las funciones comerciales de IOGGA Chihuahua para locales.");
+                            setMode('person');
                           }
                         }}
                         className="sr-only peer"
                       />
                       <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 peer-checked:after:bg-iogga-accent after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-iogga-accent/20"></div>
-                      <span className="ml-2 text-xs font-bold text-zinc-400 select-none uppercase tracking-wider">{!hasBusiness ? 'No tengo' : 'Sí tengo'}</span>
+                      <span className="ml-2 text-xs font-bold text-zinc-400 select-none uppercase tracking-wider">{hasBusiness ? 'Sí' : 'No'}</span>
                     </label>
                   </div>
 
@@ -2699,7 +2825,7 @@ export default function App() {
               {/* Escáner de canjes: siempre al centro, como Authenticator */}
               <button
                 id="nav-scan"
-                onClick={() => setShowValidateModal(true)}
+                onClick={() => ensureLoggedIn(() => setShowValidateModal(true))}
                 className="relative -mt-8 w-16 h-16 rounded-full bg-iogga-accent text-white flex flex-col items-center justify-center shadow-2xl shadow-iogga-accent/40 border-4 border-zinc-950 active:scale-90 transition-transform"
               >
                 <QrCode size={26} />
@@ -2801,8 +2927,8 @@ export default function App() {
                       />
                       <div className="flex flex-wrap gap-2 mt-2">
                         {IDEAS.slice(0, 8).map(sug => (
-                          <button 
-                            key={sug} 
+                          <button
+                            key={sug}
                             onClick={() => setNewPlan({...newPlan, activity: sug})}
                             className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${newPlan.activity === sug ? 'bg-iogga-primary text-white border-iogga-primary' : 'bg-white/5 text-zinc-400 border-white/10 hover:bg-white/10'}`}
                           >
@@ -2810,6 +2936,22 @@ export default function App() {
                           </button>
                         ))}
                       </div>
+                      {(!currentUser || currentUser.isAnonymous) && (
+                        <input
+                          type="text"
+                          placeholder="Tu nombre (para firmar tu invitación)"
+                          className="w-full h-14 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                          value={guestName}
+                          onChange={e => setGuestName(e.target.value)}
+                        />
+                      )}
+                      <input
+                        type="text"
+                        placeholder="Comentario (opcional). Ej. Lleven suéter 🧥"
+                        className="w-full h-14 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                        value={newPlan.comment || ''}
+                        onChange={e => setNewPlan({...newPlan, comment: e.target.value})}
+                      />
                     </motion.div>
                   )}
 
@@ -2832,6 +2974,30 @@ export default function App() {
                           <Sparkles size={12} />
                           Optimizar IA
                         </button>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">¿Qué día?</label>
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                          {dateOptions.map(opt => (
+                            <button
+                              key={opt.iso}
+                              onClick={() => setNewPlan({...newPlan, date: opt.iso, dateLabel: opt.label})}
+                              className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap border transition-all ${newPlan.date === opt.iso ? 'bg-iogga-primary border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
+                            >
+                              {opt.chip}
+                            </button>
+                          ))}
+                          <label className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap border transition-all cursor-pointer relative ${newPlan.date && !dateOptions.some(o => o.iso === newPlan.date) ? 'bg-iogga-primary border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}>
+                            📅 Otra
+                            <input
+                              type="date"
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                              min={dateOptions[0].iso}
+                              value={newPlan.date || ''}
+                              onChange={e => e.target.value && setNewPlan({...newPlan, date: e.target.value, dateLabel: customDateLabel(e.target.value)})}
+                            />
+                          </label>
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -3050,14 +3216,49 @@ export default function App() {
                           <span className="text-xs font-bold text-white uppercase tracking-widest">{newPlan.image ? 'Cambiar Foto' : 'Subir Foto'}</span>
                         </div>
                       </button>
-                      <p className="text-xs text-zinc-500 text-center italic">Sube una foto real desde tu galería o cámara</p>
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Sugerencias para "{newPlan.activity || 'tu plan'}"</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {suggestedPhotos(newPlan.activity || '').map(url => (
+                            <button
+                              key={url}
+                              onClick={() => setNewPlan({...newPlan, image: `${url}?auto=format&fit=crop&w=800&q=80`})}
+                              className={`aspect-square rounded-2xl overflow-hidden border-2 transition-all active:scale-95 ${newPlan.image?.startsWith(url) ? 'border-iogga-primary' : 'border-white/10'}`}
+                            >
+                              <img src={`${url}?auto=format&fit=crop&w=200&q=60`} loading="lazy" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(newPlan.activity || 'plan con amigos')}`, '_blank')}
+                        className="w-full py-3 bg-white/5 border border-white/10 text-zinc-400 rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+                      >
+                        <Search size={14} />
+                        Buscar imagen en Google
+                      </button>
+                      <p className="text-[10px] text-zinc-600 text-center">Elige una sugerencia, sube la tuya, o busca en Google (guárdala y súbela).</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
+                {/* Vista previa: así se leerá tu invitación (sin registrarte) */}
+                {currentPlanStep === 6 && newPlan.activity && (
+                  <div className="mt-4 p-4 rounded-[24px] bg-emerald-500/10 border border-emerald-500/20 space-y-1.5">
+                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Así se leerá tu invitación:</p>
+                    <p className="text-xs text-emerald-200 leading-relaxed italic">
+                      "{buildInviteMessage({
+                        ...(newPlan as Plan),
+                        id: 'preview',
+                        userName: currentUser && !currentUser.isAnonymous ? currentUser.name : (guestName.trim() || 'Tú'),
+                      } as Plan)}"
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex gap-3 pt-4">
                   {currentPlanStep < 6 ? (
-                    <button 
+                    <button
                       onClick={() => setCurrentPlanStep(currentPlanStep + 1)}
                       disabled={currentPlanStep === 0 && !newPlan.activity}
                       className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-base shadow-xl shadow-iogga-primary/20 active:scale-95 transition-transform disabled:opacity-50"
@@ -3065,11 +3266,11 @@ export default function App() {
                       Siguiente
                     </button>
                   ) : (
-                    <button 
-                      onClick={handlePublishPlan}
+                    <button
+                      onClick={() => { void handlePublishPlan(); }}
                       className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-base shadow-xl shadow-iogga-primary/20 active:scale-95 transition-transform"
                     >
-                      {editingPlanId ? 'Guardar Cambios' : 'Publicar Plan'}
+                      {editingPlanId ? 'Guardar Cambios' : 'Publicar y Enviar'}
                     </button>
                   )}
                 </div>
@@ -3256,22 +3457,28 @@ export default function App() {
                 <div className="space-y-4">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Imágenes del Negocio</label>
                   <div className="grid grid-cols-2 gap-4">
-                    <button 
-                      onClick={() => setBusinessProfile({...businessProfile, cover: `https://images.unsplash.com/photo-1501339819398-ee49a94b0b61?auto=format&fit=crop&q=80&w=800`})}
+                    <button
+                      onClick={async () => {
+                        const img = await pickImage(900);
+                        if (img) setBusinessProfile({...businessProfile, cover: img});
+                      }}
                       className="aspect-video rounded-2xl bg-white/5 border border-white/10 overflow-hidden relative group"
                     >
                       <img src={businessProfile.cover} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">Cambiar Portada</span>
+                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">Subir Portada</span>
                       </div>
                     </button>
-                    <button 
-                      onClick={() => setBusinessProfile({...businessProfile, logo: `https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=200`})}
+                    <button
+                      onClick={async () => {
+                        const img = await pickImage(300, 0.8);
+                        if (img) setBusinessProfile({...businessProfile, logo: img});
+                      }}
                       className="aspect-square rounded-full bg-white/5 border border-white/10 overflow-hidden relative group w-24 mx-auto"
                     >
                       <img src={businessProfile.logo} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-[8px] font-bold text-white uppercase tracking-widest text-center">Cambiar Logo</span>
+                        <span className="text-[8px] font-bold text-white uppercase tracking-widest text-center">Subir Logo</span>
                       </div>
                     </button>
                   </div>
@@ -3380,8 +3587,18 @@ export default function App() {
 
                 <div className="p-6 rounded-[32px] bg-white/5 border border-white/10 space-y-6">
                   <p className="text-lg font-black text-white leading-relaxed italic">
-                    "{getPlanDescription(selectedPlanForDetails)}"
+                    "{isMyPlan(selectedPlanForDetails) ? buildInviteMessage(selectedPlanForDetails) : getPlanDescription(selectedPlanForDetails)}"
                   </p>
+
+                  {isMyPlan(selectedPlanForDetails) && (
+                    <button
+                      onClick={() => sharePlanWhatsApp(selectedPlanForDetails)}
+                      className="w-full py-4 bg-green-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                    >
+                      <MessageSquare size={16} />
+                      Invitar más amigos por WhatsApp
+                    </button>
+                  )}
 
                   {renderPlanTechnicalDetails(selectedPlanForDetails)}
 
@@ -4159,14 +4376,15 @@ export default function App() {
                     <img src={invitationPlan.userAvatar} className="w-16 h-16 rounded-full border-4 border-iogga-primary shadow-xl object-cover" referrerPolicy="no-referrer" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-iogga-primary uppercase tracking-[0.3em]">Invitación especial para ti</p>
+                    <p className="text-[10px] font-black text-iogga-primary uppercase tracking-[0.3em]">Tienes una invitación 💌</p>
                     <h3 className="font-black text-2xl text-white mt-1">{invitationPlan.userName} te invita</h3>
-                    <p className="text-lg font-bold text-white/90 mt-2">"{invitationPlan.activity}"</p>
                   </div>
-                  <div className="flex justify-center gap-4 text-xs text-zinc-400 font-bold">
-                    <span className="flex items-center gap-1"><Clock size={12} /> {invitationPlan.startTime}</span>
-                    <span className="flex items-center gap-1"><MapPin size={12} /> {invitationPlan.location}</span>
-                  </div>
+                  <p className="text-sm text-white/90 leading-relaxed px-2">
+                    {buildInviteMessage(invitationPlan)}
+                  </p>
+                  <p className="text-xs font-bold text-iogga-primary/90 leading-relaxed px-4">
+                    Deja el scroll. Vive la sorpresa. Los mejores recuerdos empiezan con un "me apunto". ✨
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-2 pt-2">
@@ -4655,7 +4873,7 @@ function PlanCard({ plan, onAccept, onIgnore }: { plan: Plan, onAccept?: () => v
   );
 }
 
-function GroupedPlanCard({ group, rank }: { group: any, rank: number, key?: string | number }) {
+function GroupedPlanCard({ group, rank, locked, onUnlock }: { group: any, rank: number, locked?: boolean, onUnlock?: () => void, key?: string | number }) {
   const isFirst = rank === 1;
 
   return (
@@ -4696,7 +4914,7 @@ function GroupedPlanCard({ group, rank }: { group: any, rank: number, key?: stri
 
           {/* Large Active Count - Floating Glass Circle */}
           <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 flex flex-col items-center justify-center shadow-2xl group-hover:border-iogga-primary/50 transition-colors">
-            <span className="text-2xl font-black text-white leading-none">{group.count}</span>
+            <span onClick={locked ? (e) => { e.stopPropagation(); onUnlock?.(); } : undefined} className={`text-2xl font-black text-white leading-none ${locked ? 'blur-[6px] select-none cursor-pointer' : ''}`}>{group.count}</span>
             <span className="text-[7px] font-black text-iogga-primary uppercase tracking-widest mt-1">Activos</span>
           </div>
         </div>
@@ -4720,7 +4938,7 @@ function GroupedPlanCard({ group, rank }: { group: any, rank: number, key?: stri
               <Sparkles size={18} className="text-iogga-primary" />
             </div>
             <p className="text-xs font-bold text-white/90 leading-snug">
-              Análisis en vivo: <span className="text-iogga-primary">{group.count} personas</span> están buscando {group.subCategory.toLowerCase()} en este momento.
+              Análisis en vivo: <span onClick={locked ? (e) => { e.stopPropagation(); onUnlock?.(); } : undefined} className={`text-iogga-primary ${locked ? 'blur-[5px] select-none cursor-pointer' : ''}`}>{group.count} personas</span> están buscando {group.subCategory.toLowerCase()} en este momento.{locked && <span className="block text-[9px] text-zinc-500 mt-1">Inicia sesión para ver los números en vivo</span>}
             </p>
           </div>
 

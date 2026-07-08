@@ -7,6 +7,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInAnonymously,
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
@@ -58,6 +59,7 @@ export interface AuthUser {
   uid: string;
   name: string;
   email: string;
+  isAnonymous?: boolean; // invitado con sesión silenciosa: puede publicar, no ver datos premium
 }
 
 export function watchAuth(callback: (user: AuthUser | null) => void): () => void {
@@ -69,13 +71,30 @@ export function watchAuth(callback: (user: AuthUser | null) => void): () => void
     if (user) {
       callback({
         uid: user.uid,
-        name: user.displayName || user.email?.split('@')[0] || 'Usuario',
+        name: user.displayName || user.email?.split('@')[0] || 'Invitado',
         email: user.email || '',
+        isAnonymous: user.isAnonymous,
       });
     } else {
       callback(null);
     }
   });
+}
+
+// Sesión silenciosa: permite publicar y compartir sin registrarse.
+// (Requiere habilitar "Anónimo" en Firebase Authentication.)
+export async function ensureAnonSession(): Promise<AuthUser | null> {
+  if (!auth) return null;
+  if (auth.currentUser) {
+    const u = auth.currentUser;
+    return { uid: u.uid, name: u.displayName || 'Invitado', email: u.email || '', isAnonymous: u.isAnonymous };
+  }
+  try {
+    const cred = await signInAnonymously(auth);
+    return { uid: cred.user.uid, name: 'Invitado', email: '', isAnonymous: true };
+  } catch {
+    return null; // proveedor anónimo no habilitado: se pedirá login normal
+  }
 }
 
 export async function registerUser(name: string, email: string, password: string): Promise<AuthUser> {

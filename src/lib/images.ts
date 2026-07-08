@@ -7,8 +7,15 @@ export function pickImage(maxSide = 900, quality = 0.72): Promise<string | null>
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
+    // iOS Safari ignora el clic si el input no está en el documento
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    input.style.pointerEvents = 'none';
+    document.body.appendChild(input);
+    const cleanup = () => input.remove();
     input.onchange = () => {
       const file = input.files?.[0];
+      cleanup();
       if (!file) return resolve(null);
       const reader = new FileReader();
       reader.onload = () => {

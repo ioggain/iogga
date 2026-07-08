@@ -35,6 +35,9 @@ export interface Plan {
     rating: number;
   };
   activity: string;
+  comment?: string; // comentario opcional del creador
+  date?: string; // fecha ISO (YYYY-MM-DD)
+  dateLabel?: string; // "hoy", "mañana", "el lunes", "el 15 de julio"
   startTime: string;
   endTime: string;
   location: string;

@@ -78,6 +78,7 @@ import {
   incrementPlanAccepted,
   acceptPlanAs,
   saveBusinessProfile,
+  saveFeedback,
   watchMyRedemptions,
   type Redemption,
   type AuthUser,
@@ -330,11 +331,20 @@ export default function App() {
   const [lastPublishedPlan, setLastPublishedPlan] = useState<Plan | null>(null);
   const [showBetaModal, setShowBetaModal] = useState(false);
   const [betaMessage, setBetaMessage] = useState({ title: '', desc: '' });
+  const [suggestionText, setSuggestionText] = useState('');
+  const [suggestionSent, setSuggestionSent] = useState(false);
 
   // Custom alert trigger
   const triggerBeta = (title: string, desc: string) => {
     setBetaMessage({ title, desc });
+    setSuggestionText('');
+    setSuggestionSent(false);
     setShowBetaModal(true);
+  };
+
+  // Función aún no disponible en el MVP: avisa e invita a mandar ideas
+  const comingSoon = (feature: string) => {
+    triggerBeta(feature, 'No disponible en la versión de pruebas — ¡muy pronto disponible! Mientras tanto, cuéntanos cómo te gustaría que funcionara. Tus ideas construyen iogga. ✨');
   };
 
   // Auth & Business States
@@ -410,13 +420,13 @@ export default function App() {
   };
 
   useEffect(() => {
-    // Respaldo: si nadie toca en 6s, revelar solo (sin sonido, por regla del navegador)
+    // Si nadie toca en 5s, el logo aparece solo en fade in (sin sonido, por regla del navegador)
     const t = setTimeout(() => {
       if (!splashRevealed) {
         setSplashRevealed(true);
-        setTimeout(() => setShowSplash(false), 4600);
+        setTimeout(() => setShowSplash(false), 5200);
       }
-    }, 6000);
+    }, 5000);
     return () => clearTimeout(t);
   }, [splashRevealed]);
 
@@ -1311,7 +1321,7 @@ export default function App() {
                         <p className="text-xs text-zinc-500">Tus planes y propuestas</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button className="text-xs font-bold text-iogga-primary flex items-center gap-1 bg-iogga-primary/10 px-3 py-1.5 rounded-xl border border-iogga-primary/20 hover:scale-105 transition-transform">
+                        <button onClick={() => comingSoon("Sugerencias con IA")} className="text-xs font-bold text-iogga-primary flex items-center gap-1 bg-iogga-primary/10 px-3 py-1.5 rounded-xl border border-iogga-primary/20 hover:scale-105 transition-transform">
                           <Sparkles size={12} />
                           IA
                         </button>
@@ -1561,7 +1571,7 @@ export default function App() {
                                 </div>
                               </div>
                             </div>
-                            <button className="p-2 bg-white/5 rounded-xl text-zinc-400 hover:text-white transition-colors">
+                            <button onClick={() => comingSoon("Estadísticas del producto")} className="p-2 bg-white/5 rounded-xl text-zinc-400 hover:text-white transition-colors">
                               <BarChart3 size={18} />
                             </button>
                           </div>
@@ -2299,18 +2309,18 @@ export default function App() {
                           
                           {!notif.isRead && (
                             <div className="mt-3 flex gap-2">
-                              <button className="px-3 py-1.5 bg-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white/20 transition-all">
+                              <button onClick={() => comingSoon("Ver detalle del cliente")} className="px-3 py-1.5 bg-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white/20 transition-all">
                                 Ver detalle
                               </button>
                               {notif.category === 'plan' && (
-                                <button className="px-3 py-1.5 bg-iogga-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-iogga-primary/20">
+                                <button onClick={() => comingSoon("Aceptar solicitud")} className="px-3 py-1.5 bg-iogga-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-iogga-primary/20">
                                   Aceptar
                                 </button>
                               )}
                             </div>
                           )}
                         </div>
-                        <button className="absolute top-4 right-4 p-1.5 text-zinc-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100">
+                        <button onClick={() => comingSoon("Descartar")} className="absolute top-4 right-4 p-1.5 text-zinc-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100">
                           <X size={14} />
                         </button>
                       </motion.div>
@@ -2330,7 +2340,7 @@ export default function App() {
                         : 'Tu producto estrella está bajando en visualizaciones. ¿Qué tal si lanzas una oferta flash de 2 horas?'}
                     </p>
                   </div>
-                  <button className="px-6 py-3 bg-white text-zinc-900 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl">
+                  <button onClick={() => comingSoon("Optimizar con IA")} className="px-6 py-3 bg-white text-zinc-900 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl">
                     Optimizar ahora
                   </button>
                 </div>
@@ -2354,7 +2364,17 @@ export default function App() {
                     <TrendingUp size={20} />
                   </div>
                 </div>
-                
+
+                {/* Bienvenida de negocio: el marketplace magnético en una línea */}
+                {!selectedProductAnalytics && (
+                  <div className="p-4 rounded-3xl bg-gradient-to-r from-iogga-accent/15 to-iogga-primary/10 border border-iogga-accent/25 flex items-start gap-3">
+                    <Sparkles size={18} className="text-iogga-accent shrink-0 mt-0.5" />
+                    <p className="text-xs text-zinc-200 leading-relaxed font-medium">
+                      Se acabó pagar por prospectos inciertos: en iogga ves <span className="font-black text-white">personas que YA están buscando tu producto ahora mismo</span> y les mandas tu promoción. Clientes reales en tiempo real, no leads.
+                    </p>
+                  </div>
+                )}
+
                 {selectedProductAnalytics ? (
                   <div className="space-y-6">
                     <div className="flex items-center gap-4">
@@ -2574,7 +2594,7 @@ export default function App() {
                     <section>
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="font-bold text-white">Por Producto</h3>
-                        <button className="text-xs font-bold text-iogga-accent uppercase tracking-widest">Ver todos</button>
+                        <button onClick={() => comingSoon("Ver todos")} className="text-xs font-bold text-iogga-accent uppercase tracking-widest">Ver todos</button>
                       </div>
                       <div className="space-y-3">
                         {promos.map(promo => (
@@ -2617,7 +2637,7 @@ export default function App() {
                       <p className="text-sm text-zinc-300">
                         "Tu oferta de <span className="text-indigo-400 font-bold">2x1 en Latte</span> tiene un pico de búsqueda los jueves a las 10:00 AM. Considera activar una notificación push en ese horario."
                       </p>
-                      <button className="w-full py-3 bg-indigo-500 text-white rounded-xl text-xs font-bold">
+                      <button onClick={() => comingSoon("Optimizar oferta")} className="w-full py-3 bg-indigo-500 text-white rounded-xl text-xs font-bold">
                         Optimizar Oferta
                       </button>
                     </section>
@@ -2684,8 +2704,10 @@ export default function App() {
                 ) : (
                   <div className="p-6 flex flex-col items-center text-center space-y-4">
                     <div className="relative">
-                      <img src={userProfile.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80"} className="w-24 h-24 rounded-full border-4 border-zinc-900 shadow-xl object-cover" referrerPolicy="no-referrer" />
-                      <button className="absolute bottom-0 right-0 p-2 bg-zinc-800 rounded-full shadow-lg text-iogga-primary border border-white/10">
+                      <button onClick={() => setShowEditProfile(true)} className="block">
+                        <img src={userProfile.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80"} className="w-24 h-24 rounded-full border-4 border-zinc-900 shadow-xl object-cover" referrerPolicy="no-referrer" />
+                      </button>
+                      <button onClick={() => setShowEditProfile(true)} className="absolute bottom-0 right-0 p-2 bg-zinc-800 rounded-full shadow-lg text-iogga-primary border border-white/10 active:scale-90 transition-transform">
                         <Edit3 size={16} />
                       </button>
                     </div>
@@ -2772,7 +2794,7 @@ export default function App() {
                     <p className="text-[10px] text-zinc-400 leading-relaxed">
                       Tu perfil tiene un <span className="text-indigo-400 font-bold">85% de compatibilidad</span> con planes de aventura y café. ¡Sigue así!
                     </p>
-                    <button className="w-full py-2 bg-indigo-500/20 text-indigo-400 rounded-xl text-[10px] font-bold border border-indigo-500/30">
+                    <button onClick={() => comingSoon("Insights detallados")} className="w-full py-2 bg-indigo-500/20 text-indigo-400 rounded-xl text-[10px] font-bold border border-indigo-500/30">
                       Ver Insights Detallados
                     </button>
                   </section>
@@ -4033,7 +4055,7 @@ export default function App() {
                       {userSelectedOfferIds[expandedPlanId] === selectedPromo.id ? 'Promo Seleccionada' : 'Seleccionar Promo'}
                     </button>
                   )}
-                  <button className="w-full py-5 bg-white/5 text-white rounded-[24px] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all border border-white/10">
+                  <button onClick={() => comingSoon("Guardar en galería")} className="w-full py-5 bg-white/5 text-white rounded-[24px] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all border border-white/10">
                     <Download size={20} />
                     <span>Guardar en Galería</span>
                   </button>
@@ -4170,17 +4192,19 @@ export default function App() {
           )}
 
           {selectedUserProfile && (
-            <UserProfileModal 
-              user={selectedUserProfile} 
-              onClose={() => setSelectedUserProfile(null)} 
+            <UserProfileModal
+              user={selectedUserProfile}
+              onClose={() => setSelectedUserProfile(null)}
+              onComingSoon={comingSoon}
             />
           )}
 
           {selectedBusinessProfile && (
-            <BusinessProfileModal 
-              business={selectedBusinessProfile} 
-              onClose={() => setSelectedBusinessProfile(null)} 
+            <BusinessProfileModal
+              business={selectedBusinessProfile}
+              onClose={() => setSelectedBusinessProfile(null)}
               appMode={mode}
+              onComingSoon={comingSoon}
               onStartBusinessFlow={() => {
                 setMode('business');
                 setActiveTab('active');
@@ -4435,16 +4459,44 @@ export default function App() {
                   <Sparkles size={28} className="animate-pulse" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-md font-black text-white uppercase tracking-tight">Módulo en Beta (PoC)</h3>
+                  <h3 className="text-md font-black text-white uppercase tracking-tight">{betaMessage.title || 'Módulo en Beta'}</h3>
                   <p className="text-xs text-zinc-400 font-medium leading-relaxed font-sans">
-                    {betaMessage.desc || "Esta función de conexión externa se encuentra en producción beta para la validación de la interfaz iogga Chihuahua. El servicio en vivo se activará pronto."}
+                    {betaMessage.desc || "Esta función se encuentra en beta para la validación de iogga. El servicio en vivo se activará pronto."}
                   </p>
                 </div>
-                <button 
+
+                {suggestionSent ? (
+                  <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/25 text-green-400 text-sm font-bold flex items-center justify-center gap-2">
+                    <CheckCircle2 size={18} /> ¡Gracias! Recibimos tu idea 💜
+                  </div>
+                ) : (
+                  <div className="space-y-3 text-left">
+                    <textarea
+                      value={suggestionText}
+                      onChange={e => setSuggestionText(e.target.value)}
+                      placeholder="Envía tus ideas o sugerencias…"
+                      className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/25 outline-none focus:ring-2 focus:ring-iogga-primary h-24 resize-none"
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!suggestionText.trim()) { setShowBetaModal(false); return; }
+                        let u = currentUser;
+                        if (isFirebaseEnabled && !u) u = await ensureAnonSession();
+                        const ok = await saveFeedback(suggestionText.trim(), betaMessage.title || 'general', u);
+                        if (ok) { setSuggestionSent(true); setSuggestionText(''); }
+                        else { setShowBetaModal(false); }
+                      }}
+                      className="w-full py-4 bg-iogga-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
+                    >
+                      Enviar sugerencia
+                    </button>
+                  </div>
+                )}
+                <button
                   onClick={() => setShowBetaModal(false)}
-                  className="w-full py-4 bg-zinc-900 border border-white/10 hover:bg-zinc-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all min-h-[44px]"
+                  className="w-full py-3 text-zinc-500 hover:text-white text-[10px] uppercase tracking-widest font-bold transition-all"
                 >
-                  Volver a Inicio
+                  Cerrar
                 </button>
               </div>
             </Modal>
@@ -4855,22 +4907,12 @@ export default function App() {
           onClick={revealSplash}
           className="fixed inset-0 z-[500] bg-black flex items-center justify-center overflow-hidden cursor-pointer"
         >
-          {/* Fase 1: negro total con una pista tenue (el usuario cree que está apagado) */}
-          {!splashRevealed && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0, 0.35, 0], transition: { duration: 2.4, repeat: Infinity, delay: 1.2 } }}
-              className="absolute bottom-24 text-white/40 text-xs tracking-[0.3em] uppercase"
-            >
-              toca la pantalla
-            </motion.p>
-          )}
-
-          {/* Fase 2: el logo oficial entra suave en 4 segundos */}
+          {/* Fase 1: negro total, sin nada (el cel parece apagado). Espera el toque. */}
+          {/* Fase 2: el logo oficial entra muy suave (fade in lento de 4s) */}
           {splashRevealed && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1, transition: { duration: 4, ease: 'easeInOut' } }}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1, transition: { duration: 4, ease: [0.22, 0.61, 0.36, 1] } }}
               className="flex flex-col items-center gap-5"
             >
               <div className="w-28 h-28 rounded-full bg-white shadow-[0_0_70px_rgba(255,255,255,0.28)]" />
@@ -5520,17 +5562,18 @@ function SelectButton({ active, onClick, label }: { active: boolean, onClick: ()
 
 function Modal({ children, onClose, onBack, title }: { children: React.ReactNode, onClose: () => void, onBack?: () => void, title: string }) {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.5, ease: 'easeInOut' }}
       className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end"
     >
-      <motion.div 
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      <motion.div
+        initial={{ y: 40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 40, opacity: 0 }}
+        transition={{ duration: 0.6, ease: [0.22, 0.61, 0.36, 1] }}
         className="w-full bg-zinc-950 rounded-t-[48px] p-8 max-h-[94%] overflow-y-auto no-scrollbar shadow-2xl border-t border-white/10 relative"
       >
         <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-8 shrink-0" />
@@ -5561,7 +5604,7 @@ function Modal({ children, onClose, onBack, title }: { children: React.ReactNode
   );
 }
 
-function UserProfileModal({ user, onClose }: { user: Plan, onClose: () => void }) {
+function UserProfileModal({ user, onClose, onComingSoon }: { user: Plan, onClose: () => void, onComingSoon: (f: string) => void }) {
   return (
     <Modal onClose={onClose} title="Perfil de Usuario">
       <div className="space-y-8">
@@ -5619,7 +5662,7 @@ function UserProfileModal({ user, onClose }: { user: Plan, onClose: () => void }
           >
             <span>WhatsApp</span>
           </a>
-          <button className="flex-1 py-5 bg-iogga-primary text-white rounded-[24px] font-black text-lg shadow-xl shadow-iogga-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
+          <button onClick={() => onComingSoon("Seguir usuarios")} className="flex-1 py-5 bg-iogga-primary text-white rounded-[24px] font-black text-lg shadow-xl shadow-iogga-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
             Seguir
           </button>
         </div>
@@ -5628,7 +5671,7 @@ function UserProfileModal({ user, onClose }: { user: Plan, onClose: () => void }
   );
 }
 
-function BusinessProfileModal({ business, onClose, appMode, onStartBusinessFlow }: { business: Promotion, onClose: () => void, appMode?: UserMode, onStartBusinessFlow?: () => void }) {
+function BusinessProfileModal({ business, onClose, appMode, onStartBusinessFlow, onComingSoon }: { business: Promotion, onClose: () => void, appMode?: UserMode, onStartBusinessFlow?: () => void, onComingSoon: (f: string) => void }) {
   return (
     <Modal onClose={onClose} title="Perfil de Negocio">
       <div className="space-y-8">
@@ -5712,10 +5755,10 @@ function BusinessProfileModal({ business, onClose, appMode, onStartBusinessFlow 
         </div>
 
         <div className="flex gap-4">
-          <button className="flex-1 py-5 bg-white/5 text-white rounded-[24px] font-black text-lg border border-white/10 hover:bg-white/10 transition-all">
+          <button onClick={() => onComingSoon("Llamar al negocio")} className="flex-1 py-5 bg-white/5 text-white rounded-[24px] font-black text-lg border border-white/10 hover:bg-white/10 transition-all">
             Llamar
           </button>
-          <button className="flex-1 py-5 bg-iogga-accent text-white rounded-[24px] font-black text-lg shadow-xl shadow-iogga-accent/20 hover:scale-[1.02] active:scale-95 transition-all">
+          <button onClick={() => onComingSoon("Ver menú del negocio")} className="flex-1 py-5 bg-iogga-accent text-white rounded-[24px] font-black text-lg shadow-xl shadow-iogga-accent/20 hover:scale-[1.02] active:scale-95 transition-all">
             Ver Menú
           </button>
         </div>

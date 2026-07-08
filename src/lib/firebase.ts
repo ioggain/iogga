@@ -272,6 +272,25 @@ export async function saveBusinessProfile(uid: string, business: BusinessProfile
   await setDoc(doc(db, 'users', uid), { business: sanitize(business), updatedAt: serverTimestamp() }, { merge: true });
 }
 
+// Guardar sugerencias/ideas del usuario (se ven luego en el panel de administración)
+export async function saveFeedback(text: string, context: string, user: AuthUser | null): Promise<boolean> {
+  if (!db) return false;
+  try {
+    await setDoc(doc(collection(db, 'feedback')), {
+      text,
+      context, // qué botón/pantalla la originó
+      uid: user?.uid || null,
+      userName: user?.name || 'Anónimo',
+      email: user?.email || '',
+      createdAt: serverTimestamp(),
+      createdAtMs: Date.now(),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Canjes del negocio en tiempo real (para la gráfica de ventas REAL)
 export function watchMyRedemptions(businessUid: string, callback: (items: Redemption[]) => void): () => void {
   if (!db) return () => {};

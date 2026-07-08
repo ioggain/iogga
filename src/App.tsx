@@ -85,7 +85,7 @@ import {
 } from './lib/firebase';
 import { RedeemQRModal, ValidateCodeModal } from './components/qr';
 import { pickImage } from './lib/images';
-import { playIntroChime } from './lib/sound';
+import { playIntroChime, armIntroChime } from './lib/sound';
 
 interface AppNotification {
   id: string;
@@ -394,19 +394,22 @@ export default function App() {
   // Nombre del invitado que publica sin registrarse (para firmar su invitación)
   const [guestName, setGuestName] = useState('');
 
-  // Splash de arranque (como el logo al encender un iPhone): solo visual y breve
+  // Splash de arranque (como el logo al encender un iPhone): solo visual y breve.
+  // El sonido se arma junto con el logo: brota al instante si el navegador ya
+  // lo permite, o en el primer contacto con la pantalla (regla de audio web).
   const [showSplash, setShowSplash] = useState(true);
+  const chimePlayed = useRef(false);
   useEffect(() => {
+    armIntroChime(); // dispara la lluvia de notitas junto con el logo
+    chimePlayed.current = true;
     const t = setTimeout(() => setShowSplash(false), 2800);
     return () => clearTimeout(t);
   }, []);
 
-  // El sonido de bienvenida suena con el primer toque (regla de los navegadores)
-  const chimePlayed = useRef(false);
   const playWelcomeChime = () => {
     if (chimePlayed.current) return;
     chimePlayed.current = true;
-    playIntroChime(); // lluvia de miles de notitas: fade in suave, fade out fino
+    playIntroChime();
   };
 
   // ---- Popup "Instala iogga": 1 clic en Android, guía de 2 pasos en iPhone ----
@@ -4797,21 +4800,59 @@ export default function App() {
       </>
     )}
 
-    {/* Splash de arranque: logo al centro con fade in/out casi imperceptible */}
+    {/* Splash de arranque: cielo nocturno con auroras boreales + logo al centro */}
     <AnimatePresence>
       {showSplash && (
         <motion.div
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: 0.7, ease: 'easeInOut' } }}
-          className="fixed inset-0 z-[500] bg-[#09090b] flex items-center justify-center"
+          exit={{ opacity: 0, transition: { duration: 0.8, ease: 'easeInOut' } }}
+          className="fixed inset-0 z-[500] flex items-center justify-center overflow-hidden"
+          style={{ background: 'radial-gradient(120% 90% at 50% 15%, #0b1226 0%, #070a16 45%, #04050c 100%)' }}
         >
+          <style>{`
+            @keyframes iogAur1 { 0%{transform:translate(-15%,-10%) scale(1);opacity:.30} 50%{transform:translate(10%,8%) scale(1.25);opacity:.45} 100%{transform:translate(-15%,-10%) scale(1);opacity:.30} }
+            @keyframes iogAur2 { 0%{transform:translate(12%,10%) scale(1.1);opacity:.22} 50%{transform:translate(-12%,-6%) scale(1.35);opacity:.38} 100%{transform:translate(12%,10%) scale(1.1);opacity:.22} }
+            @keyframes iogAur3 { 0%{transform:translate(0%,15%) scale(1);opacity:.18} 50%{transform:translate(6%,-4%) scale(1.2);opacity:.30} 100%{transform:translate(0%,15%) scale(1);opacity:.18} }
+            @keyframes iogTwinkle { 0%,100%{opacity:.25} 50%{opacity:.9} }
+          `}</style>
+
+          {/* Auroras: manchas enormes, muy difuminadas, movimiento lentísimo y casi imperceptible */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -top-1/4 left-0 w-[80%] h-[70%] rounded-full" style={{ background: 'radial-gradient(circle, rgba(20,184,166,0.55), transparent 62%)', filter: 'blur(90px)', animation: 'iogAur1 14s ease-in-out infinite' }} />
+            <div className="absolute top-0 right-0 w-[75%] h-[75%] rounded-full" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.55), transparent 62%)', filter: 'blur(100px)', animation: 'iogAur2 18s ease-in-out infinite' }} />
+            <div className="absolute bottom-0 left-1/4 w-[70%] h-[60%] rounded-full" style={{ background: 'radial-gradient(circle, rgba(56,189,180,0.4), transparent 62%)', filter: 'blur(110px)', animation: 'iogAur3 22s ease-in-out infinite' }} />
+          </div>
+
+          {/* Estrellitas apenas visibles */}
+          <div className="absolute inset-0 pointer-events-none">
+            {[[18,22],[72,16],[85,40],[30,60],[60,72],[12,48],[90,68],[45,30],[68,52],[25,80]].map(([l,t],i)=>(
+              <span key={i} className="absolute w-[2px] h-[2px] rounded-full bg-white" style={{ left:`${l}%`, top:`${t}%`, animation:`iogTwinkle ${3+i%4}s ease-in-out ${i*0.4}s infinite` }} />
+            ))}
+          </div>
+
+          {/* Logo: círculo + wordmark iogga en vectores geométricos (blanco) */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1, transition: { duration: 1.2, ease: 'easeOut' } }}
-            className="flex flex-col items-center gap-5"
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1, transition: { duration: 1.3, ease: 'easeOut' } }}
+            className="relative flex flex-col items-center gap-6"
           >
-            <div className="w-28 h-28 rounded-full bg-white" />
-            <span className="text-4xl font-bold text-white tracking-tight lowercase" style={{ fontFamily: 'Lexend, sans-serif' }}>iogga</span>
+            <div className="w-28 h-28 rounded-full bg-white shadow-[0_0_60px_rgba(255,255,255,0.25)]" />
+            <svg viewBox="0 0 560 210" className="w-52 h-auto" fill="none" stroke="#ffffff" strokeWidth="34" strokeLinecap="round" strokeLinejoin="round">
+              {/* i */}
+              <circle cx="45" cy="40" r="4" fill="#ffffff" stroke="none" />
+              <line x1="45" y1="74" x2="45" y2="150" />
+              {/* o */}
+              <circle cx="135" cy="110" r="40" />
+              {/* g */}
+              <circle cx="245" cy="110" r="40" />
+              <path d="M285 74 L285 168 Q285 191 262 190" />
+              {/* g */}
+              <circle cx="360" cy="110" r="40" />
+              <path d="M400 74 L400 168 Q400 191 377 190" />
+              {/* a */}
+              <circle cx="470" cy="110" r="40" />
+              <line x1="510" y1="74" x2="510" y2="150" />
+            </svg>
           </motion.div>
         </motion.div>
       )}

@@ -57,7 +57,33 @@ function note(dest: AudioNode, time: number, freq: number, vol: number, dur: num
   shimmer.stop(time + dur + 0.1);
 }
 
-// El intro oficial de IOGGA: ~140 notitas en ~3.5 segundos con envolvente global
+// Armar el intro desde el arranque: intenta sonar de inmediato junto al logo;
+// si el navegador aún bloquea el audio (regla universal: nada suena antes del
+// primer toque), queda listo para brotar en el PRIMER contacto con la pantalla.
+let introDone = false;
+export function armIntroChime(): void {
+  if (introDone) return;
+  const tryPlay = () => {
+    if (introDone) return;
+    const c = ensureCtx();
+    if (c && c.state === 'running') {
+      introDone = true;
+      playIntroChime();
+      window.removeEventListener('pointerdown', tryPlay);
+      window.removeEventListener('touchstart', tryPlay);
+      window.removeEventListener('keydown', tryPlay);
+    }
+  };
+  tryPlay(); // a veces ya está permitido (app instalada / sesión previa)
+  if (!introDone) {
+    window.addEventListener('pointerdown', tryPlay);
+    window.addEventListener('touchstart', tryPlay);
+    window.addEventListener('keydown', tryPlay);
+    setTimeout(tryPlay, 400); // reintento silencioso por si el contexto se activa solo
+  }
+}
+
+// El intro oficial de iogga: ~140 notitas en ~3.5 segundos con envolvente global
 // (fade in lento, clímax, fade out rápido).
 export function playIntroChime(): void {
   const c = ensureCtx();

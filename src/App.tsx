@@ -85,7 +85,7 @@ import {
 } from './lib/firebase';
 import { RedeemQRModal, ValidateCodeModal } from './components/qr';
 import { pickImage } from './lib/images';
-import { playChime } from './lib/sound';
+import { playIntroChime } from './lib/sound';
 
 interface AppNotification {
   id: string;
@@ -394,12 +394,19 @@ export default function App() {
   // Nombre del invitado que publica sin registrarse (para firmar su invitación)
   const [guestName, setGuestName] = useState('');
 
+  // Splash de arranque (como el logo al encender un iPhone): solo visual y breve
+  const [showSplash, setShowSplash] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setShowSplash(false), 2600);
+    return () => clearTimeout(t);
+  }, []);
+
   // El sonido de bienvenida suena con el primer toque (regla de los navegadores)
   const chimePlayed = useRef(false);
   const playWelcomeChime = () => {
     if (chimePlayed.current) return;
     chimePlayed.current = true;
-    playChime('lluvia');
+    playIntroChime(); // lluvia de miles de notitas: fade in suave, fade out fino
   };
 
   // ---- Popup "Instala IOGGA": 1 clic en Android, guía de 2 pasos en iPhone ----
@@ -927,14 +934,14 @@ export default function App() {
   const handleStart = () => {
     // Estilo TikTok: entrar y explorar es libre, sin pedir cuenta.
     // El login solo aparece en momentos clave (publicar, aceptar, canjear).
-    playChime('lluvia'); // lluvia de notitas de cristal ✨
+    playWelcomeChime();
     setIsIntro(false);
     setShowCreatePlan(true);
     setActiveTab('search');
   };
 
   const handleSkipIntro = () => {
-    playChime('lluvia');
+    playWelcomeChime();
     // Continue directly as guest (not logged in)
     setIsLoggedIn(false);
     setIsIntro(false);
@@ -4789,6 +4796,25 @@ export default function App() {
         )}
       </>
     )}
+
+    {/* Splash de arranque: logo al centro con fade in/out casi imperceptible */}
+    <AnimatePresence>
+      {showSplash && (
+        <motion.div
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0.7, ease: 'easeInOut' } }}
+          className="fixed inset-0 z-[500] bg-[#09090b] flex items-center justify-center"
+        >
+          <motion.img
+            src="/icons/icon-192.png"
+            alt="IOGGA"
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1, transition: { duration: 1.1, ease: 'easeOut' } }}
+            className="w-24 h-24 rounded-[28px]"
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
 
     {/* Tutorial Overlay */}
     {showTutorial && (

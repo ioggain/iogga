@@ -394,6 +394,36 @@ export default function App() {
   // Nombre del invitado que publica sin registrarse (para firmar su invitación)
   const [guestName, setGuestName] = useState('');
 
+  // ---- Popup "Instala IOGGA": 1 clic en Android, guía de 2 pasos en iPhone ----
+  const [installEvent, setInstallEvent] = useState<any>(null);
+  const [showInstall, setShowInstall] = useState(false);
+  const isStandalone = typeof window !== 'undefined' &&
+    (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true);
+  const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault(); // guardamos el permiso de Chrome para instalar con nuestro propio botón
+      setInstallEvent(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    // Link para el sitio web: iogga.com/?install=1 abre la app con el popup de instalación
+    if (new URLSearchParams(window.location.search).get('install') === '1' && !isStandalone) {
+      setIsIntro(false);
+      setTimeout(() => setShowInstall(true), 800);
+    }
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  // Ofrecer instalar en el momento correcto (tras un momento de valor), máximo 2 veces
+  const maybeOfferInstall = () => {
+    if (isStandalone) return;
+    const seen = Number(localStorage.getItem('iogga_install_seen') || '0');
+    if (seen >= 2) return;
+    localStorage.setItem('iogga_install_seen', String(seen + 1));
+    setTimeout(() => setShowInstall(true), 700);
+  };
+
   // Categoría seleccionada en Explorar (modo persona)
   const [personExploreCategory, setPersonExploreCategory] = useState('Todos');
   const matchesCategory = (p: Plan) =>
@@ -3992,6 +4022,7 @@ export default function App() {
                         setShowEditProfile(true);
                       }}
                     />
+                    <SettingsItem icon={<Download size={18} />} label="Instalar la app en tu celular" onClick={() => { setShowSettingsMenu(false); setShowInstall(true); }} />
                     <SettingsItem icon={<Shield size={18} />} label="Aviso de Privacidad" onClick={() => { setShowSettingsMenu(false); setShowLegal('privacy'); }} />
                     <SettingsItem icon={<CheckCircle2 size={18} />} label="Términos y Condiciones" onClick={() => { setShowSettingsMenu(false); setShowLegal('terms'); }} />
                     <SettingsItem icon={<Bell size={18} />} label="Notificaciones" />
@@ -4236,17 +4267,21 @@ export default function App() {
                 </div>
 
                 <div className="pt-2 flex gap-3">
-                  <button 
+                  <button
                     onClick={() => {
                       setShowMatchCelebration(false);
                       setActiveTab('active');
+                      maybeOfferInstall();
                     }}
                     className="flex-1 py-4 bg-white/5 text-white border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all text-center min-h-[44px]"
                   >
                     Ver mis planes
                   </button>
-                  <button 
-                    onClick={() => setShowMatchCelebration(false)}
+                  <button
+                    onClick={() => {
+                      setShowMatchCelebration(false);
+                      maybeOfferInstall();
+                    }}
                     className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all text-center min-h-[44px]"
                   >
                     ¡Excelente!
@@ -4589,6 +4624,7 @@ export default function App() {
                       onClick={() => {
                         handleAcceptPlan(invitationPlan.id);
                         setInvitationPlan(null);
+                        maybeOfferInstall();
                       }}
                       className="w-full py-5 bg-green-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest text-center active:scale-95 transition-all shadow-xl shadow-green-500/20"
                     >
@@ -4599,6 +4635,7 @@ export default function App() {
                       onClick={() => {
                         handleAcceptPlan(invitationPlan.id);
                         setInvitationPlan(null);
+                        maybeOfferInstall();
                       }}
                       className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-iogga-primary/20"
                     >
@@ -4618,6 +4655,67 @@ export default function App() {
                   no se descarga, no ocupa espacio y tus datos están protegidos. ✨
                 </p>
               </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Popup de instalación: 1 clic (Android) o guía de 2 pasos (iPhone) */}
+        {showInstall && !isStandalone && (
+          <div className="fixed inset-0 z-[340] flex items-end sm:items-center justify-center">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowInstall(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: 60 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="relative w-full sm:max-w-md bg-zinc-950 border border-iogga-primary/30 rounded-t-[32px] sm:rounded-[32px] p-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] space-y-5 text-center"
+            >
+              <div className="flex justify-center">
+                <div className="p-4 rounded-3xl bg-gradient-to-br from-iogga-primary/30 to-iogga-accent/20 border border-iogga-primary/30">
+                  <Smartphone size={32} className="text-iogga-primary" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-black text-2xl text-white">Lleva IOGGA contigo</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed max-w-[280px] mx-auto">
+                  No ocupa espacio, sin tiendas, sin esperas. Tus invitaciones y tu QR siempre a un toque.
+                </p>
+              </div>
+
+              {installEvent ? (
+                <button
+                  onClick={async () => {
+                    installEvent.prompt();
+                    await installEvent.userChoice.catch(() => {});
+                    setInstallEvent(null);
+                    setShowInstall(false);
+                  }}
+                  className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-iogga-primary/30"
+                >
+                  📲 Instalar ahora — 1 clic
+                </button>
+              ) : isIOS ? (
+                <div className="space-y-2 text-left">
+                  <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
+                    <span className="w-7 h-7 rounded-full bg-iogga-primary text-white text-xs font-black flex items-center justify-center shrink-0">1</span>
+                    <p className="text-xs text-zinc-300">Toca <span className="font-black text-white">Compartir</span> <span className="inline-block px-1.5 py-0.5 rounded bg-white/10 text-white font-black">⬆️</span> en la barra de Safari (abajo al centro)</p>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
+                    <span className="w-7 h-7 rounded-full bg-iogga-primary text-white text-xs font-black flex items-center justify-center shrink-0">2</span>
+                    <p className="text-xs text-zinc-300">Elige <span className="font-black text-white">"Agregar a pantalla de inicio"</span> <span className="inline-block px-1.5 py-0.5 rounded bg-white/10 text-white font-black">➕</span></p>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 text-center pt-1">Listo: IOGGA aparecerá con su ícono como cualquier app ✨</p>
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-400 p-4 rounded-2xl bg-white/5 border border-white/10">
+                  En el menú de tu navegador (⋮ o ⋯) elige <span className="font-black text-white">"Instalar app"</span> o <span className="font-black text-white">"Agregar a pantalla de inicio"</span>.
+                </p>
+              )}
+
+              <button
+                onClick={() => setShowInstall(false)}
+                className="w-full py-3 text-zinc-500 font-bold text-xs uppercase tracking-widest"
+              >
+                Ahora no
+              </button>
             </motion.div>
           </div>
         )}

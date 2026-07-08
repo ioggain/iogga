@@ -1,11 +1,35 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=Lexend:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
+/* Quicksand: la tipografía OFICIAL de la marca iogga (embebida localmente) */
+@font-face {
+  font-family: "Quicksand";
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+  src: url("/fonts/quicksand-500.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Quicksand";
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+  src: url("/fonts/quicksand-600.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Quicksand";
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url("/fonts/quicksand-700.ttf") format("truetype");
+}
+
 @theme {
   --font-sans: "Inter", "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Inter", sans-serif;
   --font-lexend: "Lexend", sans-serif;
-  
+  --font-brand: "Quicksand", sans-serif;
+
   --color-iogga-primary: #6366f1; /* Indigo for Personal */
   --color-iogga-accent: #14b8a6; /* Teal for Business */
   --color-iogga-dark: #09090b;

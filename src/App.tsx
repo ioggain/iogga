@@ -85,7 +85,7 @@ import {
 } from './lib/firebase';
 import { RedeemQRModal, ValidateCodeModal } from './components/qr';
 import { pickImage } from './lib/images';
-import { playIntroChime, armIntroChime } from './lib/sound';
+import { playIntroChime } from './lib/sound';
 
 interface AppNotification {
   id: string;
@@ -394,17 +394,31 @@ export default function App() {
   // Nombre del invitado que publica sin registrarse (para firmar su invitación)
   const [guestName, setGuestName] = useState('');
 
-  // Splash de arranque (como el logo al encender un iPhone): solo visual y breve.
-  // El sonido se arma junto con el logo: brota al instante si el navegador ya
-  // lo permite, o en el primer contacto con la pantalla (regla de audio web).
+  // Arranque tipo "el cel parece apagado": pantalla negra, el usuario toca,
+  // y el logo entra en fade in de 4s mientras suena el intro. El toque también
+  // desbloquea el audio del navegador (por eso el sonido nunca falla aquí).
   const [showSplash, setShowSplash] = useState(true);
+  const [splashRevealed, setSplashRevealed] = useState(false);
   const chimePlayed = useRef(false);
-  useEffect(() => {
-    armIntroChime(); // dispara la lluvia de notitas junto con el logo
+
+  const revealSplash = () => {
+    if (splashRevealed) return;
+    setSplashRevealed(true);
     chimePlayed.current = true;
-    const t = setTimeout(() => setShowSplash(false), 2800);
+    playIntroChime(); // el toque desbloquea el audio: la lluvia de notitas suena junto al logo
+    setTimeout(() => setShowSplash(false), 4600); // dura lo que el fade in del logo + un respiro
+  };
+
+  useEffect(() => {
+    // Respaldo: si nadie toca en 6s, revelar solo (sin sonido, por regla del navegador)
+    const t = setTimeout(() => {
+      if (!splashRevealed) {
+        setSplashRevealed(true);
+        setTimeout(() => setShowSplash(false), 4600);
+      }
+    }, 6000);
     return () => clearTimeout(t);
-  }, []);
+  }, [splashRevealed]);
 
   const playWelcomeChime = () => {
     if (chimePlayed.current) return;
@@ -1184,7 +1198,7 @@ export default function App() {
                   onClick={() => setShowModeMenu(!showModeMenu)}
                   className="flex items-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span className="text-2xl font-bold text-white tracking-tighter hover:opacity-80 transition-opacity">iogga</span>
+                  <span className="text-2xl text-white hover:opacity-80 transition-opacity" style={{ fontFamily: '"Quicksand", sans-serif', fontWeight: 600 }}>iogga</span>
                   <ChevronDown size={14} className={`text-zinc-500 transition-transform duration-500 shrink-0 ${showModeMenu ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -4712,13 +4726,14 @@ export default function App() {
                 </div>
               </div>
               <div className="space-y-1">
-                <h3 className="font-black text-2xl text-white">Lleva iogga contigo</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed max-w-[280px] mx-auto">
-                  No ocupa espacio, sin tiendas, sin esperas. Tus invitaciones y tu QR siempre a un toque.
+                <h3 className="font-black text-2xl text-white">Instala iogga en tu pantalla</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed max-w-[300px] mx-auto">
+                  Gratis · no ocupa espacio · sin tiendas de apps. Queda con su ícono, como cualquier app.
                 </p>
               </div>
 
               {installEvent ? (
+                // Android/Chrome: instalación real en un toque
                 <button
                   onClick={async () => {
                     installEvent.prompt();
@@ -4726,26 +4741,56 @@ export default function App() {
                     setInstallEvent(null);
                     setShowInstall(false);
                   }}
-                  className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-iogga-primary/30"
+                  className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-base active:scale-95 transition-all shadow-xl shadow-iogga-primary/30 flex items-center justify-center gap-2"
                 >
-                  📲 Instalar ahora — 1 clic
+                  <Download size={22} /> Instalar ahora
                 </button>
               ) : isIOS ? (
-                <div className="space-y-2 text-left">
-                  <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
-                    <span className="w-7 h-7 rounded-full bg-iogga-primary text-white text-xs font-black flex items-center justify-center shrink-0">1</span>
-                    <p className="text-xs text-zinc-300">Toca <span className="font-black text-white">Compartir</span> <span className="inline-block px-1.5 py-0.5 rounded bg-white/10 text-white font-black">⬆️</span> en la barra de Safari (abajo al centro)</p>
+                // iPhone (Safari): Apple no permite instalar solo; guía visual de 2 pasos
+                <div className="space-y-3 text-left">
+                  <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
+                    <span className="w-9 h-9 rounded-full bg-iogga-primary text-white text-base font-black flex items-center justify-center shrink-0">1</span>
+                    <p className="text-sm text-zinc-200 leading-snug">
+                      Toca el botón <span className="font-black text-white">Compartir</span>
+                      <span className="inline-flex items-center justify-center w-8 h-8 mx-1 rounded-lg bg-[#0a84ff] text-white align-middle" aria-label="compartir">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>
+                      </span>
+                      abajo en la barra de <span className="font-black text-white">Safari</span>.
+                    </p>
                   </div>
-                  <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
-                    <span className="w-7 h-7 rounded-full bg-iogga-primary text-white text-xs font-black flex items-center justify-center shrink-0">2</span>
-                    <p className="text-xs text-zinc-300">Elige <span className="font-black text-white">"Agregar a pantalla de inicio"</span> <span className="inline-block px-1.5 py-0.5 rounded bg-white/10 text-white font-black">➕</span></p>
+                  <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
+                    <span className="w-9 h-9 rounded-full bg-iogga-primary text-white text-base font-black flex items-center justify-center shrink-0">2</span>
+                    <p className="text-sm text-zinc-200 leading-snug">
+                      Baja y elige
+                      <span className="inline-flex items-center gap-1 mx-1 px-2 py-1 rounded-lg bg-white/10 text-white font-black align-middle text-xs">
+                        Agregar a inicio
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+                      </span>
+                    </p>
                   </div>
-                  <p className="text-[10px] text-zinc-500 text-center pt-1">Listo: iogga aparecerá con su ícono como cualquier app ✨</p>
+                  <p className="text-xs text-zinc-500 text-center pt-1">✨ Listo. iogga aparecerá en tu pantalla de inicio.</p>
                 </div>
               ) : (
-                <p className="text-xs text-zinc-400 p-4 rounded-2xl bg-white/5 border border-white/10">
-                  En el menú de tu navegador (⋮ o ⋯) elige <span className="font-black text-white">"Instalar app"</span> o <span className="font-black text-white">"Agregar a pantalla de inicio"</span>.
-                </p>
+                // Android sin permiso automático o navegador raro
+                <div className="space-y-3 text-left">
+                  <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
+                    <span className="w-9 h-9 rounded-full bg-iogga-primary text-white text-base font-black flex items-center justify-center shrink-0">1</span>
+                    <p className="text-sm text-zinc-200 leading-snug">
+                      Abre el menú
+                      <span className="inline-flex items-center justify-center w-8 h-8 mx-1 rounded-lg bg-white/10 text-white align-middle">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+                      </span>
+                      (arriba a la derecha).
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
+                    <span className="w-9 h-9 rounded-full bg-iogga-primary text-white text-base font-black flex items-center justify-center shrink-0">2</span>
+                    <p className="text-sm text-zinc-200 leading-snug">
+                      Toca <span className="font-black text-white">"Instalar aplicación"</span> o <span className="font-black text-white">"Agregar a pantalla principal"</span>.
+                    </p>
+                  </div>
+                  <p className="text-xs text-zinc-500 text-center pt-1">✨ Listo. iogga aparecerá en tu pantalla de inicio.</p>
+                </div>
               )}
 
               <button
@@ -4800,60 +4845,43 @@ export default function App() {
       </>
     )}
 
-    {/* Splash de arranque: cielo nocturno con auroras boreales + logo al centro */}
+    {/* Arranque: pantalla negra (parece apagado) -> tocas -> el logo entra en
+        fade in de 4s mientras suena el intro. El toque desbloquea el audio. */}
     <AnimatePresence>
       {showSplash && (
         <motion.div
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: 0.8, ease: 'easeInOut' } }}
-          className="fixed inset-0 z-[500] flex items-center justify-center overflow-hidden"
-          style={{ background: 'radial-gradient(120% 90% at 50% 15%, #0b1226 0%, #070a16 45%, #04050c 100%)' }}
+          exit={{ opacity: 0, transition: { duration: 0.9, ease: 'easeInOut' } }}
+          onClick={revealSplash}
+          className="fixed inset-0 z-[500] bg-black flex items-center justify-center overflow-hidden cursor-pointer"
         >
-          <style>{`
-            @keyframes iogAur1 { 0%{transform:translate(-15%,-10%) scale(1);opacity:.30} 50%{transform:translate(10%,8%) scale(1.25);opacity:.45} 100%{transform:translate(-15%,-10%) scale(1);opacity:.30} }
-            @keyframes iogAur2 { 0%{transform:translate(12%,10%) scale(1.1);opacity:.22} 50%{transform:translate(-12%,-6%) scale(1.35);opacity:.38} 100%{transform:translate(12%,10%) scale(1.1);opacity:.22} }
-            @keyframes iogAur3 { 0%{transform:translate(0%,15%) scale(1);opacity:.18} 50%{transform:translate(6%,-4%) scale(1.2);opacity:.30} 100%{transform:translate(0%,15%) scale(1);opacity:.18} }
-            @keyframes iogTwinkle { 0%,100%{opacity:.25} 50%{opacity:.9} }
-          `}</style>
+          {/* Fase 1: negro total con una pista tenue (el usuario cree que está apagado) */}
+          {!splashRevealed && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 0.35, 0], transition: { duration: 2.4, repeat: Infinity, delay: 1.2 } }}
+              className="absolute bottom-24 text-white/40 text-xs tracking-[0.3em] uppercase"
+            >
+              toca la pantalla
+            </motion.p>
+          )}
 
-          {/* Auroras: manchas enormes, muy difuminadas, movimiento lentísimo y casi imperceptible */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute -top-1/4 left-0 w-[80%] h-[70%] rounded-full" style={{ background: 'radial-gradient(circle, rgba(20,184,166,0.55), transparent 62%)', filter: 'blur(90px)', animation: 'iogAur1 14s ease-in-out infinite' }} />
-            <div className="absolute top-0 right-0 w-[75%] h-[75%] rounded-full" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.55), transparent 62%)', filter: 'blur(100px)', animation: 'iogAur2 18s ease-in-out infinite' }} />
-            <div className="absolute bottom-0 left-1/4 w-[70%] h-[60%] rounded-full" style={{ background: 'radial-gradient(circle, rgba(56,189,180,0.4), transparent 62%)', filter: 'blur(110px)', animation: 'iogAur3 22s ease-in-out infinite' }} />
-          </div>
-
-          {/* Estrellitas apenas visibles */}
-          <div className="absolute inset-0 pointer-events-none">
-            {[[18,22],[72,16],[85,40],[30,60],[60,72],[12,48],[90,68],[45,30],[68,52],[25,80]].map(([l,t],i)=>(
-              <span key={i} className="absolute w-[2px] h-[2px] rounded-full bg-white" style={{ left:`${l}%`, top:`${t}%`, animation:`iogTwinkle ${3+i%4}s ease-in-out ${i*0.4}s infinite` }} />
-            ))}
-          </div>
-
-          {/* Logo: círculo + wordmark iogga en vectores geométricos (blanco) */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1, transition: { duration: 1.3, ease: 'easeOut' } }}
-            className="relative flex flex-col items-center gap-6"
-          >
-            <div className="w-28 h-28 rounded-full bg-white shadow-[0_0_60px_rgba(255,255,255,0.25)]" />
-            <svg viewBox="0 0 560 210" className="w-52 h-auto" fill="none" stroke="#ffffff" strokeWidth="34" strokeLinecap="round" strokeLinejoin="round">
-              {/* i */}
-              <circle cx="45" cy="40" r="4" fill="#ffffff" stroke="none" />
-              <line x1="45" y1="74" x2="45" y2="150" />
-              {/* o */}
-              <circle cx="135" cy="110" r="40" />
-              {/* g */}
-              <circle cx="245" cy="110" r="40" />
-              <path d="M285 74 L285 168 Q285 191 262 190" />
-              {/* g */}
-              <circle cx="360" cy="110" r="40" />
-              <path d="M400 74 L400 168 Q400 191 377 190" />
-              {/* a */}
-              <circle cx="470" cy="110" r="40" />
-              <line x1="510" y1="74" x2="510" y2="150" />
-            </svg>
-          </motion.div>
+          {/* Fase 2: el logo oficial entra suave en 4 segundos */}
+          {splashRevealed && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1, transition: { duration: 4, ease: 'easeInOut' } }}
+              className="flex flex-col items-center gap-5"
+            >
+              <div className="w-28 h-28 rounded-full bg-white shadow-[0_0_70px_rgba(255,255,255,0.28)]" />
+              <span
+                className="text-white leading-none"
+                style={{ fontFamily: '"Quicksand", sans-serif', fontWeight: 600, fontSize: '3.4rem', letterSpacing: '-0.01em' }}
+              >
+                iogga
+              </span>
+            </motion.div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

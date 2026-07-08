@@ -1693,15 +1693,31 @@ export default function App() {
                             </div>
                           </div>
                           <div className="p-6 relative z-10">
-                            {/* Exciting accepted notification banner */}
-                            <div className="mb-4 flex items-center gap-2 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400">
-                              <Sparkles size={16} className="animate-bounce text-emerald-400 shrink-0" />
-                              <p className="text-xs font-black uppercase tracking-wider font-sans leading-tight">
-                                {plan.acceptedCount > 0 
-                                  ? `¡Buenas noticias! ${plan.acceptedCount} ${plan.acceptedCount === 1 ? 'persona ha' : 'personas han'} aceptado tu plan` 
-                                  : '¡Tu plan está publicado! Esperando que se unan amigos'}
-                              </p>
-                            </div>
+                            {/* Aviso de aceptados; sin cuenta: se ve borroso e invita a registrarse */}
+                            {plan.acceptedCount > 0 && currentUser?.isAnonymous ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setIsRegistering(true);
+                                  setShowLoginModal(true);
+                                }}
+                                className="w-full mb-4 flex items-center gap-2 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400 text-left"
+                              >
+                                <Sparkles size={16} className="animate-bounce text-emerald-400 shrink-0" />
+                                <p className="text-xs font-black uppercase tracking-wider font-sans leading-tight">
+                                  🎉 <span className="blur-[5px] select-none">{plan.acceptedCount} persona</span> aceptó tu plan — crea tu cuenta gratis para ver
+                                </p>
+                              </button>
+                            ) : (
+                              <div className="mb-4 flex items-center gap-2 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400">
+                                <Sparkles size={16} className="animate-bounce text-emerald-400 shrink-0" />
+                                <p className="text-xs font-black uppercase tracking-wider font-sans leading-tight">
+                                  {plan.acceptedCount > 0
+                                    ? `¡Buenas noticias! ${plan.acceptedCount} ${plan.acceptedCount === 1 ? 'persona ha' : 'personas han'} aceptado tu plan`
+                                    : '¡Tu plan está publicado! Invita amigos por WhatsApp 👇'}
+                                </p>
+                              </div>
+                            )}
 
                             <div className="flex justify-between items-start mb-4">
                               <div>
@@ -1709,7 +1725,7 @@ export default function App() {
                                 <p className="text-xs text-zinc-400 font-medium italic line-clamp-1">"{getPlanDescription(plan)}"</p>
                               </div>
                               <div className="flex flex-col items-end shrink-0">
-                                <span className="text-xl font-black text-iogga-primary">{plan.acceptedCount}</span>
+                                <span className={`text-xl font-black text-iogga-primary ${plan.acceptedCount > 0 && currentUser?.isAnonymous ? 'blur-[5px] select-none' : ''}`}>{plan.acceptedCount}</span>
                                 <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Unidos</span>
                               </div>
                             </div>

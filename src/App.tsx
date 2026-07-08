@@ -394,6 +394,14 @@ export default function App() {
   // Nombre del invitado que publica sin registrarse (para firmar su invitación)
   const [guestName, setGuestName] = useState('');
 
+  // El sonido de bienvenida suena con el primer toque (regla de los navegadores)
+  const chimePlayed = useRef(false);
+  const playWelcomeChime = () => {
+    if (chimePlayed.current) return;
+    chimePlayed.current = true;
+    playChime('lluvia');
+  };
+
   // ---- Popup "Instala IOGGA": 1 clic en Android, guía de 2 pasos en iPhone ----
   const [installEvent, setInstallEvent] = useState<any>(null);
   const [showInstall, setShowInstall] = useState(false);
@@ -1056,7 +1064,7 @@ export default function App() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-zinc-900">
       <div className={`app-container transition-all duration-700 ${isIntro ? 'bg-zinc-950' : (mode === 'person' ? 'bg-indigo-950' : 'bg-teal-950')} flex flex-col relative`}>
         {isIntro ? (
-          <div className="flex flex-col items-center [justify-content:safe_center] p-8 pb-[max(3rem,env(safe-area-inset-bottom))] text-center relative overflow-y-auto no-scrollbar h-full">
+          <div onClickCapture={playWelcomeChime} className="flex flex-col items-center [justify-content:safe_center] p-8 pb-[max(3rem,env(safe-area-inset-bottom))] text-center relative overflow-y-auto no-scrollbar h-full">
             {/* Background Glow */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-iogga-primary/20 blur-[120px] rounded-full" />
             
@@ -2707,6 +2715,26 @@ export default function App() {
                       <p className="text-[11px] text-zinc-400 font-medium">
                         Siguiente paso: <span className="text-white font-bold">{profileSteps.find(s => !s.done)?.label}</span> · Un perfil completo recibe más invitaciones ✨
                       </p>
+                    </button>
+                  </div>
+                )}
+
+                {!isStandalone && (
+                  <div className="px-6 pt-4">
+                    <button
+                      onClick={() => setShowInstall(true)}
+                      className="w-full p-5 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-between active:scale-[0.98] transition-transform"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-2xl bg-iogga-primary/15 text-iogga-primary">
+                          <Smartphone size={20} />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-bold text-white text-sm">Instalar IOGGA en tu celular</p>
+                          <p className="text-[10px] text-zinc-500">Gratis · No ocupa espacio · Sin tiendas</p>
+                        </div>
+                      </div>
+                      <ChevronRight size={18} className="text-zinc-500" />
                     </button>
                   </div>
                 )}

@@ -52,10 +52,10 @@ export function playChime(variant: ChimeVariant = 'lluvia'): void {
 
     const config =
       variant === 'campanitas'
-        ? { count: 8, span: 2.2, vol: [0.05, 0.11], dur: [1.2, 2.0] }
+        ? { count: 8, span: 2.2, vol: [0.09, 0.18], dur: [1.2, 2.0] }
         : variant === 'polvo'
-          ? { count: 26, span: 1.6, vol: [0.015, 0.05], dur: [0.3, 0.8] }
-          : { count: 15, span: 1.9, vol: [0.03, 0.08], dur: [0.6, 1.4] }; // lluvia
+          ? { count: 26, span: 1.6, vol: [0.03, 0.09], dur: [0.3, 0.8] }
+          : { count: 15, span: 1.9, vol: [0.06, 0.14], dur: [0.6, 1.4] }; // lluvia
 
     for (let i = 0; i < config.count; i++) {
       const t = now + Math.pow(i / config.count, 1.2) * config.span + Math.random() * 0.06;

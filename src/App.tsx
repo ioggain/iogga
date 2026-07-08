@@ -397,7 +397,7 @@ export default function App() {
   // Splash de arranque (como el logo al encender un iPhone): solo visual y breve
   const [showSplash, setShowSplash] = useState(true);
   useEffect(() => {
-    const t = setTimeout(() => setShowSplash(false), 2600);
+    const t = setTimeout(() => setShowSplash(false), 2800);
     return () => clearTimeout(t);
   }, []);
 
@@ -409,7 +409,7 @@ export default function App() {
     playIntroChime(); // lluvia de miles de notitas: fade in suave, fade out fino
   };
 
-  // ---- Popup "Instala IOGGA": 1 clic en Android, guía de 2 pasos en iPhone ----
+  // ---- Popup "Instala iogga": 1 clic en Android, guía de 2 pasos en iPhone ----
   const [installEvent, setInstallEvent] = useState<any>(null);
   const [showInstall, setShowInstall] = useState(false);
   const isStandalone = typeof window !== 'undefined' &&
@@ -2737,7 +2737,7 @@ export default function App() {
                           <Smartphone size={20} />
                         </div>
                         <div className="text-left">
-                          <p className="font-bold text-white text-sm">Instalar IOGGA en tu celular</p>
+                          <p className="font-bold text-white text-sm">Instalar iogga en tu celular</p>
                           <p className="text-[10px] text-zinc-500">Gratis · No ocupa espacio · Sin tiendas</p>
                         </div>
                       </div>
@@ -3861,7 +3861,7 @@ export default function App() {
                   </button>
                   {selectedPlanForDetails.whatsapp ? (
                     <a
-                      href={waLink(selectedPlanForDetails.whatsapp, `¡Hola ${selectedPlanForDetails.userName}! Acepté tu plan "${selectedPlanForDetails.activity}" en IOGGA. ¿Sigue en pie? 🙌`)}
+                      href={waLink(selectedPlanForDetails.whatsapp, `¡Hola ${selectedPlanForDetails.userName}! Acepté tu plan "${selectedPlanForDetails.activity}" en iogga. ¿Sigue en pie? 🙌`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => {
@@ -4224,7 +4224,7 @@ export default function App() {
                       onClick={() => setSelectedChannel('iogga')}
                       className={`py-3 px-2 rounded-2xl border text-center transition-all ${selectedChannel === 'iogga' ? 'bg-indigo-500/20 border-indigo-500 text-white scale-[1.02]' : 'bg-white/5 border-white/10 text-zinc-400'}`}
                     >
-                      <p className="font-black text-[10px] uppercase tracking-wider">Solo IOGGA</p>
+                      <p className="font-black text-[10px] uppercase tracking-wider">Solo iogga</p>
                     </button>
                     <button 
                       onClick={() => setSelectedChannel('both')}
@@ -4442,7 +4442,7 @@ export default function App() {
                     <User size={28} />
                   </div>
                   <h3 className="font-lexend font-black text-xl text-white tracking-tight uppercase">
-                    {isRegistering ? "Regístrate en IOGGA" : "Bienvenido de vuelta"}
+                    {isRegistering ? "Regístrate en iogga" : "Bienvenido de vuelta"}
                   </h3>
                   <p className="text-xs text-zinc-400 font-medium leading-relaxed font-sans">
                     {isRegistering ? "Únete a la comunidad de planes espejo en Chihuahua." : "Inicia sesión para crear planes, guardar coincidencias y conectar."}
@@ -4476,7 +4476,7 @@ export default function App() {
                     setLoginPassword('');
                     triggerBeta(
                       isRegistering ? "¡Cuenta Creada!" : "¡Sesión Iniciada!",
-                      `Bienvenido${user.name ? `, ${user.name}` : ''} a IOGGA Chihuahua.`
+                      `Bienvenido${user.name ? `, ${user.name}` : ''} a iogga Chihuahua.`
                     );
                     if (loginActionToResume) {
                       loginActionToResume();
@@ -4567,7 +4567,7 @@ export default function App() {
                           setCurrentUser(user);
                           setIsLoggedIn(true);
                           setShowLoginModal(false);
-                          triggerBeta("¡Sesión Iniciada!", `Bienvenido${user.name ? `, ${user.name}` : ''} a IOGGA Chihuahua.`);
+                          triggerBeta("¡Sesión Iniciada!", `Bienvenido${user.name ? `, ${user.name}` : ''} a iogga Chihuahua.`);
                           if (loginActionToResume) {
                             loginActionToResume();
                             setLoginActionToResume(null);
@@ -4653,7 +4653,7 @@ export default function App() {
                 <div className="grid grid-cols-1 gap-2 pt-2">
                   {invitationPlan.whatsapp ? (
                     <a
-                      href={waLink(invitationPlan.whatsapp, `¡Hola ${invitationPlan.userName}! Vi tu invitación a "${invitationPlan.activity}" en IOGGA y ¡me apunto! 🙌`)}
+                      href={waLink(invitationPlan.whatsapp, `¡Hola ${invitationPlan.userName}! Vi tu invitación a "${invitationPlan.activity}" en iogga y ¡me apunto! 🙌`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => {
@@ -4681,12 +4681,12 @@ export default function App() {
                     onClick={() => setInvitationPlan(null)}
                     className="w-full py-4 bg-white/5 border border-white/10 text-zinc-400 rounded-[20px] font-bold text-xs uppercase tracking-widest active:scale-95 transition-all"
                   >
-                    Solo explorar IOGGA
+                    Solo explorar iogga
                   </button>
                 </div>
 
                 <p className="text-[10px] text-zinc-600 text-center leading-relaxed">
-                  🔒 Al aceptar solo se comparte tu nombre — nada más. IOGGA es web:
+                  🔒 Al aceptar solo se comparte tu nombre — nada más. iogga es web:
                   no se descarga, no ocupa espacio y tus datos están protegidos. ✨
                 </p>
               </div>
@@ -4709,7 +4709,7 @@ export default function App() {
                 </div>
               </div>
               <div className="space-y-1">
-                <h3 className="font-black text-2xl text-white">Lleva IOGGA contigo</h3>
+                <h3 className="font-black text-2xl text-white">Lleva iogga contigo</h3>
                 <p className="text-xs text-zinc-400 leading-relaxed max-w-[280px] mx-auto">
                   No ocupa espacio, sin tiendas, sin esperas. Tus invitaciones y tu QR siempre a un toque.
                 </p>
@@ -4737,7 +4737,7 @@ export default function App() {
                     <span className="w-7 h-7 rounded-full bg-iogga-primary text-white text-xs font-black flex items-center justify-center shrink-0">2</span>
                     <p className="text-xs text-zinc-300">Elige <span className="font-black text-white">"Agregar a pantalla de inicio"</span> <span className="inline-block px-1.5 py-0.5 rounded bg-white/10 text-white font-black">➕</span></p>
                   </div>
-                  <p className="text-[10px] text-zinc-500 text-center pt-1">Listo: IOGGA aparecerá con su ícono como cualquier app ✨</p>
+                  <p className="text-[10px] text-zinc-500 text-center pt-1">Listo: iogga aparecerá con su ícono como cualquier app ✨</p>
                 </div>
               ) : (
                 <p className="text-xs text-zinc-400 p-4 rounded-2xl bg-white/5 border border-white/10">
@@ -4770,7 +4770,7 @@ export default function App() {
               </div>
               {showLegal === 'privacy' ? (
                 <div className="space-y-3 text-xs text-zinc-400 leading-relaxed">
-                  <p><span className="text-white font-bold">IOGGA</span> (en adelante "la Plataforma"), con base en Chihuahua, México, es responsable del tratamiento de tus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP).</p>
+                  <p><span className="text-white font-bold">iogga</span> (en adelante "la Plataforma"), con base en Chihuahua, México, es responsable del tratamiento de tus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP).</p>
                   <p><span className="text-white font-bold">Datos que recabamos:</span> nombre, correo electrónico, número de WhatsApp (opcional), fotografía de perfil (opcional), ubicación aproximada y la actividad que publiques en la Plataforma (planes, promociones y canjes).</p>
                   <p><span className="text-white font-bold">Finalidades:</span> crear y administrar tu cuenta; conectar planes personales con promociones comerciales; permitir la validación de códigos de canje entre usuarios y negocios; y mostrar estadísticas de uso a los negocios.</p>
                   <p><span className="text-white font-bold">Compartición:</span> tu nombre y foto son visibles para otros usuarios. Tu número de WhatsApp solo se muestra a quienes interactúan con tus planes, para coordinar directamente. No vendemos tus datos a terceros.</p>
@@ -4780,13 +4780,13 @@ export default function App() {
                 </div>
               ) : (
                 <div className="space-y-3 text-xs text-zinc-400 leading-relaxed">
-                  <p>Al usar <span className="text-white font-bold">IOGGA</span> aceptas estos términos. Si no estás de acuerdo, no uses la Plataforma.</p>
-                  <p><span className="text-white font-bold">1. El servicio.</span> IOGGA conecta planes personales con promociones de negocios en tiempo real. IOGGA no es parte de las transacciones entre usuarios y negocios: los precios, la calidad y la entrega de productos o servicios son responsabilidad exclusiva del negocio.</p>
+                  <p>Al usar <span className="text-white font-bold">iogga</span> aceptas estos términos. Si no estás de acuerdo, no uses la Plataforma.</p>
+                  <p><span className="text-white font-bold">1. El servicio.</span> iogga conecta planes personales con promociones de negocios en tiempo real. iogga no es parte de las transacciones entre usuarios y negocios: los precios, la calidad y la entrega de productos o servicios son responsabilidad exclusiva del negocio.</p>
                   <p><span className="text-white font-bold">2. Tu cuenta.</span> Debes ser mayor de 18 años. Eres responsable de la información que publiques y de mantener la confidencialidad de tu acceso.</p>
-                  <p><span className="text-white font-bold">3. Códigos de canje.</span> Los códigos QR generados por la Plataforma son personales, válidos por 24 horas y de un solo uso. Su validación es realizada por el negocio correspondiente. IOGGA no garantiza la disponibilidad de una promoción al momento del canje.</p>
-                  <p><span className="text-white font-bold">4. Encuentros entre usuarios.</span> Los planes se realizan bajo tu propia responsabilidad. Te recomendamos reunirte en lugares públicos y verificar la identidad de las personas. IOGGA no supervisa los encuentros ni se hace responsable de lo que ocurra en ellos.</p>
+                  <p><span className="text-white font-bold">3. Códigos de canje.</span> Los códigos QR generados por la Plataforma son personales, válidos por 24 horas y de un solo uso. Su validación es realizada por el negocio correspondiente. iogga no garantiza la disponibilidad de una promoción al momento del canje.</p>
+                  <p><span className="text-white font-bold">4. Encuentros entre usuarios.</span> Los planes se realizan bajo tu propia responsabilidad. Te recomendamos reunirte en lugares públicos y verificar la identidad de las personas. iogga no supervisa los encuentros ni se hace responsable de lo que ocurra en ellos.</p>
                   <p><span className="text-white font-bold">5. Contenido.</span> No publiques contenido ilegal, ofensivo o engañoso. Podemos retirar contenido y suspender cuentas que violen estos términos.</p>
-                  <p><span className="text-white font-bold">6. Responsabilidad.</span> La Plataforma se ofrece "tal cual", en etapa MVP. En la medida permitida por la ley, IOGGA no será responsable por daños indirectos derivados del uso del servicio.</p>
+                  <p><span className="text-white font-bold">6. Responsabilidad.</span> La Plataforma se ofrece "tal cual", en etapa MVP. En la medida permitida por la ley, iogga no será responsable por daños indirectos derivados del uso del servicio.</p>
                   <p><span className="text-white font-bold">7. Contacto.</span> admin@iogga.com · Chihuahua, México.</p>
                   <p className="text-zinc-600">Última actualización: julio de 2026.</p>
                 </div>
@@ -4805,13 +4805,14 @@ export default function App() {
           exit={{ opacity: 0, transition: { duration: 0.7, ease: 'easeInOut' } }}
           className="fixed inset-0 z-[500] bg-[#09090b] flex items-center justify-center"
         >
-          <motion.img
-            src="/icons/icon-192.png"
-            alt="IOGGA"
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1, transition: { duration: 1.1, ease: 'easeOut' } }}
-            className="w-24 h-24 rounded-[28px]"
-          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1, transition: { duration: 1.2, ease: 'easeOut' } }}
+            className="flex flex-col items-center gap-5"
+          >
+            <div className="w-28 h-28 rounded-full bg-white" />
+            <span className="text-4xl font-bold text-white tracking-tight lowercase" style={{ fontFamily: 'Lexend, sans-serif' }}>iogga</span>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
@@ -4858,7 +4859,7 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
   const steps = {
     person: [
       {
-        title: "IOGGA ✨",
+        title: "iogga ✨",
         description: "La app para salir del móvil y entrar en la vida. Crea momentos mágicos, sin chats, espontáneamente. Comparte tu intención y deja que la magia haga el resto.",
         targetId: null,
         icon: <Sparkles className="text-iogga-primary" size={32} />
@@ -4913,7 +4914,7 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
     ],
     business: [
       {
-        title: "IOGGA para Negocios",
+        title: "iogga para Negocios",
         description: "Potencia tu negocio conectando con personas que buscan qué hacer en tiempo real.",
         targetId: null,
         icon: <Store className="text-iogga-primary" size={32} />,

@@ -1,6 +1,6 @@
 {
-  "name": "IOGGA — Planes y Promociones",
-  "short_name": "IOGGA",
+  "name": "iogga — planes y promociones",
+  "short_name": "iogga",
   "description": "Marketplace que conecta planes personales con promociones comerciales en tiempo real.",
   "lang": "es",
   "start_url": "/",
@@ -23,7 +23,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/icons/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

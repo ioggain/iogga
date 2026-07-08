@@ -1,4 +1,4 @@
-// Conexión de IOGGA con Firebase (login, base de datos y canjes QR).
+// Conexión de iogga con Firebase (login, base de datos y canjes QR).
 // Si no hay claves de Firebase configuradas (.env), la app funciona en "modo demo"
 // guardando los datos solo en este dispositivo.
 import { initializeApp, type FirebaseApp } from 'firebase/app';

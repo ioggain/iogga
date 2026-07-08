@@ -69,7 +69,7 @@ export function RedeemQRModal({
   const downloadQR = () => {
     if (!canvasRef.current || !redemption) return;
     const link = document.createElement('a');
-    link.download = `IOGGA-${redemption.code}.png`;
+    link.download = `iogga-${redemption.code}.png`;
     link.href = canvasRef.current.toDataURL('image/png');
     link.click();
   };
@@ -109,7 +109,7 @@ export function RedeemQRModal({
               Descargar QR
             </button>
             <p className="text-[11px] text-zinc-500 leading-relaxed max-w-[260px]">
-              Muestra este QR en el negocio: lo escanean con su cámara IOGGA y listo.
+              Muestra este QR en el negocio: lo escanean con su cámara iogga y listo.
               Válido por <span className="text-white font-bold">24 horas</span> y de{' '}
               <span className="text-white font-bold">un solo uso</span>.
             </p>
@@ -184,7 +184,7 @@ export function ValidateCodeModal({ onClose, validatorUid }: { onClose: () => vo
         try {
           const raw = await readFrame();
           if (raw) {
-            // Solo aceptamos códigos generados por IOGGA
+            // Solo aceptamos códigos generados por iogga
             if (raw.startsWith('IOGGA:')) {
               const clean = raw.replace(/^IOGGA:/, '').trim().toUpperCase();
               setCode(clean);
@@ -301,7 +301,7 @@ export function ValidateCodeModal({ onClose, validatorUid }: { onClose: () => vo
 
         <p className="text-[10px] text-zinc-600 leading-relaxed text-center border-t border-white/5 pt-3">
           ⭐ Tu negocio vive de sus calificaciones: cada canje validado aquí construye tu reputación.
-          Las transacciones fuera de IOGGA no cuentan, no están protegidas y se consideran mala práctica.
+          Las transacciones fuera de iogga no cuentan, no están protegidas y se consideran mala práctica.
         </p>
 
         {result && (

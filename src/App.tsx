@@ -285,6 +285,61 @@ const renderPlanTechnicalDetails = (plan: Plan) => {
 // Mensaje unificado de bienvenida de iogga (mismo texto en el intro y en el popup de persona)
 const IOGGA_WELCOME = 'iogga es la app para salir del móvil y vivir lo espontáneo. Comparte tu intención —"un café", "vamos al cine"— y quien quiera se suma. Sin chats interminables: solo acción.';
 
+// ---- Voz: hablar (TTS) y escuchar (reconocimiento) para Platica y Dicta ----
+function speakEs(text: string): Promise<void> {
+  return new Promise((resolve) => {
+    try {
+      if (!('speechSynthesis' in window)) return resolve();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'es-MX';
+      u.rate = 1;
+      u.onend = () => resolve();
+      u.onerror = () => resolve();
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    } catch { resolve(); }
+  });
+}
+
+function listenEs(): Promise<string | null> {
+  return new Promise((resolve) => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return resolve(null);
+    try {
+      const rec = new SR();
+      rec.lang = 'es-MX';
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      let done = false;
+      rec.onresult = (e: any) => { done = true; resolve(e.results?.[0]?.[0]?.transcript || null); };
+      rec.onerror = () => { if (!done) { done = true; resolve(null); } };
+      rec.onend = () => { if (!done) { done = true; resolve(null); } };
+      rec.start();
+    } catch { resolve(null); }
+  });
+}
+
+// Botón de micrófono para dictar dentro de cualquier campo de texto
+function MicButton({ onText, tone = 'primary' }: { onText: (t: string) => void; tone?: 'primary' | 'accent' }) {
+  const [busy, setBusy] = React.useState(false);
+  const color = tone === 'accent' ? 'text-iogga-accent' : 'text-iogga-primary';
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        setBusy(true);
+        const t = await listenEs();
+        setBusy(false);
+        if (t) onText(t);
+      }}
+      title="Dictar por voz"
+      className={`absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${busy ? 'bg-red-500/20 text-red-400 animate-pulse' : `bg-white/5 ${color} hover:bg-white/10`}`}
+    >
+      <Mic size={16} />
+    </button>
+  );
+}
+
 export default function App() {
   const [isIntro, setIsIntro] = useState(true);
   const [showNotificationsMenu, setShowNotificationsMenu] = useState(false);
@@ -444,31 +499,82 @@ export default function App() {
   // Nombre del invitado que publica sin registrarse (para firmar su invitación)
   const [guestName, setGuestName] = useState('');
 
-  // Crear plan estilo chat: Platica (escribir), Dicta (voz), Adivina (idea)
   const planInputRef = useRef<HTMLInputElement>(null);
-  const [dictating, setDictating] = useState(false);
-  const startDictation = () => {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { comingSoon('Dictar por voz'); return; }
-    try {
-      const rec = new SR();
-      rec.lang = 'es-MX';
-      rec.interimResults = false;
-      rec.maxAlternatives = 1;
-      setDictating(true);
-      rec.onresult = (e: any) => {
-        const t = e.results?.[0]?.[0]?.transcript || '';
-        if (t) setNewPlan(prev => ({ ...prev, activity: t }));
-      };
-      rec.onerror = () => setDictating(false);
-      rec.onend = () => setDictating(false);
-      rec.start();
-    } catch {
-      setDictating(false);
-      comingSoon('Dictar por voz');
-    }
-  };
   const FIREFLY_IDEAS = ['Café', 'Cine', 'Tacos', 'Cerveza', 'Caminar', 'Alitas', 'Música', 'Picnic', 'Playa', 'Concierto'];
+
+  // Platica: modo voz conversacional. La app pregunta cada paso, escucha tu
+  // respuesta, la interpreta y avanza sola hasta terminar el plan.
+  const [platicaOn, setPlaticaOn] = useState(false);
+  const [platicaStatus, setPlaticaStatus] = useState('');
+  const platicaCancel = useRef(false);
+
+  const parseTime = (t: string): string | null => {
+    const s = t.toLowerCase();
+    let m = s.match(/(\d{1,2})[:\s]?(\d{2})?\s*(am|pm|a\.m|p\.m|de la (?:tarde|noche|mañana))?/);
+    if (!m) return null;
+    let h = parseInt(m[1], 10);
+    const min = m[2] ? parseInt(m[2], 10) : 0;
+    const ap = m[3] || '';
+    if (/pm|tarde|noche/.test(ap) && h < 12) h += 12;
+    if (/am|mañana/.test(ap) && h === 12) h = 0;
+    if (h > 23) return null;
+    return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+  };
+
+  const runPlatica = async () => {
+    platicaCancel.current = false;
+    const ask = async (q: string): Promise<string | null> => {
+      if (platicaCancel.current) return null;
+      setPlaticaStatus(q);
+      await speakEs(q);
+      if (platicaCancel.current) return null;
+      setPlaticaStatus('Escuchando…');
+      const r = await listenEs();
+      return r;
+    };
+    // 1) Actividad
+    const act = await ask('¿Qué te gustaría hacer?');
+    if (platicaCancel.current) return;
+    if (act) setNewPlan(p => ({ ...p, activity: act }));
+    // 2) Día
+    const day = await ask('¿Qué día? Puedes decir hoy, mañana, o un día de la semana.');
+    if (day) {
+      const opt = dateOptions.find(o => day.toLowerCase().includes(o.label.replace('el ', '')) || day.toLowerCase().includes(o.chip.toLowerCase()));
+      if (opt) setNewPlan(p => ({ ...p, date: opt.iso, dateLabel: opt.label }));
+    }
+    // 3) Hora
+    const time = await ask('¿A qué hora?');
+    if (time) { const parsed = parseTime(time); if (parsed) setNewPlan(p => ({ ...p, startTime: parsed })); }
+    // 4) Lugar
+    const loc = await ask('¿Dónde nos vemos?');
+    if (loc) setNewPlan(p => ({ ...p, location: loc }));
+    // 5) Presupuesto
+    const bud = await ask('¿Cómo pagamos? Puedes decir yo invito, cada quien, sin dinero, o no se necesita.');
+    if (bud) {
+      const b = bud.toLowerCase();
+      const val = b.includes('invito') ? 'invites' : (b.includes('cada') ? 'split' : (b.includes('no se') || b.includes('necesita') ? 'not-needed' : (b.includes('sin') || b.includes('gratis') ? 'no-money' : null)));
+      if (val) setNewPlan(p => ({ ...p, budget: val as any }));
+    }
+    // 6) Transporte
+    const tr = await ask('¿Cómo llegamos? Tengo carro, cada quien llega, o no tengo transporte.');
+    if (tr) {
+      const t = tr.toLowerCase();
+      const val = t.includes('carro') || t.includes('coche') ? 'has-transport' : (t.includes('cada') ? 'each-arrives' : (t.includes('no') ? 'no-transport' : null));
+      if (val) setNewPlan(p => ({ ...p, transport: val as any }));
+    }
+    if (platicaCancel.current) return;
+    setPlaticaStatus('¡Listo! Revisa tu plan.');
+    await speakEs('Listo. Revisa tu plan y publícalo.');
+    setCurrentPlanStep(6);
+    setPlaticaOn(false);
+    setPlaticaStatus('');
+  };
+
+  useEffect(() => {
+    if (platicaOn) { void runPlatica(); }
+    else { platicaCancel.current = true; try { window.speechSynthesis?.cancel(); } catch {} }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [platicaOn]);
 
   // Arranque tipo "el cel parece apagado": pantalla negra, el usuario toca,
   // y el logo entra en fade in de 4s mientras suena el intro. El toque también
@@ -686,6 +792,13 @@ export default function App() {
   const [realNotifs, setRealNotifs] = useState<AppNotif[]>([]);
   const [invitePlan, setInvitePlan] = useState<Plan | null>(null); // ventana "invitar en iogga / WhatsApp"
   const [inviteSel, setInviteSel] = useState<string[]>([]); // amigos elegidos para invitar a ese plan
+  // Abrir la ventana de invitar; conserva la selección si es el mismo plan
+  const openInvite = (plan: Plan) => {
+    setInvitePlan(prev => {
+      if (!prev || prev.id !== plan.id) setInviteSel([]);
+      return plan;
+    });
+  };
   const [confirmSel, setConfirmSel] = useState<string[]>([]); // unidos que el anfitrión acepta
 
   // Enviar la intención a los amigos de iogga seleccionados (notificación real)
@@ -1983,8 +2096,7 @@ export default function App() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setInviteSel([]);
-                                  setInvitePlan(plan);
+                                  openInvite(plan);
                                 }}
                                 title="Agregar personas"
                                 className="p-2.5 bg-green-500/20 backdrop-blur-md text-green-200 rounded-full hover:bg-green-500/40 transition-colors border border-green-500/20"
@@ -3266,6 +3378,24 @@ export default function App() {
               onBack={currentPlanStep > 0 ? () => setCurrentPlanStep(currentPlanStep - 1) : undefined}
               title={editingPlanId ? "Editar Plan" : "Crear Plan"}
             >
+              {/* Platica por voz: la app pregunta y tú respondes hablando */}
+              {platicaOn && (
+                <div className="mb-5 p-5 rounded-3xl bg-iogga-primary/10 border border-iogga-primary/30 text-center space-y-3">
+                  <div className="flex justify-center">
+                    <div className="w-14 h-14 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center animate-pulse">
+                      <Mic size={26} />
+                    </div>
+                  </div>
+                  <p className="text-sm font-bold text-white leading-snug min-h-[40px] flex items-center justify-center">{platicaStatus || 'Preparando…'}</p>
+                  <button
+                    onClick={() => { platicaCancel.current = true; try { window.speechSynthesis?.cancel(); } catch {} setPlaticaOn(false); setPlaticaStatus(''); }}
+                    className="text-[10px] font-black text-zinc-400 uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full active:scale-95"
+                  >
+                    Terminar platica
+                  </button>
+                </div>
+              )}
+
               <div className="space-y-6">
                 {/* Step Indicator */}
                 <div className="flex gap-1 mb-4">
@@ -3286,56 +3416,36 @@ export default function App() {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-4"
                     >
-                      {/* Barra central estilo chat inteligente */}
-                      <div className="text-center space-y-1 pt-1">
-                        <h2 className="text-xl font-black text-white">¿Cuál es tu plan?</h2>
-                        <p className="text-xs text-zinc-500">Escríbelo, dícta­lo por voz o deja que iogga adivine</p>
+                      <div className="flex items-center justify-between">
+                        <label className="text-lg font-bold text-white block">¿Qué quieres hacer?</label>
+                        <button
+                          onClick={() => setPlaticaOn(true)}
+                          className="flex items-center gap-1 text-[10px] font-bold text-iogga-primary uppercase tracking-widest bg-iogga-primary/10 px-3 py-1.5 rounded-full border border-iogga-primary/20 active:scale-95"
+                        >
+                          <MessageSquare size={12} />
+                          Platica por voz
+                        </button>
                       </div>
                       <div className="relative">
                         <input
                           ref={planInputRef}
                           type="text"
                           placeholder="Escribe tus planes o deseos"
-                          className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/25 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium text-center"
+                          className="w-full h-16 pl-6 pr-14 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium"
                           value={newPlan.activity || ''}
                           onChange={e => setNewPlan({...newPlan, activity: e.target.value})}
                           autoFocus
                         />
-                        {dictating && <span className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[10px] font-black text-red-400 uppercase"><span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /> Escuchando</span>}
+                        <MicButton onText={t => setNewPlan(p => ({ ...p, activity: t }))} />
                       </div>
 
-                      {/* Tres modos: Platica / Dicta / Adivina */}
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          onClick={() => planInputRef.current?.focus()}
-                          className="py-3 rounded-2xl bg-white/5 border border-white/10 text-white flex flex-col items-center gap-1 active:scale-95 transition-all"
-                        >
-                          <MessageSquare size={18} className="text-iogga-primary" />
-                          <span className="text-[11px] font-bold">Platica</span>
-                        </button>
-                        <button
-                          onClick={startDictation}
-                          className={`py-3 rounded-2xl border flex flex-col items-center gap-1 active:scale-95 transition-all ${dictating ? 'bg-red-500/15 border-red-500/40 text-red-300' : 'bg-white/5 border-white/10 text-white'}`}
-                        >
-                          <Mic size={18} className={dictating ? 'text-red-400' : 'text-iogga-primary'} />
-                          <span className="text-[11px] font-bold">Dicta</span>
-                        </button>
-                        <button
-                          onClick={() => setNewPlan({...newPlan, activity: IDEAS[Math.floor(Math.random() * IDEAS.length)]})}
-                          className="py-3 rounded-2xl bg-white/5 border border-white/10 text-white flex flex-col items-center gap-1 active:scale-95 transition-all"
-                        >
-                          <Sparkles size={18} className="text-iogga-primary" />
-                          <span className="text-[11px] font-bold">Adivina</span>
-                        </button>
-                      </div>
-
-                      {/* Luciérnagas: ideas que brillan suave para inspirar */}
-                      <div className="flex flex-wrap gap-x-5 gap-y-2 justify-center pt-1">
+                      {/* Luciérnagas: ideas flotando libres (sin caja), brillan suave */}
+                      <div className="flex flex-wrap gap-x-5 gap-y-2.5 justify-center py-2">
                         {FIREFLY_IDEAS.map((w, i) => (
                           <button
                             key={w}
                             onClick={() => setNewPlan({...newPlan, activity: w})}
-                            className="text-sm font-semibold text-iogga-primary"
+                            className="text-sm font-semibold text-iogga-primary bg-transparent border-none"
                             style={{ animation: `iogFirefly ${4 + (i % 3)}s ease-in-out ${(i * 0.55).toFixed(2)}s infinite` }}
                           >
                             {w}
@@ -3351,13 +3461,16 @@ export default function App() {
                           onChange={e => setGuestName(e.target.value)}
                         />
                       )}
-                      <input
-                        type="text"
-                        placeholder="Comentario (opcional). Ej. Lleven suéter 🧥"
-                        className="w-full h-14 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
-                        value={newPlan.comment || ''}
-                        onChange={e => setNewPlan({...newPlan, comment: e.target.value})}
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Comentario (opcional). Ej. Lleven suéter"
+                          className="w-full h-14 pl-6 pr-14 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                          value={newPlan.comment || ''}
+                          onChange={e => setNewPlan({...newPlan, comment: e.target.value})}
+                        />
+                        <MicButton onText={t => setNewPlan(p => ({ ...p, comment: t }))} />
+                      </div>
                     </motion.div>
                   )}
 
@@ -3531,14 +3644,15 @@ export default function App() {
                       <label className="text-lg font-bold text-white block">¿Dónde nos vemos?</label>
                       <div className="relative">
                         <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                        <input 
-                          type="text" 
-                          placeholder="Ej. Centro, Plaza, Starbucks..." 
-                          className="w-full h-16 pl-12 pr-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium"
+                        <input
+                          type="text"
+                          placeholder="Ej. Centro, Plaza, Starbucks..."
+                          className="w-full h-16 pl-12 pr-14 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium"
                           value={newPlan.location || ''}
                           onChange={e => setNewPlan({...newPlan, location: e.target.value})}
                           autoFocus
                         />
+                        <MicButton onText={t => setNewPlan(p => ({ ...p, location: t }))} />
                       </div>
                       {(newPlan.locations || []).map((loc, i) => (
                         <div key={i} className="flex gap-2">
@@ -4108,7 +4222,7 @@ export default function App() {
                   {isMyPlan(selectedPlanForDetails) && (
                     <div className="space-y-2">
                       <button
-                        onClick={() => { setInviteSel([]); setInvitePlan(selectedPlanForDetails); }}
+                        onClick={() => openInvite(selectedPlanForDetails)}
                         className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-iogga-primary/20 flex items-center justify-center gap-2"
                       >
                         <UserPlus size={16} />
@@ -5078,7 +5192,7 @@ export default function App() {
 
         {/* Ventana para invitar a un plan: elegir iogga (amigos) o WhatsApp */}
         {invitePlan && (
-          <Modal onClose={() => { setInvitePlan(null); setInviteSel([]); }} title="Invitar a tu plan">
+          <Modal onClose={() => { setInvitePlan(null); }} title="Invitar a tu plan">
             <div className="space-y-5">
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                 <p className="text-sm text-white leading-relaxed">{buildInviteMessage(invitePlan)}</p>
@@ -5126,7 +5240,12 @@ export default function App() {
 
               {/* Opción 2: WhatsApp */}
               <button
-                onClick={() => { sharePlanWhatsApp(invitePlan); setInvitePlan(null); setInviteSel([]); }}
+                onClick={() => {
+                  // WhatsApp además envía la invitación por iogga a los seleccionados
+                  inviteSel.forEach(fid => sendNotification({ type:'invite', to: fid, fromName: invitePlan.userName, title: `${invitePlan.userName.split(' ')[0]} tiene un plan`, message: buildInviteMessage(invitePlan), planId: invitePlan.id }));
+                  sharePlanWhatsApp(invitePlan);
+                  setInvitePlan(null); setInviteSel([]);
+                }}
                 className="w-full py-4 bg-green-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                 <UserPlus size={16} /> Invitar por WhatsApp

@@ -280,6 +280,9 @@ const renderPlanTechnicalDetails = (plan: Plan) => {
   );
 };
 
+// Mensaje unificado de bienvenida de iogga (mismo texto en el intro y en el popup de persona)
+const IOGGA_WELCOME = 'iogga es la app para salir del móvil y vivir lo espontáneo. Comparte tu intención —"un café", "vamos al cine"— y quien quiera se suma. Sin chats interminables: solo acción.';
+
 export default function App() {
   const [isIntro, setIsIntro] = useState(true);
   const [showNotificationsMenu, setShowNotificationsMenu] = useState(false);
@@ -1152,6 +1155,20 @@ export default function App() {
   }, []);
 
   const [showBizWelcome, setShowBizWelcome] = useState(false);
+  const [showPersonWelcome, setShowPersonWelcome] = useState(false);
+
+  // Al terminar el splash, mostrar la bienvenida de persona (una sola vez).
+  // Si el usuario nuevo verá el recorrido (tutorial), ese ya lo da la bienvenida.
+  useEffect(() => {
+    if (showSplash || showTutorial) return;
+    try {
+      if (!localStorage.getItem('iogga_person_welcome')) {
+        localStorage.setItem('iogga_person_welcome', '1');
+        const t = setTimeout(() => setShowPersonWelcome(true), 500);
+        return () => clearTimeout(t);
+      }
+    } catch {}
+  }, [showSplash, showTutorial]);
 
   const toggleMode = (newMode: UserMode) => {
     // Sin barreras: cualquiera puede entrar al modo negocio y explorar
@@ -5030,6 +5047,37 @@ export default function App() {
           </div>
         )}
 
+        {/* Bienvenida a iogga (persona): popup grande morado, primera vez */}
+        {showPersonWelcome && (
+          <div className="fixed inset-0 z-[340] flex items-end sm:items-center justify-center">
+            <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={() => setShowPersonWelcome(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 0.61, 0.36, 1] } }}
+              className="relative w-full sm:max-w-md bg-zinc-950 border border-iogga-primary/30 rounded-t-[32px] sm:rounded-[32px] p-7 pb-[max(2.5rem,env(safe-area-inset-bottom))] space-y-5 text-center"
+            >
+              <div className="flex justify-center">
+                <div className="p-4 rounded-3xl bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary">
+                  <Sparkles size={34} />
+                </div>
+              </div>
+              <h2 className="font-black text-white leading-[1.05]" style={{ fontSize: '2.1rem' }}>
+                Bienvenido a <span className="text-iogga-primary">iogga</span>
+              </h2>
+              <p className="text-lg text-zinc-200 leading-snug font-medium">
+                La app para <span className="font-black text-white">salir del móvil y vivir lo espontáneo</span>. Comparte tu intención —"un café", "vamos al cine"— y quien quiera se suma.
+              </p>
+              <p className="text-sm text-iogga-primary font-bold">Sin chats interminables: solo acción. ✨</p>
+              <button
+                onClick={() => setShowPersonWelcome(false)}
+                className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-base active:scale-95 transition-all shadow-xl shadow-iogga-primary/30"
+              >
+                Empezar
+              </button>
+            </motion.div>
+          </div>
+        )}
+
         {/* Legales: Aviso de Privacidad y Términos (textos genéricos de MVP) */}
         {showLegal && (
           <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center">
@@ -5085,19 +5133,30 @@ export default function App() {
           {/* Fase 1: negro total, sin nada (el cel parece apagado). Espera el toque. */}
           {/* Fase 2: el logo oficial entra muy suave (fade in lento de 4s) */}
           {splashRevealed && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1, transition: { duration: 4, ease: [0.22, 0.61, 0.36, 1] } }}
-              className="flex flex-col items-center gap-5"
-            >
-              <div className="w-28 h-28 rounded-full bg-white shadow-[0_0_70px_rgba(255,255,255,0.28)]" />
-              <span
-                className="text-white leading-none"
-                style={{ fontFamily: '"Quicksand", sans-serif', fontWeight: 600, fontSize: '3.4rem', letterSpacing: '-0.01em' }}
+            <div className="flex flex-col items-center gap-6 px-8 max-w-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1, transition: { duration: 4, ease: [0.22, 0.61, 0.36, 1] } }}
+                className="flex flex-col items-center gap-5"
               >
-                iogga
-              </span>
-            </motion.div>
+                <div className="w-28 h-28 rounded-full bg-white shadow-[0_0_70px_rgba(255,255,255,0.28)]" />
+                <span
+                  className="text-white leading-none"
+                  style={{ fontFamily: '"Quicksand", sans-serif', fontWeight: 600, fontSize: '3.4rem', letterSpacing: '-0.01em' }}
+                >
+                  iogga
+                </span>
+              </motion.div>
+              {/* El mensaje de iogga entra sutil, sincronizado, después del logo */}
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0, transition: { duration: 2.2, delay: 3, ease: 'easeInOut' } }}
+                className="text-center text-base leading-relaxed"
+                style={{ color: '#a5b4fc' }}
+              >
+                {IOGGA_WELCOME}
+              </motion.p>
+            </div>
           )}
         </motion.div>
       )}

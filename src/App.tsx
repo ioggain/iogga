@@ -47,7 +47,8 @@ import {
   Pencil,
   Camera,
   Trophy,
-  UserPlus
+  UserPlus,
+  Send
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -81,7 +82,17 @@ import {
   saveBusinessProfile,
   saveFeedback,
   watchMyRedemptions,
+  searchUsers,
+  followUser,
+  unfollowUser,
+  watchFollowing,
+  watchFollowers,
+  sendNotification,
+  watchNotifications,
+  markNotificationRead,
   type Redemption,
+  type Friend,
+  type AppNotif,
   type AuthUser,
   type UserProfile
 } from './lib/firebase';
@@ -609,6 +620,59 @@ export default function App() {
     }
   }, [userProfile.business]);
 
+  // ---- Amigos (seguir) y notificaciones reales ----
+  const [following, setFollowing] = useState<Friend[]>([]);
+  const [followers, setFollowers] = useState<Friend[]>([]);
+  const [showFriends, setShowFriends] = useState<null | 'following' | 'followers'>(null);
+  const [friendSearch, setFriendSearch] = useState('');
+  const [friendResults, setFriendResults] = useState<Friend[]>([]);
+  const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
+  const [pendingFriendIds, setPendingFriendIds] = useState<string[]>([]);
+  const [realNotifs, setRealNotifs] = useState<AppNotif[]>([]);
+
+  // Enviar la intención a los amigos de iogga seleccionados (notificación real)
+  const notifyPendingFriends = (plan: Plan) => {
+    pendingFriendIds.forEach(fid => {
+      void sendNotification({
+        type: 'invite',
+        to: fid,
+        fromName: plan.userName,
+        title: `${plan.userName.split(' ')[0]} tiene un plan`,
+        message: buildInviteMessage(plan),
+        planId: plan.id,
+      });
+    });
+  };
+
+  useEffect(() => {
+    if (!currentUser || currentUser.isAnonymous) {
+      setFollowing([]); setFollowers([]); setRealNotifs([]);
+      return;
+    }
+    const u1 = watchFollowing(currentUser.uid, setFollowing);
+    const u2 = watchFollowers(currentUser.uid, setFollowers);
+    const u3 = watchNotifications(currentUser.uid, setRealNotifs);
+    return () => { u1(); u2(); u3(); };
+  }, [currentUser?.uid, currentUser?.isAnonymous]);
+
+  // Búsqueda de usuarios para agregar (con pequeño retardo)
+  useEffect(() => {
+    if (!currentUser || friendSearch.trim().length < 2) { setFriendResults([]); return; }
+    const t = setTimeout(async () => {
+      const res = await searchUsers(friendSearch, currentUser.uid);
+      setFriendResults(res);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [friendSearch, currentUser?.uid]);
+
+  const isFollowing = (uid: string) => following.some(f => f.uid === uid);
+  const toggleFollow = async (f: Friend) => {
+    if (!currentUser) { setShowLoginModal(true); return; }
+    if (isFollowing(f.uid)) await unfollowUser(currentUser.uid, f.uid);
+    else await followUser(currentUser, f);
+  };
+  const unreadNotifs = realNotifs.filter(n => !n.read).length;
+
   // Ventas REALES del negocio (canjes validados) para las gráficas
   const [myRedemptions, setMyRedemptions] = useState<Redemption[]>([]);
   useEffect(() => {
@@ -880,6 +944,7 @@ export default function App() {
         tags: (newPlan.activity || '').toLowerCase().split(' ')
       };
       void saveDocIn('plans', plan.id, plan);
+      setPendingFriendIds([...selectedFriendIds]); // se enviarán al confirmar en "Verifica tu mensaje"
       setPlans([plan, ...plans]);
       setLastPublishedPlan(plan);
       setShowMatchCelebration(true);
@@ -887,6 +952,7 @@ export default function App() {
     setShowCreatePlan(false);
     setCurrentPlanStep(0);
     setActiveTab('active'); // Switch to active plans so they see it there too!
+    setSelectedFriendIds([]);
     // Reset form
     setNewPlan({
       activity: '',
@@ -1287,7 +1353,9 @@ export default function App() {
               className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors relative active:scale-90 ${activeTab === 'notifications' ? (mode === 'person' ? 'bg-iogga-primary/20 text-iogga-primary' : 'bg-iogga-accent/20 text-iogga-accent') : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
             >
               <Bell size={20} />
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-zinc-900"></span>
+              {unreadNotifs > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full border border-zinc-900 flex items-center justify-center text-[10px] font-black text-white">{unreadNotifs}</span>
+              )}
             </button>
             <button 
               onClick={() => setShowSettingsMenu(true)}
@@ -2278,9 +2346,42 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Notificaciones REALES de iogga (invitaciones de amigos, en vivo) */}
+                {realNotifs.length > 0 && (
+                  <div className="space-y-3">
+                    {realNotifs.map((n) => (
+                      <button
+                        key={n.id}
+                        onClick={() => {
+                          void markNotificationRead(n.id);
+                          if (n.planId) {
+                            const p = plans.find(pl => pl.id === n.planId);
+                            if (p) { setActiveTab('search'); setSelectedPlanForDetails(p); }
+                            else fetchDocIn<Plan>('plans', n.planId).then(pl => { if (pl) { setActiveTab('search'); setSelectedPlanForDetails(pl); } });
+                          }
+                        }}
+                        className={`w-full text-left p-5 rounded-[32px] border flex gap-4 transition-all ${n.read ? 'bg-white/5 border-white/5' : 'bg-zinc-900 border-iogga-primary/30 shadow-xl'}`}
+                      >
+                        <div className="w-12 h-12 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center shrink-0">
+                          <Sparkles size={22} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className={`font-black text-sm truncate ${n.read ? 'text-zinc-400' : 'text-white'}`}>{n.title}</h3>
+                            {!n.read && <span className="w-2.5 h-2.5 bg-iogga-primary rounded-full shrink-0" />}
+                          </div>
+                          <p className={`text-xs leading-relaxed line-clamp-2 ${n.read ? 'text-zinc-500' : 'text-zinc-300'}`}>{n.message}</p>
+                          {n.planId && <span className="text-[10px] font-black text-iogga-primary uppercase tracking-widest mt-1 inline-block">Ver plan →</span>}
+                        </div>
+                      </button>
+                    ))}
+                    <div className="h-px bg-white/5 my-2" />
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   {(mode === 'person' ? notificationsPerson : notificationsBusiness).map((notif) => (
-                    <motion.div 
+                    <motion.div
                       key={notif.id}
                       layout
                       className="relative group"
@@ -2715,6 +2816,25 @@ export default function App() {
                           <Camera size={13} /> @{userProfile.instagram}
                         </a>
                       )}
+
+                      {/* Amigos estilo Instagram: seguidos / seguidores */}
+                      <div className="flex items-center justify-center gap-8 pt-4">
+                        <button onClick={() => setShowFriends('following')} className="flex flex-col items-center active:scale-95 transition-transform">
+                          <span className="text-lg font-black text-white">{following.length}</span>
+                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Amigos</span>
+                        </button>
+                        <div className="w-px h-8 bg-white/10" />
+                        <button onClick={() => setShowFriends('followers')} className="flex flex-col items-center active:scale-95 transition-transform">
+                          <span className="text-lg font-black text-white">{followers.length}</span>
+                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Seguidores</span>
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => { setShowFriends('following'); }}
+                        className="mt-3 mx-auto flex items-center gap-2 px-5 py-2.5 rounded-full bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary text-xs font-black uppercase tracking-widest active:scale-95 transition-all"
+                      >
+                        <UserPlus size={15} /> Agregar amigos
+                      </button>
                     </div>
                   </div>
                 )}
@@ -3382,17 +3502,37 @@ export default function App() {
                           animate={{ opacity: 1, height: 'auto' }}
                           className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4"
                         >
-                          <p className="text-xs font-bold text-iogga-primary uppercase tracking-widest">
-                            Invitar Amigos
-                          </p>
-                          <div className="flex items-start gap-3">
-                            <div className="p-2.5 rounded-2xl bg-green-500/15 text-green-400 shrink-0">
-                              <MessageSquare size={18} />
-                            </div>
-                            <p className="text-xs text-zinc-400 leading-relaxed">
-                              Al publicar, te daremos un botón para <span className="text-white font-bold">mandar la invitación por WhatsApp</span> a quien tú quieras: amigos, grupos o ambos. Ellos verán una invitación especial con tu nombre — sin descargar nada.
-                            </p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-iogga-primary uppercase tracking-widest">Invitar amigos de iogga</p>
+                            <button onClick={() => setShowFriends('following')} className="text-[10px] font-black text-iogga-primary flex items-center gap-1 bg-iogga-primary/10 px-2.5 py-1 rounded-full border border-iogga-primary/20">
+                              <UserPlus size={11} /> Agregar
+                            </button>
                           </div>
+                          {following.length > 0 ? (
+                            <div className="space-y-2 max-h-52 overflow-y-auto no-scrollbar">
+                              {following.map(f => {
+                                const sel = selectedFriendIds.includes(f.uid);
+                                return (
+                                  <button
+                                    key={f.uid}
+                                    onClick={() => setSelectedFriendIds(prev => sel ? prev.filter(id => id !== f.uid) : [...prev, f.uid])}
+                                    className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border transition-all ${sel ? 'bg-iogga-primary/15 border-iogga-primary/40' : 'bg-white/5 border-white/10'}`}
+                                  >
+                                    {f.photo ? <img src={f.photo} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white">{f.name.charAt(0).toUpperCase()}</div>}
+                                    <span className="text-sm text-white flex-1 text-left">{f.name}</span>
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${sel ? 'bg-iogga-primary text-white' : 'border-2 border-white/20'}`}>
+                                      {sel && <Check size={14} />}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-zinc-400 leading-relaxed">
+                              Aún no tienes amigos en iogga. <button onClick={() => setShowFriends('following')} className="text-iogga-primary font-bold underline">Agrégalos aquí</button> o compárteles tu plan por WhatsApp al publicar.
+                            </p>
+                          )}
+                          <p className="text-[10px] text-zinc-600">Les llegará una notificación en iogga. También podrás compartir por WhatsApp al publicar.</p>
                         </motion.div>
                       )}
                     </motion.div>
@@ -4249,11 +4389,27 @@ export default function App() {
                   Comparte tu intención. No es una invitación directa: es un deseo abierto para quien quiera sumarse.
                 </p>
 
-                {/* Dos caminos claros */}
+                {/* Amigos de iogga seleccionados: recibirán la notificación */}
+                {pendingFriendIds.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/25 space-y-2">
+                    <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest">Se enviará en iogga a:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {following.filter(f => pendingFriendIds.includes(f.uid)).map(f => (
+                        <span key={f.uid} className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-white flex items-center gap-1.5">
+                          {f.photo ? <img src={f.photo} className="w-4 h-4 rounded-full object-cover" /> : null}{f.name.split(' ')[0]}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Dos caminos: WhatsApp (también envía a iogga) o solo iogga */}
                 <div className="space-y-3">
                   <button
                     onClick={() => {
+                      notifyPendingFriends(lastPublishedPlan);
                       sharePlanWhatsApp(lastPublishedPlan);
+                      setPendingFriendIds([]);
                       setShowMatchCelebration(false);
                       maybeOfferInstall();
                     }}
@@ -4264,19 +4420,22 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => {
+                      notifyPendingFriends(lastPublishedPlan);
+                      setPendingFriendIds([]);
                       setShowMatchCelebration(false);
-                      setActiveTab('search');
+                      setActiveTab('active');
+                      if (pendingFriendIds.length > 0) triggerBeta('¡Enviado en iogga!', 'Tus amigos recibirán la notificación de tu plan. También puedes compartirlo por WhatsApp cuando quieras.');
                       maybeOfferInstall();
                     }}
                     className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-iogga-primary/20 flex items-center justify-center gap-2"
                   >
-                    <Globe size={18} />
-                    Compartir en iogga
+                    <Send size={18} />
+                    Enviar en iogga
                   </button>
                 </div>
 
                 <button
-                  onClick={() => { setShowMatchCelebration(false); setActiveTab('active'); }}
+                  onClick={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); }}
                   className="w-full py-3 text-zinc-500 hover:text-white text-[10px] uppercase tracking-widest font-bold transition-all"
                 >
                   Ver mis planes
@@ -4771,6 +4930,73 @@ export default function App() {
               </button>
             </motion.div>
           </div>
+        )}
+
+        {/* Amigos: buscar, seguir y ver tus listas (estilo Instagram) */}
+        {showFriends && (
+          <Modal onClose={() => { setShowFriends(null); setFriendSearch(''); }} title="Amigos en iogga">
+            <div className="space-y-5">
+              {!currentUser || currentUser.isAnonymous ? (
+                <div className="text-center space-y-4 py-6">
+                  <p className="text-sm text-zinc-400">Crea tu cuenta para agregar amigos y que puedan sumarse a tus planes.</p>
+                  <button onClick={() => { setShowFriends(null); setIsRegistering(true); setShowLoginModal(true); }} className="w-full py-4 bg-iogga-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest">Crear cuenta gratis</button>
+                </div>
+              ) : (
+                <>
+                  {/* Buscar usuarios para agregar */}
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                      <input
+                        value={friendSearch}
+                        onChange={e => setFriendSearch(e.target.value)}
+                        placeholder="Buscar personas por nombre…"
+                        className="w-full h-14 pl-12 pr-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/25 outline-none focus:ring-2 focus:ring-iogga-primary text-sm font-medium"
+                      />
+                    </div>
+                    {friendResults.map(f => (
+                      <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
+                        {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
+                        <span className="text-sm font-bold text-white flex-1">{f.name}</span>
+                        <button onClick={() => toggleFollow(f)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all ${isFollowing(f.uid) ? 'bg-white/10 text-zinc-300' : 'bg-iogga-primary text-white'}`}>
+                          {isFollowing(f.uid) ? 'Siguiendo' : 'Agregar'}
+                        </button>
+                      </div>
+                    ))}
+                    {friendSearch.trim().length >= 2 && friendResults.length === 0 && (
+                      <p className="text-xs text-zinc-500 text-center py-2">Sin resultados. Invita a tus amigos a iogga por WhatsApp para que aparezcan aquí.</p>
+                    )}
+                  </div>
+
+                  {/* Pestañas */}
+                  <div className="flex gap-2">
+                    <button onClick={() => setShowFriends('following')} className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${showFriends === 'following' ? 'bg-iogga-primary text-white' : 'bg-white/5 text-zinc-400'}`}>Amigos ({following.length})</button>
+                    <button onClick={() => setShowFriends('followers')} className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${showFriends === 'followers' ? 'bg-iogga-primary text-white' : 'bg-white/5 text-zinc-400'}`}>Seguidores ({followers.length})</button>
+                  </div>
+
+                  {/* Lista */}
+                  <div className="space-y-2">
+                    {(showFriends === 'following' ? following : followers).map(f => (
+                      <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
+                        {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
+                        <span className="text-sm font-bold text-white flex-1">{f.name}</span>
+                        {showFriends === 'following' ? (
+                          <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/10 text-zinc-300 active:scale-95">Quitar</button>
+                        ) : !isFollowing(f.uid) ? (
+                          <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-iogga-primary text-white active:scale-95">Seguir</button>
+                        ) : null}
+                      </div>
+                    ))}
+                    {(showFriends === 'following' ? following : followers).length === 0 && (
+                      <p className="text-xs text-zinc-500 text-center py-6">
+                        {showFriends === 'following' ? 'Aún no tienes amigos. Búscalos arriba o invítalos por WhatsApp.' : 'Aún no tienes seguidores.'}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </Modal>
         )}
 
         {/* Bienvenida a iogga para Negocios: popup grande en verde */}

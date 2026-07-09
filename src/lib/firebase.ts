@@ -27,6 +27,7 @@ import {
   onSnapshot,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
   deleteDoc,
@@ -114,6 +115,7 @@ export async function registerUser(name: string, email: string, password: string
   try {
     await setDoc(doc(db, 'users', cred.user.uid), {
       name,
+      nameLower: name.trim().toLowerCase(),
       email,
       createdAt: serverTimestamp(),
     });
@@ -162,7 +164,7 @@ export async function loginWithGoogle(): Promise<AuthUser> {
   try {
     await setDoc(
       doc(db, 'users', user.uid),
-      { name: user.name, email: user.email, photoURL: cred.user.photoURL || null, updatedAt: serverTimestamp() },
+      { name: user.name, nameLower: user.name.trim().toLowerCase(), email: user.email, photoURL: cred.user.photoURL || null, updatedAt: serverTimestamp() },
       { merge: true }
     );
   } catch {
@@ -209,10 +211,135 @@ export function watchProfile(uid: string, callback: (profile: UserProfile) => vo
 
 export async function saveProfile(uid: string, data: UserProfile): Promise<void> {
   if (!db) return;
-  await setDoc(doc(db, 'users', uid), { ...sanitize(data), updatedAt: serverTimestamp() }, { merge: true });
+  // nameLower permite buscar usuarios por nombre para agregarlos como amigos
+  const extra = data.name ? { nameLower: data.name.trim().toLowerCase() } : {};
+  await setDoc(doc(db, 'users', uid), { ...sanitize(data), ...extra, updatedAt: serverTimestamp() }, { merge: true });
   if (auth?.currentUser && data.name) {
     await updateProfile(auth.currentUser, { displayName: data.name }).catch(() => {});
   }
+}
+
+// ---------- Amigos: modelo de seguir (como Instagram/TikTok) ----------
+
+export interface Friend {
+  uid: string;
+  name: string;
+  photo?: string | null;
+}
+
+// Buscar usuarios por nombre (prefijo) para agregarlos
+export async function searchUsers(term: string, myUid: string): Promise<Friend[]> {
+  if (!db || term.trim().length < 2) return [];
+  const q0 = term.trim().toLowerCase();
+  try {
+    const q = query(
+      collection(db, 'users'),
+      orderBy('nameLower'),
+      where('nameLower', '>=', q0),
+      where('nameLower', '<=', q0 + String.fromCharCode(0xf8ff)),
+      limit(20)
+    );
+    const snap = await getDocs(q);
+    return snap.docs
+      .filter((d) => d.id !== myUid)
+      .map((d) => ({ uid: d.id, name: (d.data() as any).name || 'Usuario', photo: (d.data() as any).photoURL || null }));
+  } catch {
+    return [];
+  }
+}
+
+function followId(a: string, b: string) {
+  return `${a}_${b}`;
+}
+
+export async function followUser(me: AuthUser, target: Friend): Promise<void> {
+  if (!db) return;
+  await setDoc(doc(db, 'follows', followId(me.uid, target.uid)), {
+    follower: me.uid,
+    followerName: me.name,
+    following: target.uid,
+    followingName: target.name,
+    followingPhoto: target.photo || null,
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function unfollowUser(myUid: string, targetUid: string): Promise<void> {
+  if (!db) return;
+  await deleteDoc(doc(db, 'follows', followId(myUid, targetUid))).catch(() => {});
+}
+
+// A quién sigo (mis "amigos" para invitar), en tiempo real
+export function watchFollowing(uid: string, callback: (friends: Friend[]) => void): () => void {
+  if (!db) return () => {};
+  const q = query(collection(db, 'follows'), where('follower', '==', uid));
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => {
+      const x = d.data() as any;
+      return { uid: x.following, name: x.followingName || 'Usuario', photo: x.followingPhoto || null };
+    })),
+    () => callback([])
+  );
+}
+
+// Quién me sigue (mis seguidores)
+export function watchFollowers(uid: string, callback: (friends: Friend[]) => void): () => void {
+  if (!db) return () => {};
+  const q = query(collection(db, 'follows'), where('following', '==', uid));
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => {
+      const x = d.data() as any;
+      return { uid: x.follower, name: x.followerName || 'Usuario', photo: null };
+    })),
+    () => callback([])
+  );
+}
+
+// ---------- Notificaciones reales dentro de la app ----------
+
+export interface AppNotif {
+  id: string;
+  type: 'invite' | 'accepted' | 'system';
+  to: string;
+  fromName: string;
+  title: string;
+  message: string;
+  planId?: string;
+  read: boolean;
+  createdAtMs: number;
+}
+
+// Enviar una notificación a un amigo (p. ej. al invitarlo a un plan)
+export async function sendNotification(n: Omit<AppNotif, 'id' | 'read' | 'createdAtMs'>): Promise<void> {
+  if (!db) return;
+  await setDoc(doc(collection(db, 'notifications')), {
+    ...sanitize(n),
+    read: false,
+    createdAt: serverTimestamp(),
+    createdAtMs: Date.now(),
+  }).catch(() => {});
+}
+
+// Mis notificaciones en tiempo real (para el iconito de campana)
+export function watchNotifications(uid: string, callback: (items: AppNotif[]) => void): () => void {
+  if (!db) return () => {};
+  const q = query(collection(db, 'notifications'), where('to', '==', uid), limit(50));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const items = snap.docs.map((d) => ({ ...(d.data() as AppNotif), id: d.id }));
+      items.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+      callback(items);
+    },
+    () => callback([])
+  );
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  if (!db) return;
+  await updateDoc(doc(db, 'notifications', id), { read: true }).catch(() => {});
 }
 
 // ---------- Planes y promociones en tiempo real (la app inicia en blanco) ----------

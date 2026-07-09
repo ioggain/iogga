@@ -1782,6 +1782,16 @@ export default function App() {
                     <LayoutGrid size={20} />
                   </div>
                 </div>
+
+                {/* Botón crear siempre visible: para empezar o sumar más */}
+                <button
+                  onClick={() => mode === 'person' ? setShowCreatePlan(true) : setShowCreatePromo(true)}
+                  className={`w-full py-4 rounded-3xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg ${mode === 'person' ? 'bg-iogga-primary text-white shadow-iogga-primary/20' : 'bg-iogga-accent text-white shadow-iogga-accent/20'}`}
+                >
+                  <PlusCircle size={20} />
+                  {mode === 'person' ? 'Crear un plan' : 'Crear una oferta'}
+                </button>
+
                 {mode === 'person' ? (
                   <div className="space-y-4">
                     {plans.filter(p => isMyPlan(p)).map(plan => (
@@ -2432,44 +2442,28 @@ export default function App() {
                           </div>
                         </div>
                         <div className="h-48 w-full">
+                          {salesSeries(selectedProductAnalytics?.id).some(d => d.sales > 0) ? (
                           <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={salesSeries()}>
+                            <AreaChart data={salesSeries(selectedProductAnalytics?.id)} margin={{ top: 10, right: 8, left: 8, bottom: 0 }}>
                               <defs>
                                 <linearGradient id="colorSalesProd" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3}/>
-                                  <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
+                                  <stop offset="5%" stopColor="#2dd4bf" stopOpacity={0.5}/>
+                                  <stop offset="95%" stopColor="#2dd4bf" stopOpacity={0.02}/>
                                 </linearGradient>
                               </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                              <XAxis 
-                                dataKey="name" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{ fill: '#71717a', fontSize: 10 }}
-                              />
-                              <YAxis hide />
-                              <Tooltip 
-                                contentStyle={{ backgroundColor: '#18181b', border: '1px solid #ffffff10', borderRadius: '12px' }}
-                                itemStyle={{ fontSize: '12px' }}
-                              />
-                              <Area 
-                                type="monotone" 
-                                dataKey="sales" 
-                                stroke="#14b8a6" 
-                                fillOpacity={1} 
-                                fill="url(#colorSalesProd)" 
-                                strokeWidth={3}
-                              />
-                              <Line 
-                                type="monotone" 
-                                dataKey="trend" 
-                                stroke="#ffffff30" 
-                                strokeDasharray="5 5" 
-                                dot={false}
-                                strokeWidth={2}
-                              />
+                              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff14" vertical={false} />
+                              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#a1a1aa', fontSize: 10 }} />
+                              <YAxis hide domain={[0, 'auto']} />
+                              <Tooltip contentStyle={{ backgroundColor: '#18181b', border: '1px solid #ffffff20', borderRadius: '12px' }} itemStyle={{ fontSize: '12px', color: '#fff' }} labelStyle={{ color: '#a1a1aa' }} formatter={(v: any) => [`$${v}`, 'Ventas']} />
+                              <Area type="monotone" dataKey="sales" stroke="#2dd4bf" fillOpacity={1} fill="url(#colorSalesProd)" strokeWidth={3} dot={{ r: 3, fill: '#2dd4bf' }} />
                             </AreaChart>
                           </ResponsiveContainer>
+                          ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-center gap-2">
+                              <BarChart3 size={28} className="text-zinc-600" />
+                              <p className="text-xs text-zinc-500 font-medium max-w-[200px]">Aún no hay ventas de este producto. Cada canje QR validado aparecerá aquí.</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                       
@@ -2533,44 +2527,29 @@ export default function App() {
                           </div>
                         </div>
                         <div className="h-48 w-full">
+                          {salesSeries().some(d => d.sales > 0) ? (
                           <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={salesSeries(selectedProductAnalytics?.id)}>
+                            <AreaChart data={salesSeries()} margin={{ top: 10, right: 8, left: 8, bottom: 0 }}>
                               <defs>
                                 <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3}/>
-                                  <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
+                                  <stop offset="5%" stopColor="#2dd4bf" stopOpacity={0.5}/>
+                                  <stop offset="95%" stopColor="#2dd4bf" stopOpacity={0.02}/>
                                 </linearGradient>
                               </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                              <XAxis 
-                                dataKey="name" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{ fill: '#71717a', fontSize: 10 }}
-                              />
-                              <YAxis hide />
-                              <Tooltip 
-                                contentStyle={{ backgroundColor: '#18181b', border: '1px solid #ffffff10', borderRadius: '12px' }}
-                                itemStyle={{ fontSize: '12px' }}
-                              />
-                              <Area 
-                                type="monotone" 
-                                dataKey="sales" 
-                                stroke="#14b8a6" 
-                                fillOpacity={1} 
-                                fill="url(#colorSales)" 
-                                strokeWidth={3}
-                              />
-                              <Line 
-                                type="monotone" 
-                                dataKey="trend" 
-                                stroke="#ffffff30" 
-                                strokeDasharray="5 5" 
-                                dot={false}
-                                strokeWidth={2}
-                              />
+                              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff14" vertical={false} />
+                              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#a1a1aa', fontSize: 10 }} />
+                              <YAxis hide domain={[0, 'auto']} />
+                              <Tooltip contentStyle={{ backgroundColor: '#18181b', border: '1px solid #ffffff20', borderRadius: '12px' }} itemStyle={{ fontSize: '12px', color: '#fff' }} labelStyle={{ color: '#a1a1aa' }} formatter={(v: any) => [`$${v}`, 'Ventas']} />
+                              <Area type="monotone" dataKey="sales" stroke="#2dd4bf" fillOpacity={1} fill="url(#colorSales)" strokeWidth={3} dot={{ r: 3, fill: '#2dd4bf' }} />
+                              <Line type="monotone" dataKey="trend" stroke="#ffffff40" strokeDasharray="5 5" dot={false} strokeWidth={2} />
                             </AreaChart>
                           </ResponsiveContainer>
+                          ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-center gap-2">
+                              <BarChart3 size={28} className="text-zinc-600" />
+                              <p className="text-xs text-zinc-500 font-medium max-w-[220px]">Aún no hay ventas. Cuando valides canjes QR, tus ventas por día aparecerán aquí.</p>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -5028,14 +5007,14 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
         title: "iogga para Negocios",
         description: "Potencia tu negocio conectando con personas que buscan qué hacer en tiempo real.",
         targetId: null,
-        icon: <Store className="text-iogga-primary" size={32} />,
+        icon: <Store className="text-iogga-accent" size={32} />,
         onEnter: () => setIsIntro(false)
       },
       {
         title: "Publica Ofertas",
         description: "Crea productos y ofertas especiales que aparecerán cuando la gente busque qué hacer.",
         targetId: 'tutorial-create-btn',
-        icon: <PackagePlus className="text-iogga-primary" size={32} />,
+        icon: <PackagePlus className="text-iogga-accent" size={32} />,
         onEnter: () => {
           setIsIntro(false);
           setMode('business');
@@ -5057,7 +5036,7 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
         title: "Tendencias",
         description: "Observa lo que la gente está haciendo ahora mismo para adaptar tu oferta.",
         targetId: 'nav-search',
-        icon: <Globe className="text-iogga-primary" size={32} />,
+        icon: <Globe className="text-iogga-accent" size={32} />,
         onEnter: () => {
           setIsIntro(false);
           setMode('business');
@@ -5079,7 +5058,7 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
         title: "Análisis Detallado",
         description: "Revisa el éxito de cada producto individualmente para optimizar tus ventas.",
         targetId: 'tutorial-business-offer-card',
-        icon: <BarChart3 className="text-iogga-primary" size={32} />,
+        icon: <BarChart3 className="text-iogga-accent" size={32} />,
         onEnter: () => {
           setIsIntro(false);
           setMode('business');
@@ -5168,10 +5147,10 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
       <div className="absolute inset-0 pointer-events-none">
         <motion.div
           key={`${mode}-${step}`}
-          initial={{ scale: 0.9, opacity: 0, y: 20 }}
-          animate={{ 
-            scale: 1, 
-            opacity: 1, 
+          initial={{ scale: 0.96, opacity: 0, y: 24 }}
+          animate={{
+            scale: 1,
+            opacity: 1,
             y: rect ? (rect.y > 400 ? Math.max(20, rect.y - 340) : Math.min(rect.y + rect.height + 20, 500)) : 0,
             x: '-50%',
             left: '50%',
@@ -5179,7 +5158,8 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
             position: 'absolute',
             marginTop: rect ? 0 : '-150px' // Offset when centered
           }}
-          className="w-[calc(100%-48px)] max-w-[320px] bg-zinc-900 border border-white/10 rounded-[32px] p-6 shadow-2xl pointer-events-auto"
+          transition={{ duration: 0.9, ease: [0.22, 0.61, 0.36, 1] }}
+          className={`w-[calc(100%-48px)] max-w-[320px] bg-zinc-900 border rounded-[32px] p-6 shadow-2xl pointer-events-auto ${mode === 'business' ? 'border-iogga-accent/30' : 'border-white/10'}`}
         >
           {/* Arrow for spotlight */}
           {rect && (
@@ -5190,7 +5170,7 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
 
           <div className="space-y-4">
             <div className="flex justify-between items-start">
-              <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${mode === 'business' ? 'bg-iogga-accent/15 text-iogga-accent' : 'bg-iogga-primary/10 text-iogga-primary'}`}>
                 {currentStep.icon}
               </div>
               <button 
@@ -5236,12 +5216,12 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
                   </button>
                 </div>
               ) : (
-                <button 
+                <button
                   onClick={() => {
                     if (step === 5) onClose();
                     else setStep(prev => prev + 1);
                   }}
-                  className="flex-[2] py-3 rounded-xl bg-iogga-primary text-white text-xs font-black shadow-lg shadow-iogga-primary/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                  className={`flex-[2] py-3 rounded-xl text-white text-xs font-black shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2 ${mode === 'business' ? 'bg-iogga-accent shadow-iogga-accent/20' : 'bg-iogga-primary shadow-iogga-primary/20'}`}
                 >
                   {step === 5 ? 'Comenzar' : 'Continuar'}
                   <ArrowRight size={14} />
@@ -5251,9 +5231,9 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
 
             <div className="flex gap-1 justify-center pt-2">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div 
-                  key={i} 
-                  className={`h-1 rounded-full transition-all duration-500 ${i === step ? 'w-6 bg-iogga-primary' : 'w-1.5 bg-white/10'}`} 
+                <div
+                  key={i}
+                  className={`h-1 rounded-full transition-all duration-500 ${i === step ? (mode === 'business' ? 'w-6 bg-iogga-accent' : 'w-6 bg-iogga-primary') : 'w-1.5 bg-white/10'}`}
                 />
               ))}
             </div>

@@ -56,6 +56,7 @@ export interface Plan {
   inviterSelectedOfferId?: string;
   budgetAmount?: string;
   transportNote?: string;
+  privateKey?: string; // frase/clave privada que deja el creador para dar confianza
 }
 
 export interface GroupedPlan {

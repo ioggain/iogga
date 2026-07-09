@@ -286,6 +286,15 @@ const renderPlanTechnicalDetails = (plan: Plan) => {
 // Mensaje unificado de bienvenida de iogga (mismo texto en el intro y en el popup de persona)
 const IOGGA_WELCOME = 'iogga es la app para salir del móvil y vivir lo espontáneo. Comparte tu intención —"un café", "vamos al cine"— y quien quiera se suma. Sin chats interminables: solo acción.';
 
+// Identidad genérica para quien navega sin iniciar sesión (perfil "virgen").
+const GUEST_NAME = 'Invitado';
+// Avatar silueta neutro (sin datos personales), embebido como data URI.
+const GENERIC_AVATAR =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#27272a"/><circle cx="50" cy="38" r="18" fill="#52525b"/><path d="M50 60c-18 0-30 12-30 28v12h60V88c0-16-12-28-30-28z" fill="#52525b"/></svg>'
+  );
+
 // ---- Voz: hablar (TTS) y escuchar (reconocimiento) para Platica y Dicta ----
 function speakEs(text: string): Promise<void> {
   return new Promise((resolve) => {
@@ -584,11 +593,13 @@ export default function App() {
     return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
   };
 
-  const runPlatica = async () => {
+  // La plática avanza la pantalla visible paso a paso (para que el usuario vea
+  // cómo se va llenando y seleccionando) y puede empezar desde cualquier paso.
+  const runPlatica = async (fromStep = 0) => {
     platicaCancel.current = false;
     const cancelled = () => platicaCancel.current;
+    const finish = () => { setPlaticaOn(false); setPlaticaStatus(''); };
 
-    // Pregunta y escucha (una vez)
     const ask = async (q: string): Promise<string | null> => {
       if (cancelled()) return null;
       setPlaticaStatus(q);
@@ -597,7 +608,6 @@ export default function App() {
       setPlaticaStatus('Escuchando…');
       return await listenEs();
     };
-    // ¿Sí o no?
     const yesNo = async (q: string): Promise<boolean> => {
       const r = await ask(q);
       return !!r && /\bs[ií]\b|claro|va|dale|por supuesto|ok/i.test(r);
@@ -618,74 +628,132 @@ export default function App() {
       }
     };
 
-    // 1) Actividad
-    await capture('Dime un plan o un deseo que te gustaría hacer hoy u otro día.', t => setNewPlan(p => ({ ...p, activity: t })));
-    if (cancelled()) return;
-
-    // 2) Nombre (solo si no ha iniciado sesión)
-    if (!currentUser || currentUser.isAnonymous) {
-      const wantName = await yesNo('No has iniciado sesión, y una invitación anónima puede dar desconfianza. ¿Quieres dejar tu nombre para que sepan que eres tú?');
-      if (wantName) await capture('¿Cuál es tu nombre?', t => setGuestName(t));
-    }
-    if (cancelled()) return;
-
-    // 3) Fecha y hora en una sola pregunta
-    let dl = ''; let tm = '';
-    const dt = await ask('¿Qué día y a qué hora? Por ejemplo: hoy a las ocho de la noche.');
-    if (dt) {
-      const low = dt.toLowerCase();
-      const opt = dateOptions.find(o => low.includes(o.label.replace('el ', '')) || low.includes(o.chip.toLowerCase()));
-      if (opt) { setNewPlan(p => ({ ...p, date: opt.iso, dateLabel: opt.label })); dl = opt.label; }
-      const parsed = parseTime(dt);
-      if (parsed) { setNewPlan(p => ({ ...p, startTime: parsed })); tm = parsed; }
-    }
-    if (dl || tm) { setPlaticaStatus(`Anoté: ${dl} ${tm}`); await speakEs(`Anoté ${dl} ${tm}. Puedes ajustarlo con los botones si quieres.`); }
-
-    // 4) Presupuesto + comentario
-    const bud = await ask('¿Cómo pagan? Puedes decir: tú invitas, cada quien paga, sin dinero, o no se necesita.');
-    if (bud) {
-      const b = bud.toLowerCase();
-      const val = b.includes('invit') ? 'invites' : (b.includes('cada') ? 'split' : (b.includes('no se') || b.includes('necesita') ? 'not-needed' : (b.includes('sin') || b.includes('gratis') ? 'no-money' : null)));
-      if (val) setNewPlan(p => ({ ...p, budget: val as any }));
-    }
-    if (cancelled()) return;
-    if (await yesNo('¿Quieres agregar un comentario sobre el dinero?')) {
-      await capture('Dime tu comentario sobre el dinero.', t => setNewPlan(p => ({ ...p, budgetAmount: t })));
+    // Paso 0: actividad (+ nombre y clave privada si no hay sesión)
+    if (fromStep <= 0) {
+      setCurrentPlanStep(0);
+      await capture('Dime un plan o un deseo que te gustaría hacer hoy u otro día.', t => setNewPlan(p => ({ ...p, activity: t })));
+      if (cancelled()) return finish();
+      if (!currentUser || currentUser.isAnonymous) {
+        if (await yesNo('No has iniciado sesión, y una invitación anónima puede dar desconfianza. ¿Quieres dejar tu nombre para que sepan que eres tú?')) {
+          await capture('¿Cuál es tu nombre?', t => setGuestName(t));
+        }
+        if (cancelled()) return finish();
+        if (await yesNo('¿Quieres dejar una clave privada, una frase para que confíen que eres tú y no un fraude?')) {
+          await capture('Dime tu clave privada. Por ejemplo: soy tu primo Beto.', t => setNewPlan(p => ({ ...p, privateKey: t })));
+        }
+      }
+      if (cancelled()) return finish();
     }
 
-    // 5) Transporte + comentario
-    const tr = await ask('¿Cómo llegan? Tienes carro, cada quien llega, o no hay transporte.');
-    if (tr) {
-      const t = tr.toLowerCase();
-      const val = t.includes('carro') || t.includes('coche') ? 'has-transport' : (t.includes('cada') ? 'each-arrives' : (t.includes('no') ? 'no-transport' : null));
-      if (val) setNewPlan(p => ({ ...p, transport: val as any }));
-    }
-    if (cancelled()) return;
-    if (await yesNo('¿Quieres agregar un comentario sobre el transporte?')) {
-      await capture('Dime tu comentario sobre el transporte.', t => setNewPlan(p => ({ ...p, transportNote: t })));
-    }
-
-    // 6) Ubicación (+ otra opcional)
-    await capture('¿Dónde es el plan?', t => setNewPlan(p => ({ ...p, location: t })));
-    if (cancelled()) return;
-    if (await yesNo('¿Quieres agregar otra ubicación?')) {
-      await capture('Dime la otra ubicación.', t => setNewPlan(p => ({ ...p, locations: [...(p.locations || []), t] })));
+    // Paso 1: día y hora
+    if (fromStep <= 1 && !cancelled()) {
+      setCurrentPlanStep(1);
+      let dl = ''; let tm = '';
+      const dt = await ask('¿Qué día y a qué hora? Por ejemplo: hoy a las ocho de la noche.');
+      if (dt) {
+        const low = dt.toLowerCase();
+        const opt = dateOptions.find(o => low.includes(o.label.replace('el ', '')) || low.includes(o.chip.toLowerCase()));
+        if (opt) { setNewPlan(p => ({ ...p, date: opt.iso, dateLabel: opt.label })); dl = opt.label; }
+        const parsed = parseTime(dt);
+        if (parsed) { setNewPlan(p => ({ ...p, startTime: parsed })); tm = parsed; }
+      }
+      if (dl || tm) { setPlaticaStatus(`Anoté: ${dl} ${tm}`); await speakEs(`Anoté ${dl} ${tm}. Puedes ajustarlo con los botones si quieres.`); }
+      if (cancelled()) return finish();
     }
 
-    if (cancelled()) return;
-    // 7) Visibilidad: manual por ahora
+    // Paso 2: presupuesto (+ comentario)
+    if (fromStep <= 2 && !cancelled()) {
+      setCurrentPlanStep(2);
+      const bud = await ask('¿Cómo pagan? Puedes decir: tú invitas, cada quien paga, sin dinero, o no se necesita.');
+      if (bud) {
+        const b = bud.toLowerCase();
+        const val = b.includes('invit') ? 'invites' : (b.includes('cada') ? 'split' : (b.includes('no se') || b.includes('necesita') ? 'not-needed' : (b.includes('sin') || b.includes('gratis') ? 'no-money' : null)));
+        if (val) setNewPlan(p => ({ ...p, budget: val as any }));
+      }
+      if (cancelled()) return finish();
+      if (await yesNo('¿Quieres agregar un comentario sobre el dinero?')) {
+        await capture('Dime tu comentario sobre el dinero.', t => setNewPlan(p => ({ ...p, budgetAmount: t })));
+      }
+      if (cancelled()) return finish();
+    }
+
+    // Paso 3: transporte (+ comentario)
+    if (fromStep <= 3 && !cancelled()) {
+      setCurrentPlanStep(3);
+      const tr = await ask('¿Cómo llegan? Tienes carro, cada quien llega, o no hay transporte.');
+      if (tr) {
+        const t = tr.toLowerCase();
+        const val = t.includes('carro') || t.includes('coche') ? 'has-transport' : (t.includes('cada') ? 'each-arrives' : (t.includes('no') ? 'no-transport' : null));
+        if (val) setNewPlan(p => ({ ...p, transport: val as any }));
+      }
+      if (cancelled()) return finish();
+      if (await yesNo('¿Quieres agregar un comentario sobre el transporte?')) {
+        await capture('Dime tu comentario sobre el transporte.', t => setNewPlan(p => ({ ...p, transportNote: t })));
+      }
+      if (cancelled()) return finish();
+    }
+
+    // Paso 4: ubicación (+ otra opcional)
+    if (fromStep <= 4 && !cancelled()) {
+      setCurrentPlanStep(4);
+      await capture('¿Dónde es el plan?', t => setNewPlan(p => ({ ...p, location: t })));
+      if (cancelled()) return finish();
+      if (await yesNo('¿Quieres agregar otra ubicación?')) {
+        await capture('Dime la otra ubicación.', t => setNewPlan(p => ({ ...p, locations: [...(p.locations || []), t] })));
+      }
+      if (cancelled()) return finish();
+    }
+
+    // Paso 5: visibilidad (manual por ahora)
+    setCurrentPlanStep(5);
     setPlaticaStatus('¡Listo!');
     await speakEs('En quién puede verlo tendrás que elegir a mano por ahora; pronto también será por voz.');
-    setCurrentPlanStep(5);
-    setPlaticaOn(false);
-    setPlaticaStatus('');
+    finish();
   };
 
+  const [platicaFromStep, setPlaticaFromStep] = useState(0);
+  // Iniciar/continuar la plática desde un paso concreto.
+  const startPlaticaAt = (step: number) => { setPlaticaFromStep(step); setPlaticaOn(true); };
+
   useEffect(() => {
-    if (platicaOn) { void runPlatica(); }
+    if (platicaOn) { void runPlatica(platicaFromStep); }
     else { platicaCancel.current = true; try { window.speechSynthesis?.cancel(); } catch {} }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [platicaOn]);
+
+  // ---- Dictado por micrófono en cada paso: interpreta y selecciona/ajusta ----
+  const applyDateTime = (t: string) => {
+    const low = t.toLowerCase();
+    const opt = dateOptions.find(o => low.includes(o.label.replace('el ', '')) || low.includes(o.chip.toLowerCase()));
+    if (opt) setNewPlan(p => ({ ...p, date: opt.iso, dateLabel: opt.label }));
+    const parsed = parseTime(t);
+    if (parsed) setNewPlan(p => ({ ...p, startTime: parsed }));
+  };
+  const applyBudget = (t: string) => {
+    const b = t.toLowerCase();
+    const val = b.includes('invit') ? 'invites' : (b.includes('cada') ? 'split' : (b.includes('no se') || b.includes('necesita') ? 'not-needed' : (b.includes('sin') || b.includes('gratis') ? 'no-money' : null)));
+    if (val) setNewPlan(p => ({ ...p, budget: val as any }));
+  };
+  const applyTransport = (t: string) => {
+    const s = t.toLowerCase();
+    const val = s.includes('carro') || s.includes('coche') ? 'has-transport' : (s.includes('cada') ? 'each-arrives' : (s.includes('no') ? 'no-transport' : null));
+    if (val) setNewPlan(p => ({ ...p, transport: val as any }));
+  };
+
+  // Par de iconos de voz para un paso: ondas = platícalo desde aquí; micro = dictar.
+  const VoicePair = ({ step, onDicta, tone = 'primary' }: { step: number; onDicta?: (t: string) => void; tone?: 'primary' | 'accent' }) => (
+    <div className="flex items-center gap-1.5 shrink-0">
+      <button
+        type="button"
+        onClick={() => startPlaticaAt(step)}
+        title="Platícalo por voz desde aquí"
+        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${tone === 'accent' ? 'bg-iogga-accent/15 text-iogga-accent hover:bg-iogga-accent/25' : 'bg-iogga-primary/15 text-iogga-primary hover:bg-iogga-primary/25'}`}
+      >
+        <AudioLines size={16} />
+      </button>
+      {onDicta && <MicButton inline tone={tone} onText={onDicta} />}
+    </div>
+  );
 
   // Arranque tipo "el cel parece apagado": pantalla negra, el usuario toca,
   // y el logo entra en fade in de 4s mientras suena el intro. El toque también
@@ -699,7 +767,7 @@ export default function App() {
     setSplashRevealed(true);
     chimePlayed.current = true;
     playIntroChime(); // el toque desbloquea el audio: la lluvia de notitas suena junto al logo
-    setTimeout(() => setShowSplash(false), 10000); // tiempo para leer el mensaje con calma
+    setTimeout(() => setShowSplash(false), 13000); // tiempo para leer el mensaje con calma
   };
 
   useEffect(() => {
@@ -707,7 +775,7 @@ export default function App() {
     const t = setTimeout(() => {
       if (!splashRevealed) {
         setSplashRevealed(true);
-        setTimeout(() => setShowSplash(false), 10000);
+        setTimeout(() => setShowSplash(false), 13000);
       }
     }, 5000);
     return () => clearTimeout(t);
@@ -725,6 +793,17 @@ export default function App() {
   const isStandalone = typeof window !== 'undefined' &&
     (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true);
   const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // Detecta el navegador para dar instrucciones pokayoke (dónde tocar exactamente).
+  const installGuide = (() => {
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    if (/SamsungBrowser/i.test(ua)) return { menu: 'las 3 rayas ☰ (abajo a la derecha)', action: '"Agregar página a" y luego "Pantalla de inicio"' };
+    if (/FxiOS|Firefox/i.test(ua)) return { menu: 'los 3 puntos ⋮ (a la derecha)', action: '"Instalar" o "Agregar a la pantalla de inicio"' };
+    if (/EdgA|Edg/i.test(ua)) return { menu: 'los 3 puntos ⋯ (abajo)', action: '"Agregar a teléfono" o "Aplicaciones → Instalar"' };
+    if (/OPR|Opera/i.test(ua)) return { menu: 'los 3 puntos ⋮', action: '"Agregar a" y luego "Pantalla de inicio"' };
+    // Chrome y la mayoría en Android
+    return { menu: 'los 3 puntos ⋮ (arriba a la derecha)', action: '"Instalar aplicación" o "Agregar a la pantalla principal"' };
+  })();
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -782,7 +861,10 @@ export default function App() {
   // saltándose con gramática correcta lo que no puso.
   const buildInviteMessage = (plan: Plan) => {
     const parts: string[] = [];
-    const firstName = (plan.userName || 'Alguien').split(' ')[0];
+    const rawName = (plan.userName || '').trim();
+    // Sin nombre real (sin sesión): hablamos de "alguien que te conoce".
+    const isGeneric = !rawName || rawName === 'Alguien' || rawName === 'Tú' || rawName === GUEST_NAME;
+    const firstName = isGeneric ? 'Alguien que te conoce' : rawName.split(' ')[0];
     parts.push(`${firstName} desea: ${plan.activity}.`);
 
     const when = [plan.dateLabel, plan.startTime ? `a las ${plan.startTime}` : ''].filter(Boolean).join(' ');
@@ -813,13 +895,25 @@ export default function App() {
     const offer = offerId ? promos.find(p => p.id === offerId) : null;
     if (offer) parts.push(`Tiene una oferta: ${offer.title} en ${offer.businessName}.`);
 
-    return parts.join(' ');
+    let msg = parts.join(' ');
+    // Clave privada: la frase que dejó la persona para dar confianza (no entre comillas).
+    if (plan.privateKey && plan.privateKey.trim()) msg += `\n\nClave privada: ${plan.privateKey.trim()}`;
+    return msg;
   };
 
   // ---- Invitaciones virales por WhatsApp (sin acceso a contactos) ----
   // El link abre la app mostrando una invitación personalizada.
-  const inviteText = (plan: Plan) =>
-    `Alguien que conoces tiene un plan que puede interesarte:\n\n${window.location.origin}/?inv=${plan.id}\n\niogga es la app para salir del móvil y vivir lo espontáneo. Es web: sin descargas y sin ocupar espacio.`;
+  const inviteText = (plan: Plan) => {
+    const rawName = (plan.userName || '').trim();
+    const isGeneric = !rawName || rawName === 'Alguien' || rawName === 'Tú' || rawName === GUEST_NAME;
+    const who = isGeneric ? 'Alguien que te conoce' : rawName.split(' ')[0];
+    const link = `${window.location.origin}/?inv=${plan.id}`;
+    // La clave privada da confianza: aclara que el enlace no es virus ni fraude.
+    const trust = plan.privateKey && plan.privateKey.trim()
+      ? `Para que no desconfíes, la persona dejó esta clave privada para que sepas que no es virus ni fraude 👇\nClave privada: ${plan.privateKey.trim()}\n\n`
+      : '';
+    return `${who} tiene un plan que puede interesarte:\n\n${link}\n\n${trust}iogga es la app para salir del móvil y vivir lo espontáneo. Es web: sin descargas y sin ocupar espacio.`;
+  };
 
   const sharePlanWhatsApp = (plan: Plan) => {
     window.open(`https://wa.me/?text=${encodeURIComponent(inviteText(plan))}`, '_blank');
@@ -1213,9 +1307,10 @@ export default function App() {
         uid: publisher?.uid,
         whatsapp: userProfile.whatsapp || undefined,
         userName: publisherName,
-        userAvatar: userProfile.photoURL || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
+        userAvatar: userProfile.photoURL || GENERIC_AVATAR,
         activity: newPlan.activity || 'Plan sin nombre',
         comment: newPlan.comment,
+        privateKey: newPlan.privateKey?.trim() || undefined,
         date: newPlan.date,
         dateLabel: newPlan.dateLabel,
         locations: (newPlan.locations || []).filter(l => l.trim()),
@@ -1524,7 +1619,7 @@ export default function App() {
                   <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => { setIsIntro(false); setShowCreatePlan(true); setPlaticaOn(true); }}
+                      onClick={() => { setIsIntro(false); setShowCreatePlan(true); startPlaticaAt(0); }}
                       title="Platícalo por voz"
                       className="w-9 h-9 rounded-full flex items-center justify-center bg-iogga-primary/15 text-iogga-primary hover:bg-iogga-primary/25 transition-all active:scale-90"
                     >
@@ -3069,11 +3164,11 @@ export default function App() {
                           </div>
                           <p className="text-zinc-400 text-sm">@{businessProfile.name.toLowerCase().replace(/\s+/g, '_')} • Cafetería</p>
                         </div>
-                        <button 
+                        <button
                           onClick={() => setShowEditBusinessProfile(true)}
-                          className="p-3 bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors border border-white/10"
+                          className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-500/15 text-emerald-400 rounded-full font-black text-[11px] uppercase tracking-widest border border-emerald-500/40 hover:bg-emerald-500/25 active:scale-95 transition-all"
                         >
-                          <Edit3 size={18} />
+                          <Edit3 size={15} /> Editar negocio
                         </button>
                       </div>
                       <p className="text-sm text-zinc-300 leading-relaxed">
@@ -3093,7 +3188,7 @@ export default function App() {
                   <div className="p-6 flex flex-col items-center text-center space-y-4">
                     <div className="relative">
                       <button onClick={() => setShowEditProfile(true)} className="block">
-                        <img src={userProfile.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80"} className="w-24 h-24 rounded-full border-4 border-zinc-900 shadow-xl object-cover" referrerPolicy="no-referrer" />
+                        <img src={userProfile.photoURL || GENERIC_AVATAR} className="w-24 h-24 rounded-full border-4 border-zinc-900 shadow-xl object-cover" referrerPolicy="no-referrer" />
                       </button>
                       <button onClick={() => setShowEditProfile(true)} className="absolute bottom-0 right-0 p-2 bg-zinc-800 rounded-full shadow-lg text-iogga-primary border border-white/10 active:scale-90 transition-transform">
                         <Edit3 size={16} />
@@ -3102,18 +3197,20 @@ export default function App() {
                     <div className="space-y-1">
                       <div className="flex items-center justify-center gap-2">
                         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                          {currentUser?.name || 'Eduardo Hernández'}
+                          {currentUser?.name || GUEST_NAME}
                           <User size={20} className="text-indigo-400/60" />
                         </h2>
-                        <div className="flex items-center gap-0.5 text-yellow-500">
-                          <Star size={14} fill="currentColor" />
-                          <Star size={14} fill="currentColor" />
-                          <Star size={14} fill="currentColor" />
-                          <Star size={14} fill="currentColor" />
-                          <Star size={14} className="opacity-30" />
-                        </div>
+                        {currentUser && !currentUser.isAnonymous && (
+                          <div className="flex items-center gap-0.5 text-yellow-500">
+                            <Star size={14} fill="currentColor" />
+                            <Star size={14} fill="currentColor" />
+                            <Star size={14} fill="currentColor" />
+                            <Star size={14} fill="currentColor" />
+                            <Star size={14} className="opacity-30" />
+                          </div>
+                        )}
                       </div>
-                      <p className="text-zinc-500 text-sm">{currentUser?.email || '@edu_hdz'} • {userProfile.location || 'Chihuahua, MX'}</p>
+                      <p className="text-zinc-500 text-sm">{currentUser?.email || 'Sin iniciar sesión'} • {userProfile.location || 'Chihuahua, MX'}</p>
                       {socialChips(userProfile).length > 0 && (
                         <div className="flex flex-wrap gap-2 justify-center mt-3">
                           {socialChips(userProfile).map(c => (
@@ -3410,7 +3507,7 @@ export default function App() {
                 onDoubleClick={() => toggleMode('business')}
                 icon={
                   <div className="relative">
-                    <img src={userProfile.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80"} className="w-7 h-7 rounded-full border border-white/20 object-cover" referrerPolicy="no-referrer" />
+                    <img src={userProfile.photoURL || GENERIC_AVATAR} className="w-7 h-7 rounded-full border border-white/20 object-cover" referrerPolicy="no-referrer" />
                     <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-iogga-primary rounded-full border border-zinc-950 flex items-center justify-center shadow-lg">
                       <User size={8} className="text-white" />
                     </div>
@@ -3552,7 +3649,7 @@ export default function App() {
                         <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => setPlaticaOn(true)}
+                            onClick={() => startPlaticaAt(0)}
                             title="Platícalo por voz"
                             className="w-9 h-9 rounded-full flex items-center justify-center bg-iogga-primary/15 text-iogga-primary hover:bg-iogga-primary/25 transition-all active:scale-90"
                           >
@@ -3580,13 +3677,25 @@ export default function App() {
                         </motion.div>
                       )}
                       {(!currentUser || currentUser.isAnonymous) && (
-                        <input
-                          type="text"
-                          placeholder="Tu nombre (para firmar tu invitación)"
-                          className="w-full h-14 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
-                          value={guestName}
-                          onChange={e => setGuestName(e.target.value)}
-                        />
+                        <>
+                          <input
+                            type="text"
+                            placeholder="Tu nombre (para firmar tu invitación)"
+                            className="w-full h-14 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                            value={guestName}
+                            onChange={e => setGuestName(e.target.value)}
+                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="Clave privada (para que confíen: 'soy tu primo Beto')"
+                              className="w-full h-14 pl-6 pr-14 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                              value={newPlan.privateKey || ''}
+                              onChange={e => setNewPlan({ ...newPlan, privateKey: e.target.value })}
+                            />
+                            <MicButton onText={t => setNewPlan(p => ({ ...p, privateKey: t }))} />
+                          </div>
+                        </>
                       )}
                       <div className="relative">
                         <input
@@ -3610,16 +3719,8 @@ export default function App() {
                       className="space-y-6"
                     >
                       <div className="flex items-center justify-between">
-                        <label className="text-lg font-bold text-white block">¿A qué hora?</label>
-                        <button 
-                          onClick={() => {
-                            setNewPlan({...newPlan, startTime: "18:00", endTime: "20:00"});
-                          }}
-                          className="flex items-center gap-1 text-[10px] font-bold text-iogga-primary uppercase tracking-widest bg-iogga-primary/10 px-3 py-1.5 rounded-full border border-iogga-primary/20"
-                        >
-                          <Sparkles size={12} />
-                          Optimizar IA
-                        </button>
+                        <label className="text-lg font-bold text-white block">¿Qué día y a qué hora?</label>
+                        <VoicePair step={1} onDicta={applyDateTime} />
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">¿Qué día?</label>
@@ -3645,14 +3746,21 @@ export default function App() {
                           </label>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      {/* Inicio arriba, fin abajo (apiladas para que no se empalmen) */}
+                      <div className="space-y-4">
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1 tracking-wider"><Clock size={12}/> Inicio</label>
-                          <input type="time" className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white text-base font-medium" value={newPlan.startTime || ''} onChange={e => setNewPlan({...newPlan, startTime: e.target.value})} />
+                          <div className="relative">
+                            <input type="time" className="w-full h-16 pl-6 pr-14 rounded-[24px] bg-white/5 border border-white/10 text-white text-base font-medium" value={newPlan.startTime || ''} onChange={e => setNewPlan({...newPlan, startTime: e.target.value})} />
+                            <MicButton onText={t => { const p = parseTime(t); if (p) setNewPlan(np => ({ ...np, startTime: p })); }} />
+                          </div>
                         </div>
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1 tracking-wider"><Clock size={12}/> Fin</label>
-                          <input type="time" className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white text-base font-medium" value={newPlan.endTime || ''} onChange={e => setNewPlan({...newPlan, endTime: e.target.value})} />
+                          <div className="relative">
+                            <input type="time" className="w-full h-16 pl-6 pr-14 rounded-[24px] bg-white/5 border border-white/10 text-white text-base font-medium" value={newPlan.endTime || ''} onChange={e => setNewPlan({...newPlan, endTime: e.target.value})} />
+                            <MicButton onText={t => { const p = parseTime(t); if (p) setNewPlan(np => ({ ...np, endTime: p })); }} />
+                          </div>
                         </div>
                       </div>
                     </motion.div>
@@ -3666,9 +3774,12 @@ export default function App() {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-6"
                     >
-                      <label className="text-lg font-bold text-white block">¿Cómo pagamos?</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-lg font-bold text-white block">¿Cómo pagamos?</label>
+                        <VoicePair step={2} onDicta={applyBudget} />
+                      </div>
                       <div className="grid grid-cols-1 gap-3">
-                        <button 
+                        <button
                           onClick={() => setNewPlan({...newPlan, budget: 'invites'})}
                           className={`p-4 rounded-2xl border text-left transition-all ${newPlan.budget === 'invites' ? 'bg-iogga-primary/20 border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
                         >
@@ -3700,13 +3811,16 @@ export default function App() {
 
                       <div className="space-y-2 pt-2">
                         <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Comentario sobre el presupuesto (opcional)</label>
-                        <input
-                          type="text"
-                          placeholder="Ej. Traigan para la propina, la entrada es libre…"
-                          className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
-                          value={newPlan.budgetAmount || ''}
-                          onChange={e => setNewPlan({...newPlan, budgetAmount: e.target.value})}
-                        />
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Ej. Traigan para la propina, la entrada es libre…"
+                            className="w-full h-16 pl-6 pr-14 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                            value={newPlan.budgetAmount || ''}
+                            onChange={e => setNewPlan({...newPlan, budgetAmount: e.target.value})}
+                          />
+                          <MicButton onText={t => setNewPlan(p => ({ ...p, budgetAmount: t }))} />
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -3719,9 +3833,12 @@ export default function App() {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-6"
                     >
-                      <label className="text-lg font-bold text-white block">¿Cómo llegamos?</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-lg font-bold text-white block">¿Cómo llegamos?</label>
+                        <VoicePair step={3} onDicta={applyTransport} />
+                      </div>
                       <div className="grid grid-cols-1 gap-3">
-                        <button 
+                        <button
                           onClick={() => setNewPlan({...newPlan, transport: 'has-transport'})}
                           className={`p-4 rounded-2xl border text-left transition-all ${newPlan.transport === 'has-transport' ? 'bg-iogga-primary/20 border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
                         >
@@ -3746,16 +3863,19 @@ export default function App() {
 
                       <div className="space-y-2 pt-2">
                         <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Notas de transporte</label>
-                        <textarea 
-                          placeholder={
-                            newPlan.transport === 'has-transport' ? "Ej. Yo paso por todos o cabemos 3..." :
-                            newPlan.transport === 'no-transport' ? "Ej. Yo pongo para la gas..." :
-                            "Ej. Nos vemos en la entrada..."
-                          }
-                          className="w-full h-24 px-6 py-4 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium resize-none"
-                          value={newPlan.transportNote || ''}
-                          onChange={e => setNewPlan({...newPlan, transportNote: e.target.value})}
-                        />
+                        <div className="relative">
+                          <textarea
+                            placeholder={
+                              newPlan.transport === 'has-transport' ? "Ej. Yo paso por todos o cabemos 3..." :
+                              newPlan.transport === 'no-transport' ? "Ej. Yo pongo para la gas..." :
+                              "Ej. Nos vemos en la entrada..."
+                            }
+                            className="w-full h-24 pl-6 pr-14 py-4 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium resize-none"
+                            value={newPlan.transportNote || ''}
+                            onChange={e => setNewPlan({...newPlan, transportNote: e.target.value})}
+                          />
+                          <div className="absolute right-3 top-4"><MicButton inline onText={t => setNewPlan(p => ({ ...p, transportNote: t }))} /></div>
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -3768,7 +3888,10 @@ export default function App() {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-4"
                     >
-                      <label className="text-lg font-bold text-white block">¿Dónde nos vemos?</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-lg font-bold text-white block">¿Dónde nos vemos?</label>
+                        <VoicePair step={4} onDicta={t => setNewPlan(p => ({ ...p, location: t }))} />
+                      </div>
                       <div className="relative">
                         <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                         <input
@@ -3820,7 +3943,10 @@ export default function App() {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-6"
                     >
-                      <label className="text-lg font-bold text-white block">¿Quién puede verlo?</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-lg font-bold text-white block">¿Quién puede verlo?</label>
+                        <VoicePair step={5} />
+                      </div>
                       <div className="grid grid-cols-3 gap-3">
                         <button 
                           onClick={() => setNewPlan({...newPlan, isPublic: true, guests: 'public'})}
@@ -4138,7 +4264,7 @@ export default function App() {
               <div className="space-y-6">
                 <div className="flex flex-col items-center gap-4">
                   <div className="relative group">
-                    <img src={editPhoto || userProfile.photoURL || AVATAR_PRESETS[0]} className="w-24 h-24 rounded-full border-4 border-iogga-primary/20 shadow-xl object-cover" referrerPolicy="no-referrer" />
+                    <img src={editPhoto || userProfile.photoURL || GENERIC_AVATAR} className="w-24 h-24 rounded-full border-4 border-iogga-primary/20 shadow-xl object-cover" referrerPolicy="no-referrer" />
                     <button
                       onClick={async () => {
                         const img = await pickImage(300, 0.8);
@@ -4702,9 +4828,10 @@ export default function App() {
                         triggerBeta("Billetera iogga", "La Billetera Inteligente iogga está vinculada a tu cuenta de demostración. Saldos y comisiones reales de negocio se habilitarán en la versión final de lanzamiento.");
                       }}
                     />
-                    <SettingsItem 
-                      icon={<Store size={18} />} 
-                      label="Editar Perfil de Negocio" 
+                    <SettingsItem
+                      icon={<Store size={18} />}
+                      label="Editar Perfil de Negocio"
+                      tone="business"
                       onClick={() => {
                         setShowSettingsMenu(false);
                         setShowEditBusinessProfile(true);
@@ -4797,18 +4924,38 @@ export default function App() {
             <Modal onClose={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); }} title="Tu invitación">
               <div className="space-y-6">
 
-                {/* ── Tarjeta tal cual la verán tus amigos en iogga ── */}
-                <div>
-                  <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest mb-2 ml-1">Así se verá en iogga</p>
-                  <div className="rounded-[32px] overflow-hidden pointer-events-none select-none">
-                    <PlanCard plan={lastPublishedPlan} />
+                {/* ── ASÍ SE VERÁ EN IOGGA (título dentro de la caja, estandarizado) ── */}
+                <div className="rounded-[28px] border border-iogga-primary/25 bg-iogga-primary/5 overflow-hidden">
+                  <div className="px-4 py-3 bg-iogga-primary/15 flex items-center gap-2">
+                    <Sparkles size={16} className="text-iogga-primary" />
+                    <p className="text-base font-black text-white tracking-tight">Así se verá en iogga</p>
+                  </div>
+                  <div className="p-4 space-y-4">
+                    {/* El corazón: la invitación escrita, antes de todo */}
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <p className="text-[15px] text-white leading-relaxed whitespace-pre-line">{buildInviteMessage(lastPublishedPlan)}</p>
+                    </div>
+                    {/* La tarjeta tal cual la verán */}
+                    <div className="rounded-[28px] overflow-hidden pointer-events-none select-none">
+                      <PlanCard plan={lastPublishedPlan} />
+                    </div>
                   </div>
                 </div>
 
-                {/* ── Amigos de iogga: elige a quién enviar (agregar / quitar en línea) ── */}
+                {/* ── Agregar amigos en iogga ── */}
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                  <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest">Enviar en iogga a</p>
-                  {following.length > 0 ? (
+                  <p className="text-base font-black text-white tracking-tight">Agregar amigos en iogga</p>
+                  {!isLoggedIn ? (
+                    <div className="space-y-3">
+                      <p className="text-xs text-zinc-400 leading-relaxed">Inicia sesión para ver si conoces gente dentro de iogga y enviarles tu plan al instante.</p>
+                      <button
+                        onClick={() => setShowLoginModal(true)}
+                        className="w-full py-3 bg-iogga-primary/15 text-iogga-primary border border-iogga-primary/25 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
+                      >
+                        Iniciar sesión
+                      </button>
+                    </div>
+                  ) : following.length > 0 ? (
                     <>
                       <div className="space-y-2">
                         {(invitePreviewMore ? following : following.slice(0, 5)).map(f => {
@@ -4840,33 +4987,40 @@ export default function App() {
                     </p>
                   )}
 
-                  <button
-                    onClick={() => {
-                      notifyPendingFriends(lastPublishedPlan);
-                      setIoggaSent(true);
-                    }}
-                    disabled={pendingFriendIds.length === 0 || ioggaSent}
-                    className={`w-full py-4 rounded-[24px] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${ioggaSent ? 'bg-green-500/20 text-green-300 border border-green-400/30' : pendingFriendIds.length === 0 ? 'bg-white/5 text-zinc-600 border border-white/10' : 'bg-iogga-primary text-white shadow-lg shadow-iogga-primary/20 active:scale-95'}`}
-                  >
-                    {ioggaSent ? <><Check size={18} /> Enviado</> : <><Send size={18} /> Enviar {pendingFriendIds.length > 0 ? `(${pendingFriendIds.length})` : 'en iogga'}</>}
-                  </button>
+                  {isLoggedIn && following.length > 0 && (
+                    <button
+                      onClick={() => {
+                        notifyPendingFriends(lastPublishedPlan);
+                        setIoggaSent(true);
+                      }}
+                      disabled={pendingFriendIds.length === 0 || ioggaSent}
+                      className={`w-full py-4 rounded-[24px] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${ioggaSent ? 'bg-green-500/20 text-green-300 border border-green-400/30' : pendingFriendIds.length === 0 ? 'bg-white/5 text-zinc-600 border border-white/10' : 'bg-iogga-primary text-white shadow-lg shadow-iogga-primary/20 active:scale-95'}`}
+                    >
+                      {ioggaSent ? <><Check size={18} /> Enviado</> : <><Send size={18} /> Enviar {pendingFriendIds.length > 0 ? `(${pendingFriendIds.length})` : 'en iogga'}</>}
+                    </button>
+                  )}
                 </div>
 
-                {/* ── Vista previa + botón de WhatsApp (siempre visible) ── */}
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                  <p className="text-[10px] font-black text-green-400 uppercase tracking-widest">Así llega por WhatsApp</p>
-                  <div className="rounded-2xl bg-[#0b141a] p-3">
-                    <div className="max-w-[85%] ml-auto bg-[#005c4b] rounded-2xl rounded-tr-md px-3 py-2 shadow">
-                      <p className="text-[13px] text-white whitespace-pre-line leading-snug">{inviteText(lastPublishedPlan)}</p>
-                    </div>
+                {/* ── ASÍ SE VERÁ EN WHATSAPP (misma estructura que iogga) ── */}
+                <div className="rounded-[28px] border border-green-500/25 bg-green-500/5 overflow-hidden">
+                  <div className="px-4 py-3 bg-green-500/15 flex items-center gap-2">
+                    <MessageSquare size={16} className="text-green-400" />
+                    <p className="text-base font-black text-white tracking-tight">Así se verá en WhatsApp</p>
                   </div>
-                  <button
-                    onClick={() => sharePlanWhatsApp(lastPublishedPlan)}
-                    className="w-full py-4 bg-green-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
-                  >
-                    <UserPlus size={18} />
-                    Invitar por WhatsApp
-                  </button>
+                  <div className="p-4 space-y-3">
+                    <div className="rounded-2xl bg-[#0b141a] p-3">
+                      <div className="max-w-[88%] ml-auto bg-[#005c4b] rounded-2xl rounded-tr-md px-3 py-2 shadow">
+                        <p className="text-[13px] text-white whitespace-pre-line leading-snug">{inviteText(lastPublishedPlan)}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => sharePlanWhatsApp(lastPublishedPlan)}
+                      className="w-full py-4 bg-green-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                    >
+                      <UserPlus size={18} />
+                      Invitar por WhatsApp
+                    </button>
+                  </div>
                 </div>
 
                 <button
@@ -5119,6 +5273,18 @@ export default function App() {
                   >
                     {authBusy ? "Un momento…" : isRegistering ? "Crear mi Cuenta" : "Entrar ahora"}
                   </button>
+                  {/* Salida visible: que nadie sienta que tiene que registrarse para entrar */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsLoggedIn(false);
+                      setShowLoginModal(false);
+                      if (loginActionToResume) { loginActionToResume(); setLoginActionToResume(null); }
+                    }}
+                    className="w-full text-center text-xs font-bold text-zinc-400 hover:text-white underline underline-offset-4 transition-all"
+                  >
+                    Continuar sin iniciar sesión
+                  </button>
                 </form>
 
                 <div className="flex flex-col gap-3 pt-2">
@@ -5220,7 +5386,6 @@ export default function App() {
                     <img src={invitationPlan.userAvatar} className="w-16 h-16 rounded-full border-4 border-iogga-primary shadow-xl object-cover" referrerPolicy="no-referrer" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-iogga-primary uppercase tracking-[0.3em]">Tienes una invitación 💌</p>
                     <h3 className="font-black text-2xl text-white mt-1">Intención compartida ✨</h3>
                   </div>
                   <p className="text-sm text-white/90 leading-relaxed px-2">
@@ -5335,25 +5500,25 @@ export default function App() {
                   <p className="text-xs text-zinc-500 text-center pt-1">✨ Listo. iogga aparecerá en tu pantalla de inicio.</p>
                 </div>
               ) : (
-                // Android sin permiso automático o navegador raro
+                // Android u otros: instrucciones según el navegador detectado
                 <div className="space-y-3 text-left">
                   <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
                     <span className="w-9 h-9 rounded-full bg-iogga-primary text-white text-base font-black flex items-center justify-center shrink-0">1</span>
                     <p className="text-sm text-zinc-200 leading-snug">
-                      Abre el menú
+                      Abre el menú:
                       <span className="inline-flex items-center justify-center w-8 h-8 mx-1 rounded-lg bg-white/10 text-white align-middle">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
                       </span>
-                      (arriba a la derecha).
+                      <span className="font-black text-white">{installGuide.menu}</span>.
                     </p>
                   </div>
                   <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
                     <span className="w-9 h-9 rounded-full bg-iogga-primary text-white text-base font-black flex items-center justify-center shrink-0">2</span>
                     <p className="text-sm text-zinc-200 leading-snug">
-                      Toca <span className="font-black text-white">"Instalar aplicación"</span> o <span className="font-black text-white">"Agregar a pantalla principal"</span>.
+                      Dentro, toca <span className="font-black text-white">{installGuide.action}</span>.
                     </p>
                   </div>
-                  <p className="text-xs text-zinc-500 text-center pt-1">✨ Listo. iogga aparecerá en tu pantalla de inicio.</p>
+                  <p className="text-xs text-zinc-500 text-center pt-1">✨ Listo. iogga aparecerá en tu pantalla de inicio. Si no ves la opción, busca ahí mismo el botón de <span className="font-bold text-zinc-300">Compartir</span>.</p>
                 </div>
               )}
 
@@ -6218,17 +6383,18 @@ function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   );
 }
 
-function SettingsItem({ icon, label, onClick }: { icon: React.ReactNode, label: string, onClick?: () => void }) {
+function SettingsItem({ icon, label, onClick, tone }: { icon: React.ReactNode, label: string, onClick?: () => void, tone?: 'business' }) {
+  const biz = tone === 'business';
   return (
-    <button 
+    <button
       onClick={onClick}
-      className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 group"
+      className={`w-full p-4 flex items-center justify-between transition-colors border-b border-white/5 last:border-0 group ${biz ? 'bg-emerald-500/10 hover:bg-emerald-500/20' : 'hover:bg-white/5'}`}
     >
       <div className="flex items-center gap-3">
-        <div className="text-zinc-500 group-hover:text-iogga-primary transition-colors">{icon}</div>
-        <span className="text-sm font-bold text-zinc-300">{label}</span>
+        <div className={`transition-colors ${biz ? 'text-emerald-400' : 'text-zinc-500 group-hover:text-iogga-primary'}`}>{icon}</div>
+        <span className={`text-sm font-bold ${biz ? 'text-emerald-300' : 'text-zinc-300'}`}>{label}</span>
       </div>
-      <ChevronRight size={16} className="text-zinc-600" />
+      <ChevronRight size={16} className={biz ? 'text-emerald-500/60' : 'text-zinc-600'} />
     </button>
   );
 }

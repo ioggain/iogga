@@ -48,7 +48,8 @@ import {
   Camera,
   Trophy,
   UserPlus,
-  Send
+  Send,
+  Mic
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -213,6 +214,7 @@ const renderPlanTechnicalDetails = (plan: Plan) => {
       case 'invites': return 'Yo invito';
       case 'split': return 'Dividimos';
       case 'no-money': return 'Sin dinero';
+      case 'not-needed': return 'No se necesita';
       default: return budget;
     }
   };
@@ -296,7 +298,12 @@ export default function App() {
     cover: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80',
     location: '',
     phone: '',
-    email: ''
+    email: '',
+    website: '',
+    instagram: '',
+    facebook: '',
+    tiktok: '',
+    linkedin: '',
   });
   const [mode, setMode] = useState<UserMode>('person');
   const [activeTab, setActiveTab] = useState('home');
@@ -357,9 +364,10 @@ export default function App() {
     setShowBetaModal(true);
   };
 
-  // Función aún no disponible en el MVP: avisa e invita a mandar ideas
+  // Función aún no disponible en el MVP: avisa e invita a mandar ideas.
+  // El modal solo se cierra (no navega), así el usuario se queda donde estaba.
   const comingSoon = (feature: string) => {
-    triggerBeta(feature, 'No disponible en la versión de pruebas — ¡muy pronto disponible! Mientras tanto, cuéntanos cómo te gustaría que funcionara. Tus ideas construyen iogga. ✨');
+    triggerBeta(feature, 'Próximamente. Estamos haciendo pruebas. Envíanos tu sugerencia.');
   };
 
   // Auth & Business States
@@ -385,12 +393,28 @@ export default function App() {
   const [editPhoto, setEditPhoto] = useState('');
   const [editWhatsapp, setEditWhatsapp] = useState('');
   const [editInstagram, setEditInstagram] = useState('');
+  const [editLinks, setEditLinks] = useState({ website: '', facebook: '', tiktok: '', linkedin: '' });
 
   // Link directo a WhatsApp (México +52 por defecto si dan 10 dígitos)
   const waLink = (phone: string, text: string) => {
     const digits = phone.replace(/\D/g, '');
     const full = digits.length === 10 ? `52${digits}` : digits;
     return `https://wa.me/${full}?text=${encodeURIComponent(text)}`;
+  };
+
+  // Enlaces/redes: construye chips clicables desde un perfil (negocio o persona)
+  const socialChips = (p: { website?: string; instagram?: string; facebook?: string; tiktok?: string; linkedin?: string; whatsapp?: string; phone?: string; location?: string }) => {
+    const https = (u: string) => (/^https?:\/\//.test(u) ? u : `https://${u}`);
+    const chips: { label: string; href: string; color: string }[] = [];
+    if (p.website) chips.push({ label: 'Sitio web', href: https(p.website), color: 'text-sky-300 border-sky-400/30 bg-sky-500/10' });
+    if (p.instagram) chips.push({ label: 'Instagram', href: `https://instagram.com/${p.instagram.replace(/[@\s]/g, '')}`, color: 'text-pink-300 border-pink-400/30 bg-pink-500/10' });
+    if (p.facebook) chips.push({ label: 'Facebook', href: /^https?:/.test(p.facebook) ? p.facebook : `https://facebook.com/${p.facebook.replace(/[@\s]/g, '')}`, color: 'text-blue-300 border-blue-400/30 bg-blue-500/10' });
+    if (p.tiktok) chips.push({ label: 'TikTok', href: `https://tiktok.com/@${p.tiktok.replace(/[@\s]/g, '')}`, color: 'text-zinc-200 border-white/20 bg-white/5' });
+    if (p.linkedin) chips.push({ label: 'LinkedIn', href: /^https?:/.test(p.linkedin) ? p.linkedin : `https://linkedin.com/in/${p.linkedin.replace(/[@\s]/g, '')}`, color: 'text-sky-300 border-sky-400/30 bg-sky-500/10' });
+    const wa = p.whatsapp || p.phone;
+    if (wa) chips.push({ label: 'WhatsApp', href: waLink(wa, '¡Hola! Te contacto desde iogga.'), color: 'text-green-300 border-green-400/30 bg-green-500/10' });
+    if (p.location) chips.push({ label: '📍 Ubicación', href: `https://maps.google.com/?q=${encodeURIComponent(p.location)}`, color: 'text-zinc-300 border-white/15 bg-white/5' });
+    return chips;
   };
 
   // ---- Selector de fecha en 1 toque: Hoy · Mañana · días de la semana · 📅 ----
@@ -419,6 +443,32 @@ export default function App() {
 
   // Nombre del invitado que publica sin registrarse (para firmar su invitación)
   const [guestName, setGuestName] = useState('');
+
+  // Crear plan estilo chat: Platica (escribir), Dicta (voz), Adivina (idea)
+  const planInputRef = useRef<HTMLInputElement>(null);
+  const [dictating, setDictating] = useState(false);
+  const startDictation = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { comingSoon('Dictar por voz'); return; }
+    try {
+      const rec = new SR();
+      rec.lang = 'es-MX';
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      setDictating(true);
+      rec.onresult = (e: any) => {
+        const t = e.results?.[0]?.[0]?.transcript || '';
+        if (t) setNewPlan(prev => ({ ...prev, activity: t }));
+      };
+      rec.onerror = () => setDictating(false);
+      rec.onend = () => setDictating(false);
+      rec.start();
+    } catch {
+      setDictating(false);
+      comingSoon('Dictar por voz');
+    }
+  };
+  const FIREFLY_IDEAS = ['Café', 'Cine', 'Tacos', 'Cerveza', 'Caminar', 'Alitas', 'Música', 'Picnic', 'Playa', 'Concierto'];
 
   // Arranque tipo "el cel parece apagado": pantalla negra, el usuario toca,
   // y el logo entra en fade in de 4s mientras suena el intro. El toque también
@@ -536,7 +586,8 @@ export default function App() {
     const budget =
       plan.budget === 'invites' ? `Invita ${firstName}` :
       plan.budget === 'split' ? 'Cada quien paga lo suyo' :
-      plan.budget === 'no-money' ? 'Plan sin costo' : '';
+      plan.budget === 'no-money' ? 'Plan sin costo' :
+      plan.budget === 'not-needed' ? 'No se necesita dinero' : '';
     if (budget) parts.push(`${budget}${plan.budgetAmount ? ` (${plan.budgetAmount})` : ''}.`);
 
     if (plan.comment) parts.push(`"${plan.comment}".`);
@@ -551,7 +602,7 @@ export default function App() {
   // ---- Invitaciones virales por WhatsApp (sin acceso a contactos) ----
   // El link abre la app mostrando una invitación personalizada.
   const inviteText = (plan: Plan) =>
-    `${buildInviteMessage(plan)}\n\n${window.location.origin}/?inv=${plan.id}\n\niogga es la app para salir del móvil y vivir lo espontáneo. Es web: sin descargas y sin ocupar espacio.`;
+    `Alguien que conoces tiene un plan que puede interesarte:\n\n${window.location.origin}/?inv=${plan.id}\n\niogga es la app para salir del móvil y vivir lo espontáneo. Es web: sin descargas y sin ocupar espacio.`;
 
   const sharePlanWhatsApp = (plan: Plan) => {
     window.open(`https://wa.me/?text=${encodeURIComponent(inviteText(plan))}`, '_blank');
@@ -578,6 +629,7 @@ export default function App() {
       setEditPhoto(userProfile.photoURL || '');
       setEditWhatsapp(userProfile.whatsapp || '');
       setEditInstagram(userProfile.instagram || '');
+      setEditLinks({ website: userProfile.website || '', facebook: userProfile.facebook || '', tiktok: userProfile.tiktok || '', linkedin: userProfile.linkedin || '' });
     }
   }, [showEditProfile]);
 
@@ -632,6 +684,9 @@ export default function App() {
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
   const [pendingFriendIds, setPendingFriendIds] = useState<string[]>([]);
   const [realNotifs, setRealNotifs] = useState<AppNotif[]>([]);
+  const [invitePlan, setInvitePlan] = useState<Plan | null>(null); // ventana "invitar en iogga / WhatsApp"
+  const [inviteSel, setInviteSel] = useState<string[]>([]); // amigos elegidos para invitar a ese plan
+  const [confirmSel, setConfirmSel] = useState<string[]>([]); // unidos que el anfitrión acepta
 
   // Enviar la intención a los amigos de iogga seleccionados (notificación real)
   const notifyPendingFriends = (plan: Plan) => {
@@ -745,8 +800,12 @@ export default function App() {
   const getMatchingPlansForPlan = (targetPlan: Plan) => {
     if (!targetPlan || !targetPlan.activity) return [];
     const queryWords = targetPlan.activity.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/\s+/).filter(w => w.length > 2);
+    // Coincidencias de la comunidad: planes p\u00fablicos de cualquier parte del mundo
+    // con palabras similares (no restringido por ubicaci\u00f3n).
     return plans.filter(p => {
       if (p.id === targetPlan.id) return false;
+      if (!p.isPublic) return false;
+      if (isMyPlan(p)) return false;
       const activityNorm = p.activity.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       const words = activityNorm.split(/\s+/).filter(w => w.length > 2);
       const sharesWord = words.some(w => queryWords.includes(w) || targetPlan.activity.toLowerCase().includes(w));
@@ -820,7 +879,7 @@ export default function App() {
   }, [mode, activeTab]);
 
   const getPlanDescription = (plan: Plan) => {
-    const budgetText = plan.budget === 'invites' ? 'él invita' : plan.budget === 'split' ? 'cada quien paga' : 'sin costo';
+    const budgetText = plan.budget === 'invites' ? 'él invita' : plan.budget === 'split' ? 'cada quien paga' : plan.budget === 'not-needed' ? 'no se necesita dinero' : 'sin costo';
     const transportText = plan.transport === 'has-transport' ? 'puede pasar por ti' : plan.transport === 'each-arrives' ? 'cada quien llega' : 'busca ride';
     const budgetAmountText = plan.budgetAmount ? ` (${plan.budgetAmount})` : '';
     
@@ -1225,7 +1284,7 @@ export default function App() {
                 </div>
                 <input 
                   type="text" 
-                  placeholder="Escribe tu plan..." 
+                  placeholder="Escribe tus planes o deseos" 
                   value={newPlan.activity || ''}
                   onChange={e => setNewPlan({...newPlan, activity: e.target.value})}
                   className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium transition-all"
@@ -1721,11 +1780,11 @@ export default function App() {
                       >
                         Planes
                       </button>
-                      <button 
+                      <button
                         onClick={() => setSearchFilter('promos')}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${searchFilter === 'promos' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500'}`}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${searchFilter === 'promos' ? 'bg-iogga-accent/15 text-iogga-accent shadow-sm border border-iogga-accent/30' : 'text-zinc-500'}`}
                       >
-                        Ofertas
+                        <Store size={13} /> Ofertas
                       </button>
                     </div>
                   ) : (
@@ -1839,15 +1898,21 @@ export default function App() {
                             ))}
                         </div>
                       ) : (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 px-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-iogga-accent animate-pulse" />
+                            <span className="text-[10px] font-black text-iogga-accent uppercase tracking-widest">Ofertas de negocios cerca de ti</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 border-l-2 border-iogga-accent/30 pl-3">
                           {promos.map(promo => (
-                            <PromoCard 
-                              key={promo.id} 
-                              promo={promo} 
-                              onClick={() => setSelectedPromo(promo)} 
+                            <PromoCard
+                              key={promo.id}
+                              promo={promo}
+                              onClick={() => setSelectedPromo(promo)}
                               onBusinessClick={() => setSelectedBusinessProfile(promo)}
                             />
                           ))}
+                          </div>
                         </div>
                       )}
                     </>
@@ -1918,9 +1983,10 @@ export default function App() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  sharePlanWhatsApp(plan);
+                                  setInviteSel([]);
+                                  setInvitePlan(plan);
                                 }}
-                                title="Agregar personas por WhatsApp"
+                                title="Agregar personas"
                                 className="p-2.5 bg-green-500/20 backdrop-blur-md text-green-200 rounded-full hover:bg-green-500/40 transition-colors border border-green-500/20"
                               >
                                 <UserPlus size={14} />
@@ -1938,44 +2004,38 @@ export default function App() {
                           </div>
                           <div className="p-6 relative z-10">
                             {/* Aviso de aceptados; sin cuenta: se ve borroso e invita a registrarse */}
-                            {plan.acceptedCount > 0 && currentUser?.isAnonymous ? (
+                            {/* Indicador unificado: el número de unidos es el dato estrella
+                                (mismo estilo que "personas buscando" en negocios) */}
+                            {plan.acceptedCount > 0 ? (
                               <button
                                 onClick={(e) => {
-                                  e.stopPropagation();
-                                  setIsRegistering(true);
-                                  setShowLoginModal(true);
+                                  if (currentUser?.isAnonymous) { e.stopPropagation(); setIsRegistering(true); setShowLoginModal(true); }
                                 }}
-                                className="w-full mb-4 flex items-center gap-2 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400 text-left"
+                                className="w-full mb-4 flex items-center gap-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl text-left"
                               >
-                                <Sparkles size={16} className="animate-bounce text-emerald-400 shrink-0" />
-                                <p className="text-xs font-black uppercase tracking-wider font-sans leading-tight">
-                                  🎉 <span className="blur-[5px] select-none">{plan.acceptedCount} persona</span> aceptó tu plan — crea tu cuenta gratis para ver
+                                <span className={`text-4xl font-black text-emerald-400 leading-none shrink-0 ${currentUser?.isAnonymous ? 'blur-[7px] select-none' : ''}`}>{plan.acceptedCount}</span>
+                                <p className="text-xs font-black uppercase tracking-wider text-emerald-300 leading-tight">
+                                  {currentUser?.isAnonymous
+                                    ? 'se unieron a tu plan — crea tu cuenta gratis para ver quiénes 🎉'
+                                    : `${plan.acceptedCount === 1 ? 'persona se unió' : 'personas se unieron'} a tu plan 🎉`}
                                 </p>
                               </button>
                             ) : (
                               <div className="mb-4 flex items-center gap-2 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400">
                                 <Sparkles size={16} className="animate-bounce text-emerald-400 shrink-0" />
                                 <p className="text-xs font-black uppercase tracking-wider font-sans leading-tight">
-                                  {plan.acceptedCount > 0
-                                    ? `¡Buenas noticias! ${plan.acceptedCount} ${plan.acceptedCount === 1 ? 'persona ha' : 'personas han'} aceptado tu plan`
-                                    : '¡Tu plan está publicado! Invita amigos por WhatsApp 👇'}
+                                  ¡Tu plan está publicado! Invita amigos 👇
                                 </p>
                               </div>
                             )}
 
-                            <div className="flex justify-between items-start mb-4">
-                              <div>
-                                <h3 className="text-2xl font-black mb-1">{plan.activity}</h3>
-                                <p className="text-xs text-zinc-400 font-medium italic line-clamp-1">"{getPlanDescription(plan)}"</p>
-                              </div>
-                              <div className="flex flex-col items-end shrink-0">
-                                <span className={`text-xl font-black text-iogga-primary ${plan.acceptedCount > 0 && currentUser?.isAnonymous ? 'blur-[5px] select-none' : ''}`}>{plan.acceptedCount}</span>
-                                <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Unidos</span>
-                              </div>
+                            <div className="mb-4">
+                              <h3 className="text-2xl font-black mb-1">{plan.activity}</h3>
+                              <p className="text-xs text-zinc-400 font-medium italic line-clamp-1">"{getPlanDescription(plan)}"</p>
                             </div>
                             
                             <div className="flex gap-2">
-                              <button 
+                              <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleEditPlan(plan);
@@ -1985,24 +2045,17 @@ export default function App() {
                                 <Edit3 size={14} />
                                 Editar
                               </button>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleVerOfertas(plan);
-                                }}
-                                className="flex-[2] py-3.5 bg-iogga-accent/20 hover:bg-iogga-accent/30 text-iogga-accent rounded-2xl font-black text-xs text-center border border-iogga-accent/20 flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all"
-                              >
-                                <LayoutGrid size={14} />
-                                Ofertas
-                              </button>
-                              <button 
+                              {/* Un solo botón: abre coincidencias (ofertas + planes) dentro de la tarjeta */}
+                              <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setExpandedPlanId(expandedPlanId === plan.id ? null : plan.id);
                                 }}
-                                className="p-3.5 bg-iogga-primary/10 text-iogga-primary rounded-2xl border border-iogga-primary/20 flex items-center justify-center hover:bg-iogga-primary/20 transition-all"
+                                className="flex-[2] py-3.5 bg-iogga-accent/20 hover:bg-iogga-accent/30 text-iogga-accent rounded-2xl font-black text-xs text-center border border-iogga-accent/20 flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all"
                               >
-                                <ChevronDown size={16} className={`transition-transform duration-500 ${expandedPlanId === plan.id ? 'rotate-180' : ''}`} />
+                                <LayoutGrid size={14} />
+                                Coincidencias
+                                <ChevronDown size={15} className={`transition-transform duration-500 ${expandedPlanId === plan.id ? 'rotate-180' : ''}`} />
                               </button>
                             </div>
                           </div>
@@ -2792,10 +2845,14 @@ export default function App() {
                       <p className="text-sm text-zinc-300 leading-relaxed">
                         {businessProfile.bio}
                       </p>
-                      <div className="flex flex-wrap gap-4 text-xs text-zinc-500">
-                        <div className="flex items-center gap-1"><MapPin size={14} /> {businessProfile.location}</div>
-                        <div className="flex items-center gap-1 text-iogga-accent"><MessageSquare size={14} /> {businessProfile.phone}</div>
-                      </div>
+                      {/* Enlaces y redes del negocio (chips clicables) */}
+                      {socialChips(businessProfile).length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {socialChips(businessProfile).map(c => (
+                            <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`px-3 py-1.5 rounded-full border text-xs font-bold active:scale-95 transition-all ${c.color}`}>{c.label}</a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -2823,15 +2880,12 @@ export default function App() {
                         </div>
                       </div>
                       <p className="text-zinc-500 text-sm">{currentUser?.email || '@edu_hdz'} • {userProfile.location || 'Chihuahua, MX'}</p>
-                      {userProfile.instagram && (
-                        <a
-                          href={`https://instagram.com/${userProfile.instagram}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-pink-500/30 text-pink-300 text-xs font-bold active:scale-95 transition-all"
-                        >
-                          <Camera size={13} /> @{userProfile.instagram}
-                        </a>
+                      {socialChips(userProfile).length > 0 && (
+                        <div className="flex flex-wrap gap-2 justify-center mt-3">
+                          {socialChips(userProfile).map(c => (
+                            <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`px-3 py-1.5 rounded-full border text-xs font-bold active:scale-95 transition-all ${c.color}`}>{c.label}</a>
+                          ))}
+                        </div>
                       )}
 
                       {/* Amigos estilo Instagram: seguidos / seguidores */}
@@ -2980,10 +3034,10 @@ export default function App() {
                   </button>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <ProfileButton icon={<Wallet size={20} />} label="Billetera" />
-                    <ProfileButton icon={<Users size={20} />} label="Amigos" />
-                    <ProfileButton icon={<TrendingUp size={20} />} label="Actividad" />
-                    <ProfileButton icon={<Bell size={20} />} label="Ajustes" />
+                    <ProfileButton icon={<Wallet size={20} />} label="Billetera" onClick={() => comingSoon('Billetera')} />
+                    <ProfileButton icon={<Users size={20} />} label="Amigos" onClick={() => setShowFriends('following')} />
+                    <ProfileButton icon={<TrendingUp size={20} />} label="Actividad" onClick={() => comingSoon('Actividad')} />
+                    <ProfileButton icon={<Bell size={20} />} label="Ajustes" onClick={() => setShowSettingsMenu(true)} />
                   </div>
 
                   <div className="p-5 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-between">
@@ -3001,10 +3055,15 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Para Ti Section in Profile */}
+                  {/* "Para ti": tu actividad personal (planes que aceptaste + ofertas
+                      según tus intereses). Solo tiene sentido en el perfil de persona. */}
+                  {mode === 'person' && (
                   <div className="space-y-6 pt-4">
-                    <h3 className="text-lg font-bold text-white px-2">Para ti</h3>
-                    
+                    <div className="px-2">
+                      <h3 className="text-lg font-bold text-white">Para ti</h3>
+                      <p className="text-xs text-zinc-500">Los planes a los que te uniste y ofertas según tus gustos</p>
+                    </div>
+
                     {/* Sub-section: Planes */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between px-2">
@@ -3075,6 +3134,7 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -3226,35 +3286,59 @@ export default function App() {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-4"
                     >
-                      <div className="flex items-center justify-between">
-                        <label className="text-lg font-bold text-white block">¿Qué quieres hacer?</label>
-                        <button 
-                          onClick={() => {
-                            const randomIdea = IDEAS[Math.floor(Math.random() * IDEAS.length)];
-                            setNewPlan({...newPlan, activity: randomIdea});
-                          }}
-                          className="flex items-center gap-1 text-[10px] font-bold text-iogga-primary uppercase tracking-widest bg-iogga-primary/10 px-3 py-1.5 rounded-full border border-iogga-primary/20"
+                      {/* Barra central estilo chat inteligente */}
+                      <div className="text-center space-y-1 pt-1">
+                        <h2 className="text-xl font-black text-white">¿Cuál es tu plan?</h2>
+                        <p className="text-xs text-zinc-500">Escríbelo, dícta­lo por voz o deja que iogga adivine</p>
+                      </div>
+                      <div className="relative">
+                        <input
+                          ref={planInputRef}
+                          type="text"
+                          placeholder="Escribe tus planes o deseos"
+                          className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/25 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium text-center"
+                          value={newPlan.activity || ''}
+                          onChange={e => setNewPlan({...newPlan, activity: e.target.value})}
+                          autoFocus
+                        />
+                        {dictating && <span className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[10px] font-black text-red-400 uppercase"><span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /> Escuchando</span>}
+                      </div>
+
+                      {/* Tres modos: Platica / Dicta / Adivina */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          onClick={() => planInputRef.current?.focus()}
+                          className="py-3 rounded-2xl bg-white/5 border border-white/10 text-white flex flex-col items-center gap-1 active:scale-95 transition-all"
                         >
-                          <Sparkles size={12} />
-                          Magia IA
+                          <MessageSquare size={18} className="text-iogga-primary" />
+                          <span className="text-[11px] font-bold">Platica</span>
+                        </button>
+                        <button
+                          onClick={startDictation}
+                          className={`py-3 rounded-2xl border flex flex-col items-center gap-1 active:scale-95 transition-all ${dictating ? 'bg-red-500/15 border-red-500/40 text-red-300' : 'bg-white/5 border-white/10 text-white'}`}
+                        >
+                          <Mic size={18} className={dictating ? 'text-red-400' : 'text-iogga-primary'} />
+                          <span className="text-[11px] font-bold">Dicta</span>
+                        </button>
+                        <button
+                          onClick={() => setNewPlan({...newPlan, activity: IDEAS[Math.floor(Math.random() * IDEAS.length)]})}
+                          className="py-3 rounded-2xl bg-white/5 border border-white/10 text-white flex flex-col items-center gap-1 active:scale-95 transition-all"
+                        >
+                          <Sparkles size={18} className="text-iogga-primary" />
+                          <span className="text-[11px] font-bold">Adivina</span>
                         </button>
                       </div>
-                      <input 
-                        type="text" 
-                        placeholder="Ej. Ir por un café, ir al cine..." 
-                        className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium"
-                        value={newPlan.activity || ''}
-                        onChange={e => setNewPlan({...newPlan, activity: e.target.value})}
-                        autoFocus
-                      />
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {IDEAS.slice(0, 8).map(sug => (
+
+                      {/* Luciérnagas: ideas que brillan suave para inspirar */}
+                      <div className="flex flex-wrap gap-x-5 gap-y-2 justify-center pt-1">
+                        {FIREFLY_IDEAS.map((w, i) => (
                           <button
-                            key={sug}
-                            onClick={() => setNewPlan({...newPlan, activity: sug})}
-                            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${newPlan.activity === sug ? 'bg-iogga-primary text-white border-iogga-primary' : 'bg-white/5 text-zinc-400 border-white/10 hover:bg-white/10'}`}
+                            key={w}
+                            onClick={() => setNewPlan({...newPlan, activity: w})}
+                            className="text-sm font-semibold text-iogga-primary"
+                            style={{ animation: `iogFirefly ${4 + (i % 3)}s ease-in-out ${(i * 0.55).toFixed(2)}s infinite` }}
                           >
-                            {sug}
+                            {w}
                           </button>
                         ))}
                       </div>
@@ -3358,12 +3442,19 @@ export default function App() {
                           <p className="font-bold">Cada quien</p>
                           <p className="text-xs opacity-60">Dividimos la cuenta</p>
                         </button>
-                        <button 
+                        <button
                           onClick={() => setNewPlan({...newPlan, budget: 'no-money'})}
                           className={`p-4 rounded-2xl border text-left transition-all ${newPlan.budget === 'no-money' ? 'bg-iogga-primary/20 border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
                         >
                           <p className="font-bold">Sin dinero</p>
                           <p className="text-xs opacity-60">Plan gratuito o sin costo</p>
+                        </button>
+                        <button
+                          onClick={() => setNewPlan({...newPlan, budget: 'not-needed'})}
+                          className={`p-4 rounded-2xl border text-left transition-all ${newPlan.budget === 'not-needed' ? 'bg-iogga-primary/20 border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
+                        >
+                          <p className="font-bold">No se necesita</p>
+                          <p className="text-xs opacity-60">El dinero no es tema en este plan</p>
                         </button>
                       </div>
 
@@ -3811,6 +3902,12 @@ export default function App() {
                       <input type="text" value={editInstagram} onChange={e => setEditInstagram(e.target.value.replace(/[@\s]/g, ''))} placeholder="tu_usuario" className="w-full p-4 pl-9 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
                     </div>
                   </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Sitios y redes (opcional)</label>
+                    {[{k:'website',ph:'Sitio web (https://…)'},{k:'facebook',ph:'Facebook'},{k:'tiktok',ph:'TikTok'},{k:'linkedin',ph:'LinkedIn'}].map(({k,ph}) => (
+                      <input key={k} type="text" value={(editLinks as any)[k]} onChange={e => setEditLinks({...editLinks, [k]: e.target.value})} placeholder={ph} className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-medium outline-none focus:ring-2 focus:ring-iogga-primary transition-all text-sm" />
+                    ))}
+                  </div>
                 </div>
                 <button
                   onClick={async () => {
@@ -3822,6 +3919,10 @@ export default function App() {
                         photoURL: editPhoto || userProfile.photoURL || null,
                         whatsapp: editWhatsapp.replace(/\D/g, ''),
                         instagram: editInstagram.replace(/[@\s]/g, ''),
+                        website: editLinks.website.trim(),
+                        facebook: editLinks.facebook.trim(),
+                        tiktok: editLinks.tiktok.trim(),
+                        linkedin: editLinks.linkedin.trim(),
                       }).catch(() => {});
                       if (editName.trim()) setCurrentUser({ ...currentUser, name: editName.trim() });
                     }
@@ -3903,13 +4004,32 @@ export default function App() {
                       className="w-full h-14 px-6 rounded-2xl bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-iogga-accent outline-none"
                     />
                   </div>
-                  <input 
-                    type="text" 
-                    value={businessProfile.address || ''}
-                    onChange={e => setBusinessProfile({...businessProfile, address: e.target.value})}
-                    placeholder="Dirección"
+                  <input
+                    type="text"
+                    value={businessProfile.location || ''}
+                    onChange={e => setBusinessProfile({...businessProfile, location: e.target.value})}
+                    placeholder="Dirección o ubicación"
                     className="w-full h-14 px-6 rounded-2xl bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-iogga-accent outline-none"
                   />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Sitios y redes</label>
+                  {[
+                    { k: 'website', ph: 'Sitio web (https://…)' },
+                    { k: 'facebook', ph: 'Facebook (usuario o link)' },
+                    { k: 'tiktok', ph: 'TikTok (usuario)' },
+                    { k: 'linkedin', ph: 'LinkedIn (usuario o link)' },
+                  ].map(({ k, ph }) => (
+                    <input
+                      key={k}
+                      type="text"
+                      value={(businessProfile as any)[k] || ''}
+                      onChange={e => setBusinessProfile({ ...businessProfile, [k]: e.target.value })}
+                      placeholder={ph}
+                      className="w-full h-14 px-6 rounded-2xl bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-iogga-accent outline-none text-sm"
+                    />
+                  ))}
                 </div>
 
                 <button
@@ -3988,11 +4108,11 @@ export default function App() {
                   {isMyPlan(selectedPlanForDetails) && (
                     <div className="space-y-2">
                       <button
-                        onClick={() => sharePlanWhatsApp(selectedPlanForDetails)}
-                        className="w-full py-4 bg-green-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                        onClick={() => { setInviteSel([]); setInvitePlan(selectedPlanForDetails); }}
+                        className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-iogga-primary/20 flex items-center justify-center gap-2"
                       >
                         <UserPlus size={16} />
-                        Agregar personas por WhatsApp
+                        Agregar personas
                       </button>
                       <div className="grid grid-cols-2 gap-2">
                         <button
@@ -4043,34 +4163,52 @@ export default function App() {
                           </p>
                         </button>
                       ) : (
-                        <div className="space-y-2">
-                          {selectedPlanForDetails.acceptedBy!.map((a, i) => (
-                            <button
-                              key={i}
-                              onClick={() => {
-                                // Ver el perfil del que se unió (vista básica)
-                                setSelectedUserProfile({
-                                  id: 'joined-' + a.uid,
-                                  userName: a.name,
-                                  userAvatar: a.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=6366f1&color=fff`,
-                                  activity: `Se unió a "${selectedPlanForDetails.activity}"`,
-                                } as any);
-                                setSelectedPlanForDetails(null);
-                              }}
-                              className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors text-left active:scale-[0.98]"
-                            >
-                              {a.photo ? (
-                                <img src={a.photo} className="w-9 h-9 rounded-full object-cover" referrerPolicy="no-referrer" />
-                              ) : (
-                                <div className="w-9 h-9 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center text-xs font-black">
-                                  {a.name.charAt(0).toUpperCase()}
+                        <>
+                          <p className="text-[11px] text-zinc-500 -mt-1">Selecciona a quién aceptas. Solo a ellos les llegará el aviso.</p>
+                          <div className="space-y-2">
+                            {selectedPlanForDetails.acceptedBy!.map((a, i) => {
+                              const sel = confirmSel.includes(a.uid);
+                              return (
+                                <div key={i} className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-colors ${sel ? 'bg-iogga-primary/15 border-iogga-primary/40' : 'bg-white/5 border-white/5'}`}>
+                                  <button
+                                    onClick={() => setConfirmSel(prev => sel ? prev.filter(x => x !== a.uid) : [...prev, a.uid])}
+                                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${sel ? 'bg-iogga-primary text-white' : 'border-2 border-white/25'}`}
+                                  >
+                                    {sel && <Check size={16} />}
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedUserProfile({
+                                        id: 'joined-' + a.uid, userName: a.name,
+                                        userAvatar: a.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=6366f1&color=fff`,
+                                        activity: `Se unió a "${selectedPlanForDetails.activity}"`,
+                                      } as any);
+                                      setSelectedPlanForDetails(null);
+                                    }}
+                                    className="flex items-center gap-3 flex-1 text-left"
+                                  >
+                                    {a.photo ? <img src={a.photo} className="w-9 h-9 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-9 h-9 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center text-xs font-black">{a.name.charAt(0).toUpperCase()}</div>}
+                                    <span className="text-sm font-bold text-white">{a.name}</span>
+                                    <ChevronRight size={15} className="text-zinc-500 ml-auto" />
+                                  </button>
                                 </div>
-                              )}
-                              <span className="text-sm font-bold text-white">{a.name}</span>
-                              <ChevronRight size={16} className="text-zinc-500 ml-auto" />
-                            </button>
-                          ))}
-                        </div>
+                              );
+                            })}
+                          </div>
+                          <button
+                            onClick={() => {
+                              const plan = selectedPlanForDetails;
+                              confirmSel.forEach(uid => sendNotification({ type:'accepted', to: uid, fromName: plan.userName, title: `${plan.userName.split(' ')[0]} te aceptó en su plan`, message: `¡Estás dentro! ${buildInviteMessage(plan)}`, planId: plan.id }));
+                              const n = confirmSel.length;
+                              setConfirmSel([]);
+                              triggerBeta('¡Listo!', n > 0 ? `Avisamos en iogga a ${n} ${n === 1 ? 'persona' : 'personas'} que las aceptaste en tu plan.` : 'Selecciona a quién aceptas.');
+                            }}
+                            disabled={confirmSel.length === 0}
+                            className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle2 size={16} /> Aceptar seleccionados {confirmSel.length > 0 ? `(${confirmSel.length})` : ''}
+                          </button>
+                        </>
                       )}
                     </div>
                   )}
@@ -4094,30 +4232,19 @@ export default function App() {
                   >
                     Ignorar
                   </button>
-                  {selectedPlanForDetails.whatsapp ? (
-                    <a
-                      href={waLink(selectedPlanForDetails.whatsapp, `¡Hola ${selectedPlanForDetails.userName}! Acepté tu plan "${selectedPlanForDetails.activity}" en iogga. ¿Sigue en pie? 🙌`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => {
-                        handleAcceptPlan(selectedPlanForDetails.id);
-                        setSelectedPlanForDetails(null);
-                      }}
-                      className="flex-[2] py-4 rounded-2xl bg-green-500 text-white font-black shadow-lg shadow-green-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-center flex items-center justify-center text-xs uppercase tracking-wider"
-                    >
-                      Aceptar y Mandar WhatsApp
-                    </a>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        handleAcceptPlan(selectedPlanForDetails.id);
-                        setSelectedPlanForDetails(null);
-                      }}
-                      className="flex-[2] py-4 rounded-2xl bg-iogga-primary text-white font-black shadow-lg shadow-iogga-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-center flex items-center justify-center text-xs uppercase tracking-wider"
-                    >
-                      Aceptar Plan
-                    </button>
-                  )}
+                  <button
+                    onClick={() => {
+                      handleAcceptPlan(selectedPlanForDetails.id);
+                      // Si el creador dejó WhatsApp, abrir chat para coordinar
+                      if (selectedPlanForDetails.whatsapp) {
+                        window.open(waLink(selectedPlanForDetails.whatsapp, `¡Hola ${selectedPlanForDetails.userName}! Me uní a tu plan "${selectedPlanForDetails.activity}" en iogga. ¿Sigue en pie?`), '_blank');
+                      }
+                      setSelectedPlanForDetails(null);
+                    }}
+                    className="flex-[2] py-4 rounded-2xl bg-iogga-primary text-white font-black shadow-lg shadow-iogga-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-center flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
+                  >
+                    <CheckCircle2 size={16} /> Unirme al plan
+                  </button>
                 </div>
               </div>
             </Modal>
@@ -4949,6 +5076,65 @@ export default function App() {
           </div>
         )}
 
+        {/* Ventana para invitar a un plan: elegir iogga (amigos) o WhatsApp */}
+        {invitePlan && (
+          <Modal onClose={() => { setInvitePlan(null); setInviteSel([]); }} title="Invitar a tu plan">
+            <div className="space-y-5">
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                <p className="text-sm text-white leading-relaxed">{buildInviteMessage(invitePlan)}</p>
+              </div>
+
+              {/* Opción 1: invitar amigos de iogga (les llega notificación real) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest">Invitar en iogga</p>
+                  <button onClick={() => { setInvitePlan(null); setInviteSel([]); setShowFriends('following'); }} className="text-[10px] font-black text-iogga-primary flex items-center gap-1 bg-iogga-primary/10 px-2.5 py-1 rounded-full border border-iogga-primary/20"><UserPlus size={11} /> Agregar</button>
+                </div>
+                {following.length > 0 ? (
+                  <div className="space-y-2 max-h-44 overflow-y-auto no-scrollbar">
+                    {following.map(f => {
+                      const sel = inviteSel.includes(f.uid);
+                      return (
+                        <button key={f.uid} onClick={() => setInviteSel(prev => sel ? prev.filter(x => x !== f.uid) : [...prev, f.uid])} className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border transition-all ${sel ? 'bg-iogga-primary/15 border-iogga-primary/40' : 'bg-white/5 border-white/10'}`}>
+                          {f.photo ? <img src={f.photo} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white">{f.name.charAt(0).toUpperCase()}</div>}
+                          <span className="text-sm text-white flex-1 text-left">{f.name}</span>
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${sel ? 'bg-iogga-primary text-white' : 'border-2 border-white/20'}`}>{sel && <Check size={14} />}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-400">Aún no tienes amigos en iogga. <button onClick={() => { setInvitePlan(null); setShowFriends('following'); }} className="text-iogga-primary font-bold underline">Agrégalos</button>.</p>
+                )}
+                <button
+                  onClick={() => {
+                    inviteSel.forEach(fid => sendNotification({ type:'invite', to: fid, fromName: invitePlan.userName, title: `${invitePlan.userName.split(' ')[0]} tiene un plan`, message: buildInviteMessage(invitePlan), planId: invitePlan.id }));
+                    const n = inviteSel.length;
+                    setInvitePlan(null); setInviteSel([]);
+                    triggerBeta('¡Enviado en iogga!', n > 0 ? `Se envió la invitación a ${n} ${n === 1 ? 'amigo' : 'amigos'}. Les llegará a su campana.` : 'Selecciona amigos para invitarlos en iogga.');
+                  }}
+                  disabled={inviteSel.length === 0}
+                  className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  <Send size={16} /> Enviar en iogga {inviteSel.length > 0 ? `(${inviteSel.length})` : ''}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-white/10" /><span className="text-[10px] text-zinc-600 font-bold">O</span><div className="flex-1 h-px bg-white/10" />
+              </div>
+
+              {/* Opción 2: WhatsApp */}
+              <button
+                onClick={() => { sharePlanWhatsApp(invitePlan); setInvitePlan(null); setInviteSel([]); }}
+                className="w-full py-4 bg-green-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <UserPlus size={16} /> Invitar por WhatsApp
+              </button>
+            </div>
+          </Modal>
+        )}
+
         {/* Amigos: buscar, seguir y ver tus listas (estilo Instagram) */}
         {showFriends && (
           <Modal onClose={() => { setShowFriends(null); setFriendSearch(''); }} title="Amigos en iogga">
@@ -5775,9 +5961,9 @@ function NavButton({ active, onClick, onDoubleClick, icon, label, color, id }: {
   );
 }
 
-function ProfileButton({ icon, label }: { icon: React.ReactNode, label: string }) {
+function ProfileButton({ icon, label, onClick }: { icon: React.ReactNode, label: string, onClick?: () => void }) {
   return (
-    <button className="p-4 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center gap-2 hover:bg-white/10 transition-colors">
+    <button onClick={onClick} className="p-4 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center gap-2 hover:bg-white/10 transition-colors active:scale-95">
       <div className="text-zinc-500">{icon}</div>
       <span className="text-sm font-medium text-zinc-400">{label}</span>
     </button>

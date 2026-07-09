@@ -187,6 +187,11 @@ export interface BusinessProfile {
   location?: string;
   phone?: string;
   email?: string;
+  website?: string;
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
+  linkedin?: string;
 }
 
 export interface UserProfile {
@@ -197,6 +202,10 @@ export interface UserProfile {
   photoURL?: string | null;
   whatsapp?: string; // para el botón "Hablar por WhatsApp" al hacer match
   instagram?: string; // usuario de Instagram (sin @)
+  website?: string;
+  facebook?: string;
+  tiktok?: string;
+  linkedin?: string;
   business?: BusinessProfile; // perfil de negocio del usuario (mismo modelo que Facebook: una cuenta, dos caras)
 }
 

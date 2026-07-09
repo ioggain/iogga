@@ -22,6 +22,15 @@ import {
 
 export type UserMode = 'person' | 'business';
 
+// Identidad genérica para perfiles sin sesión (perfil "virgen").
+export const GUEST_NAME = 'Invitado';
+// Avatar silueta neutro (sin datos personales), embebido como data URI.
+export const GENERIC_AVATAR =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#27272a"/><circle cx="50" cy="38" r="18" fill="#52525b"/><path d="M50 60c-18 0-30 12-30 28v12h60V88c0-16-12-28-30-28z" fill="#52525b"/></svg>'
+  );
+
 export interface Plan {
   id: string;
   uid?: string; // dueño del plan (usuario de Firebase)
@@ -138,8 +147,8 @@ export const MOCK_PLANS: Plan[] = [
   },
   {
     id: '1',
-    userName: 'Eduardo',
-    userAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
+    userName: GUEST_NAME,
+    userAvatar: GENERIC_AVATAR,
     userBio: 'Explorador urbano. Me encanta conocer nuevos cafés y lugares interesantes.',
     userStats: { plans: 24, friends: 312, rating: 5.0 },
     activity: 'Ir por un café',

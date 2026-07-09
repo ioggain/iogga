@@ -63,7 +63,7 @@ import {
   AreaChart, 
   Area 
 } from 'recharts';
-import { Plan, Promotion, UserMode, MOCK_PLANS, MOCK_PROMOS, IDEAS, MOCK_GROUPED_PLANS } from './types';
+import { Plan, Promotion, UserMode, MOCK_PLANS, MOCK_PROMOS, IDEAS, MOCK_GROUPED_PLANS, GUEST_NAME, GENERIC_AVATAR } from './types';
 import {
   isFirebaseEnabled,
   watchAuth,
@@ -285,15 +285,6 @@ const renderPlanTechnicalDetails = (plan: Plan) => {
 
 // Mensaje unificado de bienvenida de iogga (mismo texto en el intro y en el popup de persona)
 const IOGGA_WELCOME = 'iogga es la app para salir del móvil y vivir lo espontáneo. Comparte tu intención —"un café", "vamos al cine"— y quien quiera se suma. Sin chats interminables: solo acción.';
-
-// Identidad genérica para quien navega sin iniciar sesión (perfil "virgen").
-const GUEST_NAME = 'Invitado';
-// Avatar silueta neutro (sin datos personales), embebido como data URI.
-const GENERIC_AVATAR =
-  'data:image/svg+xml;utf8,' +
-  encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#27272a"/><circle cx="50" cy="38" r="18" fill="#52525b"/><path d="M50 60c-18 0-30 12-30 28v12h60V88c0-16-12-28-30-28z" fill="#52525b"/></svg>'
-  );
 
 // ---- Voz: hablar (TTS) y escuchar (reconocimiento) para Platica y Dicta ----
 function speakEs(text: string): Promise<void> {
@@ -1084,7 +1075,7 @@ export default function App() {
   };
 
   // ¿Este plan es mío? (con Firebase: por dueño; en demo: el usuario de ejemplo)
-  const isMyPlan = (p: Plan) => (p.uid ? p.uid === currentUser?.uid : p.userName === 'Eduardo');
+  const isMyPlan = (p: Plan) => (p.uid ? p.uid === currentUser?.uid : p.userName === GUEST_NAME);
 
   // Medidor "completa tu perfil": 5 pasos sencillos
   const profileSteps: { label: string; done: boolean }[] = [

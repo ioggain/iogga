@@ -49,7 +49,8 @@ import {
   Trophy,
   UserPlus,
   Send,
-  Mic
+  Mic,
+  AudioLines
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -319,10 +320,64 @@ function listenEs(): Promise<string | null> {
   });
 }
 
+// Ideas para las "luciérnagas": pool grande para que no se repitan
+const FIREFLY_POOL = [
+  'Café', 'Cine', 'Tacos', 'Cerveza', 'Caminar', 'Alitas', 'Música', 'Picnic', 'Playa', 'Concierto',
+  'Sushi', 'Boliche', 'Yoga', 'Museo', 'Correr', 'Bici', 'Pizza', 'Helado', 'Fotos', 'Bailar',
+  'Senderismo', 'Café con leche', 'Ver el atardecer', 'Ping pong', 'Karaoke', 'Parque', 'Ajedrez',
+  'Nadar', 'Escalar', 'Postres', 'Ramen', 'Mercado', 'Arte', 'Estrenos', 'Domino', 'Terraza',
+  'Feria', 'Antojitos', 'Brunch', 'Vinos', 'Board games', 'Patinar', 'Frisbee', 'Mirador',
+];
+
+// Palabras que flotan y cambian solas (fade in/out), sin repetir a la vista
+function FireflyWords({ onPick }: { onPick: (w: string) => void }) {
+  const [words, setWords] = React.useState<string[]>(() => {
+    const s = [...FIREFLY_POOL].sort(() => Math.random() - 0.5);
+    return s.slice(0, 10);
+  });
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      // Cambia unas pocas palabras cada ciclo (no todas), para que se sienta vivo pero sutil
+      setWords(prev => {
+        const next = [...prev];
+        const pool = FIREFLY_POOL.filter(w => !prev.includes(w));
+        for (let k = 0; k < 3 && pool.length; k++) {
+          const i = Math.floor(Math.random() * next.length);
+          const j = Math.floor(Math.random() * pool.length);
+          next[i] = pool.splice(j, 1)[0];
+        }
+        return next;
+      });
+    }, 2600);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="flex flex-wrap gap-x-5 gap-y-2.5 justify-center py-2 min-h-[72px] content-center">
+      {words.map((w, i) => (
+        <AnimatePresence mode="popLayout" key={i}>
+          <motion.button
+            key={w}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.9, ease: 'easeInOut' }}
+            onClick={() => onPick(w)}
+            className="text-sm font-semibold text-iogga-primary bg-transparent border-none"
+            style={{ animation: `iogFirefly ${4 + (i % 3)}s ease-in-out ${(i * 0.4).toFixed(2)}s infinite` }}
+          >
+            {w}
+          </motion.button>
+        </AnimatePresence>
+      ))}
+    </div>
+  );
+}
+
 // Botón de micrófono para dictar dentro de cualquier campo de texto
-function MicButton({ onText, tone = 'primary' }: { onText: (t: string) => void; tone?: 'primary' | 'accent' }) {
+function MicButton({ onText, tone = 'primary', inline = false }: { onText: (t: string) => void; tone?: 'primary' | 'accent'; inline?: boolean }) {
   const [busy, setBusy] = React.useState(false);
   const color = tone === 'accent' ? 'text-iogga-accent' : 'text-iogga-primary';
+  const pos = inline ? '' : 'absolute right-3 top-1/2 -translate-y-1/2 ';
   return (
     <button
       type="button"
@@ -333,7 +388,7 @@ function MicButton({ onText, tone = 'primary' }: { onText: (t: string) => void; 
         if (t) onText(t);
       }}
       title="Dictar por voz"
-      className={`absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${busy ? 'bg-red-500/20 text-red-400 animate-pulse' : `bg-white/5 ${color} hover:bg-white/10`}`}
+      className={`${pos}w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${busy ? 'bg-red-500/20 text-red-400 animate-pulse' : `bg-white/5 ${color} hover:bg-white/10`}`}
     >
       <Mic size={16} />
     </button>
@@ -507,6 +562,14 @@ export default function App() {
   const [platicaOn, setPlaticaOn] = useState(false);
   const [platicaStatus, setPlaticaStatus] = useState('');
   const platicaCancel = useRef(false);
+  // Pokayoke: pista de la barra (dictar / platicar por voz). Solo para quien aún no crea nada.
+  const [barHintSeen, setBarHintSeen] = useState(() => {
+    try { return !!localStorage.getItem('iogga_bar_hint_seen'); } catch { return false; }
+  });
+  const dismissBarHint = () => {
+    setBarHintSeen(true);
+    try { localStorage.setItem('iogga_bar_hint_seen', '1'); } catch {}
+  };
 
   const parseTime = (t: string): string | null => {
     const s = t.toLowerCase();
@@ -523,49 +586,97 @@ export default function App() {
 
   const runPlatica = async () => {
     platicaCancel.current = false;
+    const cancelled = () => platicaCancel.current;
+
+    // Pregunta y escucha (una vez)
     const ask = async (q: string): Promise<string | null> => {
-      if (platicaCancel.current) return null;
+      if (cancelled()) return null;
       setPlaticaStatus(q);
       await speakEs(q);
-      if (platicaCancel.current) return null;
+      if (cancelled()) return null;
       setPlaticaStatus('Escuchando…');
-      const r = await listenEs();
-      return r;
+      return await listenEs();
     };
+    // ¿Sí o no?
+    const yesNo = async (q: string): Promise<boolean> => {
+      const r = await ask(q);
+      return !!r && /\bs[ií]\b|claro|va|dale|por supuesto|ok/i.test(r);
+    };
+    // Capturar texto libre con confirmación "¿así lo dejamos o lo cambiamos?"
+    const capture = async (q: string, apply: (t: string) => void): Promise<void> => {
+      let val = await ask(q);
+      while (!cancelled()) {
+        if (!val) { val = await ask('No te escuché bien. ' + q); continue; }
+        apply(val);
+        setPlaticaStatus('Entendí: "' + val + '"');
+        await speakEs('Entendí: ' + val + '. ¿Así lo dejamos, o lo cambiamos?');
+        if (cancelled()) return;
+        setPlaticaStatus('Escuchando…');
+        const c = await listenEs();
+        if (c && /cambia|otra|no|corrige|de nuevo/i.test(c)) { val = await ask('Ok. Dímelo otra vez.'); continue; }
+        return;
+      }
+    };
+
     // 1) Actividad
-    const act = await ask('¿Qué te gustaría hacer?');
-    if (platicaCancel.current) return;
-    if (act) setNewPlan(p => ({ ...p, activity: act }));
-    // 2) Día
-    const day = await ask('¿Qué día? Puedes decir hoy, mañana, o un día de la semana.');
-    if (day) {
-      const opt = dateOptions.find(o => day.toLowerCase().includes(o.label.replace('el ', '')) || day.toLowerCase().includes(o.chip.toLowerCase()));
-      if (opt) setNewPlan(p => ({ ...p, date: opt.iso, dateLabel: opt.label }));
+    await capture('Dime un plan o un deseo que te gustaría hacer hoy u otro día.', t => setNewPlan(p => ({ ...p, activity: t })));
+    if (cancelled()) return;
+
+    // 2) Nombre (solo si no ha iniciado sesión)
+    if (!currentUser || currentUser.isAnonymous) {
+      const wantName = await yesNo('No has iniciado sesión, y una invitación anónima puede dar desconfianza. ¿Quieres dejar tu nombre para que sepan que eres tú?');
+      if (wantName) await capture('¿Cuál es tu nombre?', t => setGuestName(t));
     }
-    // 3) Hora
-    const time = await ask('¿A qué hora?');
-    if (time) { const parsed = parseTime(time); if (parsed) setNewPlan(p => ({ ...p, startTime: parsed })); }
-    // 4) Lugar
-    const loc = await ask('¿Dónde nos vemos?');
-    if (loc) setNewPlan(p => ({ ...p, location: loc }));
-    // 5) Presupuesto
-    const bud = await ask('¿Cómo pagamos? Puedes decir yo invito, cada quien, sin dinero, o no se necesita.');
+    if (cancelled()) return;
+
+    // 3) Fecha y hora en una sola pregunta
+    let dl = ''; let tm = '';
+    const dt = await ask('¿Qué día y a qué hora? Por ejemplo: hoy a las ocho de la noche.');
+    if (dt) {
+      const low = dt.toLowerCase();
+      const opt = dateOptions.find(o => low.includes(o.label.replace('el ', '')) || low.includes(o.chip.toLowerCase()));
+      if (opt) { setNewPlan(p => ({ ...p, date: opt.iso, dateLabel: opt.label })); dl = opt.label; }
+      const parsed = parseTime(dt);
+      if (parsed) { setNewPlan(p => ({ ...p, startTime: parsed })); tm = parsed; }
+    }
+    if (dl || tm) { setPlaticaStatus(`Anoté: ${dl} ${tm}`); await speakEs(`Anoté ${dl} ${tm}. Puedes ajustarlo con los botones si quieres.`); }
+
+    // 4) Presupuesto + comentario
+    const bud = await ask('¿Cómo pagan? Puedes decir: tú invitas, cada quien paga, sin dinero, o no se necesita.');
     if (bud) {
       const b = bud.toLowerCase();
-      const val = b.includes('invito') ? 'invites' : (b.includes('cada') ? 'split' : (b.includes('no se') || b.includes('necesita') ? 'not-needed' : (b.includes('sin') || b.includes('gratis') ? 'no-money' : null)));
+      const val = b.includes('invit') ? 'invites' : (b.includes('cada') ? 'split' : (b.includes('no se') || b.includes('necesita') ? 'not-needed' : (b.includes('sin') || b.includes('gratis') ? 'no-money' : null)));
       if (val) setNewPlan(p => ({ ...p, budget: val as any }));
     }
-    // 6) Transporte
-    const tr = await ask('¿Cómo llegamos? Tengo carro, cada quien llega, o no tengo transporte.');
+    if (cancelled()) return;
+    if (await yesNo('¿Quieres agregar un comentario sobre el dinero?')) {
+      await capture('Dime tu comentario sobre el dinero.', t => setNewPlan(p => ({ ...p, budgetAmount: t })));
+    }
+
+    // 5) Transporte + comentario
+    const tr = await ask('¿Cómo llegan? Tienes carro, cada quien llega, o no hay transporte.');
     if (tr) {
       const t = tr.toLowerCase();
       const val = t.includes('carro') || t.includes('coche') ? 'has-transport' : (t.includes('cada') ? 'each-arrives' : (t.includes('no') ? 'no-transport' : null));
       if (val) setNewPlan(p => ({ ...p, transport: val as any }));
     }
-    if (platicaCancel.current) return;
-    setPlaticaStatus('¡Listo! Revisa tu plan.');
-    await speakEs('Listo. Revisa tu plan y publícalo.');
-    setCurrentPlanStep(6);
+    if (cancelled()) return;
+    if (await yesNo('¿Quieres agregar un comentario sobre el transporte?')) {
+      await capture('Dime tu comentario sobre el transporte.', t => setNewPlan(p => ({ ...p, transportNote: t })));
+    }
+
+    // 6) Ubicación (+ otra opcional)
+    await capture('¿Dónde es el plan?', t => setNewPlan(p => ({ ...p, location: t })));
+    if (cancelled()) return;
+    if (await yesNo('¿Quieres agregar otra ubicación?')) {
+      await capture('Dime la otra ubicación.', t => setNewPlan(p => ({ ...p, locations: [...(p.locations || []), t] })));
+    }
+
+    if (cancelled()) return;
+    // 7) Visibilidad: manual por ahora
+    setPlaticaStatus('¡Listo!');
+    await speakEs('En quién puede verlo tendrás que elegir a mano por ahora; pronto también será por voz.');
+    setCurrentPlanStep(5);
     setPlaticaOn(false);
     setPlaticaStatus('');
   };
@@ -588,7 +699,7 @@ export default function App() {
     setSplashRevealed(true);
     chimePlayed.current = true;
     playIntroChime(); // el toque desbloquea el audio: la lluvia de notitas suena junto al logo
-    setTimeout(() => setShowSplash(false), 4600); // dura lo que el fade in del logo + un respiro
+    setTimeout(() => setShowSplash(false), 10000); // tiempo para leer el mensaje con calma
   };
 
   useEffect(() => {
@@ -596,7 +707,7 @@ export default function App() {
     const t = setTimeout(() => {
       if (!splashRevealed) {
         setSplashRevealed(true);
-        setTimeout(() => setShowSplash(false), 5200);
+        setTimeout(() => setShowSplash(false), 10000);
       }
     }, 5000);
     return () => clearTimeout(t);
@@ -789,6 +900,8 @@ export default function App() {
   const [friendResults, setFriendResults] = useState<Friend[]>([]);
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
   const [pendingFriendIds, setPendingFriendIds] = useState<string[]>([]);
+  const [ioggaSent, setIoggaSent] = useState(false); // palomita "Enviado" en la pantalla final
+  const [invitePreviewMore, setInvitePreviewMore] = useState(false); // "ver más" amigos en la pantalla final
   const [realNotifs, setRealNotifs] = useState<AppNotif[]>([]);
   const [invitePlan, setInvitePlan] = useState<Plan | null>(null); // ventana "invitar en iogga / WhatsApp"
   const [inviteSel, setInviteSel] = useState<string[]>([]); // amigos elegidos para invitar a ese plan
@@ -892,6 +1005,8 @@ export default function App() {
 
   // Analíticas REALES del negocio: suman los canjes QR validados de sus promos
   const myPromos = promos.filter(p => (p.uid ? p.uid === currentUser?.uid : !isFirebaseEnabled));
+  // ¿Ya creó algo? (para mostrar pistas solo a quien aún no tiene plan ni oferta)
+  const hasCreatedAnything = plans.some(p => isMyPlan(p)) || myPromos.length > 0;
   const bizTotals = {
     earnings: myPromos.reduce((s, p) => s + (p.totalEarnings || 0), 0),
     scans: myPromos.reduce((s, p) => s + (p.qrScans || 0), 0),
@@ -1122,6 +1237,8 @@ export default function App() {
       setPendingFriendIds([...selectedFriendIds]); // se enviarán al confirmar en "Verifica tu mensaje"
       setPlans([plan, ...plans]);
       setLastPublishedPlan(plan);
+      setIoggaSent(false);
+      setInvitePreviewMore(false);
       setShowMatchCelebration(true);
     }
     setShowCreatePlan(false);
@@ -1393,41 +1510,46 @@ export default function App() {
               <div className="relative" id="tutorial-intro-input">
                 <div className="flex items-center justify-center gap-2 mb-4">
                   <Sparkles size={14} className="text-iogga-primary animate-pulse" />
-                  <span className="text-[10px] font-black text-iogga-primary uppercase tracking-[0.2em]">Sugerencias Inteligentes</span>
+                  <span className="text-[10px] font-black text-iogga-primary uppercase tracking-[0.2em]">Escribe, dicta o platícalo</span>
                 </div>
-                <input 
-                  type="text" 
-                  placeholder="Escribe tus planes o deseos" 
-                  value={newPlan.activity || ''}
-                  onChange={e => setNewPlan({...newPlan, activity: e.target.value})}
-                  className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium transition-all"
-                />
-                <div className="mt-8 grid grid-cols-2 gap-3 min-h-[280px]">
-                  <AnimatePresence mode="popLayout">
-                    {visibleIdeas.slice(0, 6).map((idea, index) => (
-                      <motion.button
-                        key={idea}
-                        layout
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ 
-                          opacity: [0, 1, 1, 0],
-                          scale: [0.9, 1, 1, 0.9]
-                        }}
-                        transition={{ 
-                          duration: 4,
-                          repeat: Infinity,
-                          delay: index * 0.7,
-                          times: [0, 0.2, 0.8, 1],
-                          ease: "easeInOut"
-                        }}
-                        onClick={() => setNewPlan({...newPlan, activity: idea})}
-                        className={`text-lg font-black px-4 py-6 rounded-[32px] border transition-all flex items-center justify-center text-center leading-tight ${newPlan.activity === idea ? 'bg-iogga-primary text-white border-iogga-primary shadow-xl shadow-iogga-primary/20 scale-105' : 'bg-white/5 text-white/40 border-white/10 hover:bg-white/10'}`}
-                      >
-                        {idea}
-                      </motion.button>
-                    ))}
-                  </AnimatePresence>
+                {/* Barra estilo chat: escribir + platica (voz) + dictar, dentro de la barra */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Escribe tus planes o deseos"
+                    value={newPlan.activity || ''}
+                    onChange={e => setNewPlan({...newPlan, activity: e.target.value})}
+                    className="w-full h-16 pl-6 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium transition-all"
+                  />
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => { setIsIntro(false); setShowCreatePlan(true); setPlaticaOn(true); }}
+                      title="Platícalo por voz"
+                      className="w-9 h-9 rounded-full flex items-center justify-center bg-iogga-primary/15 text-iogga-primary hover:bg-iogga-primary/25 transition-all active:scale-90"
+                    >
+                      <AudioLines size={16} />
+                    </button>
+                    <MicButton inline onText={t => setNewPlan(p => ({ ...p, activity: t }))} />
+                  </div>
                 </div>
+                {/* Ideas flotando libres que cambian solas */}
+                <FireflyWords onPick={w => setNewPlan({...newPlan, activity: w})} />
+
+                {/* Pokayoke: pista de voz, solo para quien aún no crea nada */}
+                {!hasCreatedAnything && !barHintSeen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-3 flex items-start gap-2 p-3 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/25 text-left"
+                  >
+                    <Sparkles size={14} className="text-iogga-primary shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-zinc-300 leading-snug flex-1">
+                      Toca <Mic size={11} className="inline align-middle text-iogga-primary" /> para <b className="text-white">dictar</b>, o <AudioLines size={11} className="inline align-middle text-iogga-primary" /> para <b className="text-white">platicarlo por voz</b> y armar tu plan solo.
+                    </p>
+                    <button onClick={dismissBarHint} className="text-[10px] font-black text-iogga-primary uppercase tracking-widest shrink-0">Ok</button>
+                  </motion.div>
+                )}
               </div>
 
               <div className="space-y-4 pt-4 relative z-10 w-full">
@@ -3416,42 +3538,47 @@ export default function App() {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-4"
                     >
-                      <div className="flex items-center justify-between">
-                        <label className="text-lg font-bold text-white block">¿Qué quieres hacer?</label>
-                        <button
-                          onClick={() => setPlaticaOn(true)}
-                          className="flex items-center gap-1 text-[10px] font-bold text-iogga-primary uppercase tracking-widest bg-iogga-primary/10 px-3 py-1.5 rounded-full border border-iogga-primary/20 active:scale-95"
-                        >
-                          <MessageSquare size={12} />
-                          Platica por voz
-                        </button>
-                      </div>
+                      <label className="text-lg font-bold text-white block">¿Qué quieres hacer?</label>
                       <div className="relative">
                         <input
                           ref={planInputRef}
                           type="text"
                           placeholder="Escribe tus planes o deseos"
-                          className="w-full h-16 pl-6 pr-14 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium"
+                          className="w-full h-16 pl-6 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium"
                           value={newPlan.activity || ''}
                           onChange={e => setNewPlan({...newPlan, activity: e.target.value})}
                           autoFocus
                         />
-                        <MicButton onText={t => setNewPlan(p => ({ ...p, activity: t }))} />
+                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setPlaticaOn(true)}
+                            title="Platícalo por voz"
+                            className="w-9 h-9 rounded-full flex items-center justify-center bg-iogga-primary/15 text-iogga-primary hover:bg-iogga-primary/25 transition-all active:scale-90"
+                          >
+                            <AudioLines size={16} />
+                          </button>
+                          <MicButton inline onText={t => setNewPlan(p => ({ ...p, activity: t }))} />
+                        </div>
                       </div>
 
-                      {/* Luciérnagas: ideas flotando libres (sin caja), brillan suave */}
-                      <div className="flex flex-wrap gap-x-5 gap-y-2.5 justify-center py-2">
-                        {FIREFLY_IDEAS.map((w, i) => (
-                          <button
-                            key={w}
-                            onClick={() => setNewPlan({...newPlan, activity: w})}
-                            className="text-sm font-semibold text-iogga-primary bg-transparent border-none"
-                            style={{ animation: `iogFirefly ${4 + (i % 3)}s ease-in-out ${(i * 0.55).toFixed(2)}s infinite` }}
-                          >
-                            {w}
-                          </button>
-                        ))}
-                      </div>
+                      {/* Luciérnagas: ideas flotando libres (sin caja), que cambian solas */}
+                      <FireflyWords onPick={w => setNewPlan({...newPlan, activity: w})} />
+
+                      {/* Pokayoke: pista de voz, solo para quien aún no crea nada */}
+                      {!hasCreatedAnything && !barHintSeen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex items-start gap-2 p-3 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/25"
+                        >
+                          <Sparkles size={14} className="text-iogga-primary shrink-0 mt-0.5" />
+                          <p className="text-[11px] text-zinc-300 leading-snug flex-1">
+                            Toca <Mic size={11} className="inline align-middle text-iogga-primary" /> para <b className="text-white">dictar</b>, o <AudioLines size={11} className="inline align-middle text-iogga-primary" /> para <b className="text-white">platicarlo por voz</b> y armar tu plan solo.
+                          </p>
+                          <button onClick={dismissBarHint} className="text-[10px] font-black text-iogga-primary uppercase tracking-widest shrink-0">Ok</button>
+                        </motion.div>
+                      )}
                       {(!currentUser || currentUser.isAnonymous) && (
                         <input
                           type="text"
@@ -3718,43 +3845,76 @@ export default function App() {
                         </button>
                       </div>
 
-                      {(!newPlan.isPublic || newPlan.guests === 'groups') && (
-                        <motion.div 
+                      {/* Amigos: lista de iogga inline con casillas redondas + buscador */}
+                      {!newPlan.isPublic && newPlan.guests === 'friends' && (
+                        <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4"
                         >
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs font-bold text-iogga-primary uppercase tracking-widest">Invitar amigos de iogga</p>
-                            <button onClick={() => setShowFriends('following')} className="text-[10px] font-black text-iogga-primary flex items-center gap-1 bg-iogga-primary/10 px-2.5 py-1 rounded-full border border-iogga-primary/20">
-                              <UserPlus size={11} /> Agregar
-                            </button>
+                          <p className="text-xs font-bold text-iogga-primary uppercase tracking-widest">Invitar amigos de iogga</p>
+                          {/* Buscador */}
+                          <div className="relative">
+                            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                            <input
+                              value={friendSearch}
+                              onChange={(e) => setFriendSearch(e.target.value)}
+                              placeholder="Buscar en iogga…"
+                              className="w-full bg-white/5 border border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-iogga-primary/40"
+                            />
                           </div>
-                          {following.length > 0 ? (
-                            <div className="space-y-2 max-h-52 overflow-y-auto no-scrollbar">
-                              {following.map(f => {
-                                const sel = selectedFriendIds.includes(f.uid);
-                                return (
-                                  <button
-                                    key={f.uid}
-                                    onClick={() => setSelectedFriendIds(prev => sel ? prev.filter(id => id !== f.uid) : [...prev, f.uid])}
-                                    className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border transition-all ${sel ? 'bg-iogga-primary/15 border-iogga-primary/40' : 'bg-white/5 border-white/10'}`}
-                                  >
-                                    {f.photo ? <img src={f.photo} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white">{f.name.charAt(0).toUpperCase()}</div>}
-                                    <span className="text-sm text-white flex-1 text-left">{f.name}</span>
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${sel ? 'bg-iogga-primary text-white' : 'border-2 border-white/20'}`}>
-                                      {sel && <Check size={14} />}
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-zinc-400 leading-relaxed">
-                              Aún no tienes amigos en iogga. <button onClick={() => setShowFriends('following')} className="text-iogga-primary font-bold underline">Agrégalos aquí</button> o compárteles tu plan por WhatsApp al publicar.
-                            </p>
-                          )}
+                          {(() => {
+                            const q = friendSearch.trim().toLowerCase();
+                            // Combina tus amigos con resultados de búsqueda, sin duplicar
+                            const byId: Record<string, Friend> = {};
+                            following.forEach(f => { byId[f.uid] = f; });
+                            if (q.length >= 2) friendResults.forEach(f => { if (!byId[f.uid]) byId[f.uid] = f; });
+                            let list = Object.values(byId);
+                            if (q) list = list.filter(f => f.name.toLowerCase().includes(q));
+                            if (list.length === 0) {
+                              return q.length >= 2 ? (
+                                <p className="text-xs text-zinc-400 leading-relaxed">Nadie con ese nombre. Compárteles tu plan por WhatsApp al publicar.</p>
+                              ) : (
+                                <p className="text-xs text-zinc-400 leading-relaxed">
+                                  Aún no tienes amigos en iogga. Búscalos arriba o compárteles tu plan por WhatsApp al publicar.
+                                </p>
+                              );
+                            }
+                            return (
+                              <div className="space-y-2 max-h-52 overflow-y-auto no-scrollbar">
+                                {list.map(f => {
+                                  const sel = selectedFriendIds.includes(f.uid);
+                                  return (
+                                    <button
+                                      key={f.uid}
+                                      onClick={() => setSelectedFriendIds(prev => sel ? prev.filter(id => id !== f.uid) : [...prev, f.uid])}
+                                      className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border transition-all ${sel ? 'bg-iogga-primary/15 border-iogga-primary/40' : 'bg-white/5 border-white/10'}`}
+                                    >
+                                      {f.photo ? <img src={f.photo} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white">{f.name.charAt(0).toUpperCase()}</div>}
+                                      <span className="text-sm text-white flex-1 text-left">{f.name}</span>
+                                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${sel ? 'bg-iogga-primary text-white' : 'border-2 border-white/20'}`}>
+                                        {sel && <Check size={14} />}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
                           <p className="text-[10px] text-zinc-600">Les llegará una notificación en iogga. También podrás compartir por WhatsApp al publicar.</p>
+                        </motion.div>
+                      )}
+
+                      {/* Grupos: aún no disponibles */}
+                      {!newPlan.isPublic && newPlan.guests === 'groups' && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="p-5 rounded-2xl bg-white/5 border border-white/10 text-center"
+                        >
+                          <Users size={26} className="mx-auto text-zinc-500 mb-2" />
+                          <p className="text-sm text-zinc-300 font-bold">No hay grupos creados</p>
+                          <p className="text-[11px] text-zinc-500 mt-1">Al rato vemos cómo crearlos.</p>
                         </motion.div>
                       )}
                     </motion.div>
@@ -4634,69 +4794,86 @@ export default function App() {
 
           {/* Coincidence / Match Celebration Modal for Users */}
           {showMatchCelebration && lastPublishedPlan && (
-            <Modal onClose={() => setShowMatchCelebration(false)} title="Verifica tu mensaje">
+            <Modal onClose={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); }} title="Tu invitación">
               <div className="space-y-6">
-                {/* El mensaje, grande y claro */}
-                <div className="p-5 rounded-[28px] bg-white/5 border border-white/10">
-                  <p className="text-lg text-white leading-relaxed">
-                    {buildInviteMessage(lastPublishedPlan)}
-                  </p>
+
+                {/* ── Tarjeta tal cual la verán tus amigos en iogga ── */}
+                <div>
+                  <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest mb-2 ml-1">Así se verá en iogga</p>
+                  <div className="rounded-[32px] overflow-hidden pointer-events-none select-none">
+                    <PlanCard plan={lastPublishedPlan} />
+                  </div>
                 </div>
 
-                <p className="text-xs text-zinc-500 text-center">
-                  Comparte tu intención. No es una invitación directa: es un deseo abierto para quien quiera sumarse.
-                </p>
+                {/* ── Amigos de iogga: elige a quién enviar (agregar / quitar en línea) ── */}
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                  <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest">Enviar en iogga a</p>
+                  {following.length > 0 ? (
+                    <>
+                      <div className="space-y-2">
+                        {(invitePreviewMore ? following : following.slice(0, 5)).map(f => {
+                          const sel = pendingFriendIds.includes(f.uid);
+                          return (
+                            <button
+                              key={f.uid}
+                              onClick={() => setPendingFriendIds(prev => sel ? prev.filter(id => id !== f.uid) : [...prev, f.uid])}
+                              className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border transition-all ${sel ? 'bg-iogga-primary/15 border-iogga-primary/40' : 'bg-white/5 border-white/10'}`}
+                            >
+                              {f.photo ? <img src={f.photo} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white">{f.name.charAt(0).toUpperCase()}</div>}
+                              <span className="text-sm text-white flex-1 text-left">{f.name}</span>
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${sel ? 'bg-iogga-primary text-white' : 'border-2 border-white/20'}`}>
+                                {sel && <Check size={14} />}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {following.length > 5 && (
+                        <button onClick={() => setInvitePreviewMore(v => !v)} className="text-[11px] font-black text-iogga-primary">
+                          {invitePreviewMore ? 'Ver menos' : `Ver más (${following.length - 5})`}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      Aún no tienes amigos en iogga. Compártelo por WhatsApp aquí abajo 👇
+                    </p>
+                  )}
 
-                {/* Amigos de iogga seleccionados: recibirán la notificación */}
-                {pendingFriendIds.length > 0 && (
-                  <div className="p-4 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/25 space-y-2">
-                    <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest">Se enviará en iogga a:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {following.filter(f => pendingFriendIds.includes(f.uid)).map(f => (
-                        <span key={f.uid} className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-white flex items-center gap-1.5">
-                          {f.photo ? <img src={f.photo} className="w-4 h-4 rounded-full object-cover" /> : null}{f.name.split(' ')[0]}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Dos caminos: WhatsApp (también envía a iogga) o solo iogga */}
-                <div className="space-y-3">
                   <button
                     onClick={() => {
                       notifyPendingFriends(lastPublishedPlan);
-                      sharePlanWhatsApp(lastPublishedPlan);
-                      setPendingFriendIds([]);
-                      setShowMatchCelebration(false);
-                      maybeOfferInstall();
+                      setIoggaSent(true);
                     }}
-                    className="w-full py-5 bg-green-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                    disabled={pendingFriendIds.length === 0 || ioggaSent}
+                    className={`w-full py-4 rounded-[24px] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${ioggaSent ? 'bg-green-500/20 text-green-300 border border-green-400/30' : pendingFriendIds.length === 0 ? 'bg-white/5 text-zinc-600 border border-white/10' : 'bg-iogga-primary text-white shadow-lg shadow-iogga-primary/20 active:scale-95'}`}
+                  >
+                    {ioggaSent ? <><Check size={18} /> Enviado</> : <><Send size={18} /> Enviar {pendingFriendIds.length > 0 ? `(${pendingFriendIds.length})` : 'en iogga'}</>}
+                  </button>
+                </div>
+
+                {/* ── Vista previa + botón de WhatsApp (siempre visible) ── */}
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                  <p className="text-[10px] font-black text-green-400 uppercase tracking-widest">Así llega por WhatsApp</p>
+                  <div className="rounded-2xl bg-[#0b141a] p-3">
+                    <div className="max-w-[85%] ml-auto bg-[#005c4b] rounded-2xl rounded-tr-md px-3 py-2 shadow">
+                      <p className="text-[13px] text-white whitespace-pre-line leading-snug">{inviteText(lastPublishedPlan)}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => sharePlanWhatsApp(lastPublishedPlan)}
+                    className="w-full py-4 bg-green-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
                   >
                     <UserPlus size={18} />
                     Invitar por WhatsApp
                   </button>
-                  <button
-                    onClick={() => {
-                      notifyPendingFriends(lastPublishedPlan);
-                      setPendingFriendIds([]);
-                      setShowMatchCelebration(false);
-                      setActiveTab('active');
-                      if (pendingFriendIds.length > 0) triggerBeta('¡Enviado en iogga!', 'Tus amigos recibirán la notificación de tu plan. También puedes compartirlo por WhatsApp cuando quieras.');
-                      maybeOfferInstall();
-                    }}
-                    className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-iogga-primary/20 flex items-center justify-center gap-2"
-                  >
-                    <Send size={18} />
-                    Enviar en iogga
-                  </button>
                 </div>
 
                 <button
-                  onClick={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); }}
+                  onClick={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); maybeOfferInstall(); }}
                   className="w-full py-3 text-zinc-500 hover:text-white text-[10px] uppercase tracking-widest font-bold transition-all"
                 >
-                  Ver mis planes
+                  {ioggaSent ? 'Listo — ver mis planes' : 'Ver mis planes'}
                 </button>
               </div>
             </Modal>

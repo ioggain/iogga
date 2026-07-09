@@ -194,6 +194,7 @@ export interface UserProfile {
   location?: string;
   photoURL?: string | null;
   whatsapp?: string; // para el botón "Hablar por WhatsApp" al hacer match
+  instagram?: string; // usuario de Instagram (sin @)
   business?: BusinessProfile; // perfil de negocio del usuario (mismo modelo que Facebook: una cuenta, dos caras)
 }
 

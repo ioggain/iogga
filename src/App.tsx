@@ -46,7 +46,8 @@ import {
   Navigation,
   Pencil,
   Camera,
-  Trophy
+  Trophy,
+  UserPlus
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -369,6 +370,7 @@ export default function App() {
   const [editLocation, setEditLocation] = useState('');
   const [editPhoto, setEditPhoto] = useState('');
   const [editWhatsapp, setEditWhatsapp] = useState('');
+  const [editInstagram, setEditInstagram] = useState('');
 
   // Link directo a WhatsApp (México +52 por defecto si dan 10 dígitos)
   const waLink = (phone: string, text: string) => {
@@ -535,7 +537,7 @@ export default function App() {
   // ---- Invitaciones virales por WhatsApp (sin acceso a contactos) ----
   // El link abre la app mostrando una invitación personalizada.
   const inviteText = (plan: Plan) =>
-    `💌 *Tienes una invitación*\n\n${buildInviteMessage(plan)}\n\n¿Te apuntas? Confirma aquí 👇\n${window.location.origin}/?inv=${plan.id}\n\n_IOGGA: sal del celular, empieza a vivir. Es web: sin descargas, sin ocupar espacio._`;
+    `${buildInviteMessage(plan)}\n\n${window.location.origin}/?inv=${plan.id}\n\niogga es la app para salir del móvil y vivir lo espontáneo. Es web: sin descargas y sin ocupar espacio.`;
 
   const sharePlanWhatsApp = (plan: Plan) => {
     window.open(`https://wa.me/?text=${encodeURIComponent(inviteText(plan))}`, '_blank');
@@ -561,6 +563,7 @@ export default function App() {
       setEditLocation(userProfile.location || '');
       setEditPhoto(userProfile.photoURL || '');
       setEditWhatsapp(userProfile.whatsapp || '');
+      setEditInstagram(userProfile.instagram || '');
     }
   }, [showEditProfile]);
 
@@ -578,7 +581,12 @@ export default function App() {
     const unsubscribe = watchAuth(user => {
       setCurrentUser(user);
       // Los invitados anónimos pueden publicar, pero no cuentan como "registrados"
-      if (user && !user.isAnonymous) setIsLoggedIn(true);
+      if (user && !user.isAnonymous) {
+        setIsLoggedIn(true);
+        // Usuario registrado: nada de recorrido ni popups de explicación
+        setShowTutorial(false);
+        try { localStorage.setItem('iogga_tutorial_completed', 'true'); } catch {}
+      }
     });
     return unsubscribe;
   }, []);
@@ -705,7 +713,9 @@ export default function App() {
   };
 
   // Tutorial state
-  const [showTutorial, setShowTutorial] = useState(true);
+  const [showTutorial, setShowTutorial] = useState(() => {
+    try { return !localStorage.getItem('iogga_tutorial_completed'); } catch { return true; }
+  });
   const [tutorialStep, setTutorialStep] = useState(0);
   const [tutorialMode, setTutorialMode] = useState<UserMode>('person');
 
@@ -745,7 +755,7 @@ export default function App() {
   const getPlanDescription = (plan: Plan) => {
     const budgetText = plan.budget === 'invites' ? 'él invita' : plan.budget === 'split' ? 'cada quien paga' : 'sin costo';
     const transportText = plan.transport === 'has-transport' ? 'puede pasar por ti' : plan.transport === 'each-arrives' ? 'cada quien llega' : 'busca ride';
-    const budgetAmountText = plan.budgetAmount ? ` ($${plan.budgetAmount})` : '';
+    const budgetAmountText = plan.budgetAmount ? ` (${plan.budgetAmount})` : '';
     
     return `${plan.userName} quiere ${plan.activity} de ${plan.startTime} a ${plan.endTime}, en ${plan.location}, ${budgetText}${budgetAmountText} y ${transportText}.`;
   };
@@ -1075,6 +1085,8 @@ export default function App() {
     return () => window.removeEventListener('open-user-profile', handleOpenProfile);
   }, []);
 
+  const [showBizWelcome, setShowBizWelcome] = useState(false);
+
   const toggleMode = (newMode: UserMode) => {
     // Sin barreras: cualquiera puede entrar al modo negocio y explorar
     setMode(newMode);
@@ -1082,12 +1094,10 @@ export default function App() {
     if (newMode === 'business') {
       setHasBusiness(true);
       setActiveTab('analytics');
-      // Primera vez sin perfil de negocio: recorrido guiado de la sección
-      if (!businessProfile.name && !localStorage.getItem('iogga_biz_tour')) {
-        localStorage.setItem('iogga_biz_tour', '1');
-        setTutorialMode('business');
-        setTutorialStep(0);
-        setShowTutorial(true);
+      // Primera vez sin perfil de negocio: bienvenida magnética (una sola vez)
+      if (!businessProfile.name && !localStorage.getItem('iogga_biz_welcome')) {
+        try { localStorage.setItem('iogga_biz_welcome', '1'); } catch {}
+        setShowBizWelcome(true);
       }
     } else {
       setActiveTab('home');
@@ -1825,10 +1835,10 @@ export default function App() {
                                   e.stopPropagation();
                                   sharePlanWhatsApp(plan);
                                 }}
-                                title="Invitar por WhatsApp"
+                                title="Agregar personas por WhatsApp"
                                 className="p-2.5 bg-green-500/20 backdrop-blur-md text-green-200 rounded-full hover:bg-green-500/40 transition-colors border border-green-500/20"
                               >
-                                <MessageSquare size={14} />
+                                <UserPlus size={14} />
                               </button>
                               <button
                                 onClick={(e) => {
@@ -2375,16 +2385,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Bienvenida de negocio: el marketplace magnético en una línea */}
-                {!selectedProductAnalytics && (
-                  <div className="p-4 rounded-3xl bg-gradient-to-r from-iogga-accent/15 to-iogga-primary/10 border border-iogga-accent/25 flex items-start gap-3">
-                    <Sparkles size={18} className="text-iogga-accent shrink-0 mt-0.5" />
-                    <p className="text-xs text-zinc-200 leading-relaxed font-medium">
-                      Se acabó pagar por prospectos inciertos: en iogga ves <span className="font-black text-white">personas que YA están buscando tu producto ahora mismo</span> y les mandas tu promoción. Clientes reales en tiempo real, no leads.
-                    </p>
-                  </div>
-                )}
-
                 {selectedProductAnalytics ? (
                   <div className="space-y-6">
                     <div className="flex items-center gap-4">
@@ -2705,6 +2705,16 @@ export default function App() {
                         </div>
                       </div>
                       <p className="text-zinc-500 text-sm">{currentUser?.email || '@edu_hdz'} • {userProfile.location || 'Chihuahua, MX'}</p>
+                      {userProfile.instagram && (
+                        <a
+                          href={`https://instagram.com/${userProfile.instagram}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-pink-500/30 text-pink-300 text-xs font-bold active:scale-95 transition-all"
+                        >
+                          <Camera size={13} /> @{userProfile.instagram}
+                        </a>
+                      )}
                     </div>
                   </div>
                 )}
@@ -3221,17 +3231,14 @@ export default function App() {
                       </div>
 
                       <div className="space-y-2 pt-2">
-                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Presupuesto exacto (opcional)</label>
-                        <div className="relative">
-                          <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                          <input 
-                            type="number" 
-                            placeholder="0.00" 
-                            className="w-full h-16 pl-12 pr-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium"
-                            value={newPlan.budgetAmount || ''}
-                            onChange={e => setNewPlan({...newPlan, budgetAmount: e.target.value})}
-                          />
-                        </div>
+                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Comentario sobre el presupuesto (opcional)</label>
+                        <input
+                          type="text"
+                          placeholder="Ej. Traigan para la propina, la entrada es libre…"
+                          className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                          value={newPlan.budgetAmount || ''}
+                          onChange={e => setNewPlan({...newPlan, budgetAmount: e.target.value})}
+                        />
                       </div>
                     </motion.div>
                   )}
@@ -3419,6 +3426,15 @@ export default function App() {
                           <span className="text-xs font-bold text-white uppercase tracking-widest">{newPlan.image ? 'Cambiar Foto' : 'Subir Foto'}</span>
                         </div>
                       </button>
+                      {newPlan.image && (
+                        <button
+                          onClick={() => setNewPlan({...newPlan, image: undefined})}
+                          className="w-full py-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                          <Trash2 size={14} />
+                          Quitar foto
+                        </button>
+                      )}
                       <div className="space-y-2">
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Sugerencias para "{newPlan.activity || 'tu plan'}"</p>
                         <div className="grid grid-cols-3 gap-2">
@@ -3631,6 +3647,13 @@ export default function App() {
                     <input type="tel" value={editWhatsapp} onChange={e => setEditWhatsapp(e.target.value)} placeholder="Ej. 6141234567" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
                     <p className="text-[10px] text-zinc-600 ml-4">Solo lo verán quienes acepten tus planes, para coordinar directo.</p>
                   </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Instagram (opcional)</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 font-bold">@</span>
+                      <input type="text" value={editInstagram} onChange={e => setEditInstagram(e.target.value.replace(/[@\s]/g, ''))} placeholder="tu_usuario" className="w-full p-4 pl-9 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
+                    </div>
+                  </div>
                 </div>
                 <button
                   onClick={async () => {
@@ -3641,6 +3664,7 @@ export default function App() {
                         location: editLocation.trim(),
                         photoURL: editPhoto || userProfile.photoURL || null,
                         whatsapp: editWhatsapp.replace(/\D/g, ''),
+                        instagram: editInstagram.replace(/[@\s]/g, ''),
                       }).catch(() => {});
                       if (editName.trim()) setCurrentUser({ ...currentUser, name: editName.trim() });
                     }
@@ -3805,13 +3829,36 @@ export default function App() {
                   </p>
 
                   {isMyPlan(selectedPlanForDetails) && (
-                    <button
-                      onClick={() => sharePlanWhatsApp(selectedPlanForDetails)}
-                      className="w-full py-4 bg-green-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
-                    >
-                      <MessageSquare size={16} />
-                      Invitar más amigos por WhatsApp
-                    </button>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => sharePlanWhatsApp(selectedPlanForDetails)}
+                        className="w-full py-4 bg-green-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                      >
+                        <UserPlus size={16} />
+                        Agregar personas por WhatsApp
+                      </button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => {
+                            const p = selectedPlanForDetails;
+                            setSelectedPlanForDetails(null);
+                            handleEditPlan(p);
+                          }}
+                          className="py-3.5 bg-white/5 border border-white/10 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                          <Edit3 size={15} /> Editar
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleDeletePlan(selectedPlanForDetails.id);
+                            setSelectedPlanForDetails(null);
+                          }}
+                          className="py-3.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                          <Trash2 size={15} /> Cancelar plan
+                        </button>
+                      </div>
+                    </div>
                   )}
 
                   {/* Quiénes se unieron: visible con cuenta; borroso si publicaste sin registrarte */}
@@ -3841,7 +3888,20 @@ export default function App() {
                       ) : (
                         <div className="space-y-2">
                           {selectedPlanForDetails.acceptedBy!.map((a, i) => (
-                            <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
+                            <button
+                              key={i}
+                              onClick={() => {
+                                // Ver el perfil del que se unió (vista básica)
+                                setSelectedUserProfile({
+                                  id: 'joined-' + a.uid,
+                                  userName: a.name,
+                                  userAvatar: a.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=6366f1&color=fff`,
+                                  activity: `Se unió a "${selectedPlanForDetails.activity}"`,
+                                } as any);
+                                setSelectedPlanForDetails(null);
+                              }}
+                              className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors text-left active:scale-[0.98]"
+                            >
                               {a.photo ? (
                                 <img src={a.photo} className="w-9 h-9 rounded-full object-cover" referrerPolicy="no-referrer" />
                               ) : (
@@ -3850,8 +3910,8 @@ export default function App() {
                                 </div>
                               )}
                               <span className="text-sm font-bold text-white">{a.name}</span>
-                              <CheckCircle2 size={16} className="text-green-400 ml-auto" />
-                            </div>
+                              <ChevronRight size={16} className="text-zinc-500 ml-auto" />
+                            </button>
                           ))}
                         </div>
                       )}
@@ -3999,32 +4059,10 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* QR Code Section */}
-                <div className="flex flex-col items-center gap-4 py-2">
-                  <button
-                    onClick={() => ensureLoggedIn(() => setRedeemPromo(selectedPromo))}
-                    className="p-6 bg-white rounded-[40px] shadow-2xl shadow-white/5 relative group active:scale-95 transition-transform"
-                  >
-                    <QrCode size={160} className="text-zinc-900" />
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity rounded-[40px] cursor-pointer">
-                      <span className="text-zinc-900 font-black text-xs uppercase tracking-widest">Generar mi QR</span>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => ensureLoggedIn(() => setRedeemPromo(selectedPromo))}
-                    className="w-full py-4 bg-white text-zinc-900 rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
-                  >
-                    Generar mi código de canje
-                  </button>
-                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] text-center">
-                    Presenta este código en el local
-                  </p>
-                </div>
-                
-                {/* Actions */}
-                <div className="grid grid-cols-1 gap-3">
+                {/* Acciones: obtener la promo genera el QR real (descargable) */}
+                <div className="grid grid-cols-1 gap-3 pt-2">
                   {expandedPlanId && (
-                    <button 
+                    <button
                       onClick={() => {
                         setUserSelectedOfferIds({ ...userSelectedOfferIds, [expandedPlanId]: selectedPromo.id });
                         setSelectedPromo(null);
@@ -4034,10 +4072,14 @@ export default function App() {
                       {userSelectedOfferIds[expandedPlanId] === selectedPromo.id ? 'Promo Seleccionada' : 'Seleccionar Promo'}
                     </button>
                   )}
-                  <button onClick={() => comingSoon("Guardar en galería")} className="w-full py-5 bg-white/5 text-white rounded-[24px] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all border border-white/10">
-                    <Download size={20} />
-                    <span>Guardar en Galería</span>
+                  <button
+                    onClick={() => ensureLoggedIn(() => setRedeemPromo(selectedPromo))}
+                    className="w-full py-5 bg-iogga-accent text-white rounded-[24px] font-black text-base uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-iogga-accent/30"
+                  >
+                    <QrCode size={20} />
+                    Obtener promoción
                   </button>
+                  <p className="text-[10px] text-zinc-500 text-center">Generas tu código QR y lo puedes descargar para presentarlo en el local.</p>
                 </div>
               </div>
             </Modal>
@@ -4194,154 +4236,51 @@ export default function App() {
 
           {/* Coincidence / Match Celebration Modal for Users */}
           {showMatchCelebration && lastPublishedPlan && (
-            <Modal onClose={() => setShowMatchCelebration(false)} title="¡Plan Publicado con Éxito!">
+            <Modal onClose={() => setShowMatchCelebration(false)} title="Verifica tu mensaje">
               <div className="space-y-6">
-                <div className="text-center space-y-2">
-                  <div className="inline-flex p-4 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/25 mb-2">
-                    <Sparkles size={28} />
-                  </div>
-                  <h3 className="font-lexend font-black text-xl text-white tracking-tight uppercase">¡Publicado!</h3>
-                  <p className="text-xs text-zinc-400 font-medium leading-relaxed">Tu plan ya está activo y listo para ser compartido con tus amigos y la comunidad.</p>
+                {/* El mensaje, grande y claro */}
+                <div className="p-5 rounded-[28px] bg-white/5 border border-white/10">
+                  <p className="text-lg text-white leading-relaxed">
+                    {buildInviteMessage(lastPublishedPlan)}
+                  </p>
                 </div>
 
-                {/* Newly Published Plan banner */}
-                <div className="p-4 rounded-[28px] bg-white/5 border border-white/10 flex gap-4 items-center">
-                  <img src={lastPublishedPlan.image} className="w-14 h-14 rounded-2xl object-cover" />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block font-sans">Tu Plan de hoy</span>
-                    <h4 className="font-black text-sm text-white truncate uppercase tracking-tight">{lastPublishedPlan.activity}</h4>
-                    <p className="text-[10px] text-zinc-500 truncate mt-0.5 font-bold font-sans">@ {lastPublishedPlan.location} • {lastPublishedPlan.startTime}</p>
-                  </div>
-                </div>
+                <p className="text-xs text-zinc-500 text-center">
+                  Comparte tu intención. No es una invitación directa: es un deseo abierto para quien quiera sumarse.
+                </p>
 
-                {/* Invitación real por WhatsApp con link que abre la app */}
-                <div className="space-y-2.5">
-                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block font-sans">Invita a tus amigos (sin que descarguen nada):</span>
-                  <div className="p-4 rounded-[24px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-medium text-xs relative italic leading-relaxed">
-                    "{buildInviteMessage(lastPublishedPlan)}" + link mágico 👉 iogga.com/?inv=…
-                  </div>
-                  <button
-                    onClick={() => sharePlanWhatsApp(lastPublishedPlan)}
-                    className="w-full py-4 bg-green-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
-                  >
-                    <MessageSquare size={16} />
-                    Enviar invitación por WhatsApp
-                  </button>
-                  <p className="text-[10px] text-zinc-600 text-center">Tus amigos verán una invitación especial con tu nombre al abrir el link.</p>
-                </div>
-
-                {/* Connection Channel Selector */}
+                {/* Dos caminos claros */}
                 <div className="space-y-3">
-                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block font-sans font-lexend">¿Por dónde quieres enviar el mensaje?</span>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button 
-                      onClick={() => setSelectedChannel('whatsapp')}
-                      className={`py-3 px-2 rounded-2xl border text-center transition-all ${selectedChannel === 'whatsapp' ? 'bg-emerald-500/20 border-emerald-500 text-white scale-[1.02]' : 'bg-white/5 border-white/10 text-zinc-400'}`}
-                    >
-                      <p className="font-black text-[10px] uppercase tracking-wider">Solo WhatsApp</p>
-                    </button>
-                    <button 
-                      onClick={() => setSelectedChannel('iogga')}
-                      className={`py-3 px-2 rounded-2xl border text-center transition-all ${selectedChannel === 'iogga' ? 'bg-indigo-500/20 border-indigo-500 text-white scale-[1.02]' : 'bg-white/5 border-white/10 text-zinc-400'}`}
-                    >
-                      <p className="font-black text-[10px] uppercase tracking-wider">Solo iogga</p>
-                    </button>
-                    <button 
-                      onClick={() => setSelectedChannel('both')}
-                      className={`py-3 px-2 rounded-2xl border text-center transition-all ${selectedChannel === 'both' ? 'bg-iogga-primary/20 border-iogga-primary text-white scale-[1.02]' : 'bg-white/5 border-white/10 text-zinc-400'}`}
-                    >
-                      <p className="font-black text-[10px] uppercase tracking-wider">Ambos Canales</p>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Section match 1: Matching Users */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 px-1">
-                    <Users size={14} className="text-indigo-400" />
-                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest font-sans">Coincidencias en la Comunidad ({getMatchingPlansForPlan(lastPublishedPlan).length})</span>
-                  </div>
-                  <div className="space-y-2 max-h-[160px] overflow-y-auto no-scrollbar">
-                    {getMatchingPlansForPlan(lastPublishedPlan).map(mUserPlan => (
-                      <div key={mUserPlan.id} className="p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-all flex items-center justify-between gap-3">
-                        <div className="flex gap-3 items-center min-w-0 flex-1">
-                          <img src={mUserPlan.userAvatar} className="w-9 h-9 rounded-xl object-cover shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <span className="font-bold text-xs text-white block truncate">{mUserPlan.userName}</span>
-                            <span className="text-[10px] text-zinc-400 truncate block font-sans">"Planea: {mUserPlan.activity}"</span>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => {
-                            setShowMatchCelebration(false);
-                            setSelectedPlanForDetails(mUserPlan);
-                          }}
-                          className="px-3 py-1.5 bg-iogga-primary text-white text-[9px] font-black uppercase rounded-xl hover:scale-105 active:scale-95 transition-all text-center min-h-[30px]"
-                        >
-                          Conectar
-                        </button>
-                      </div>
-                    ))}
-                    {getMatchingPlansForPlan(lastPublishedPlan).length === 0 && (
-                      <p className="text-[11px] text-zinc-500 italic pl-1 font-sans">Buscando personas con planes similares en Chihuahua...</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Section match 2: Active Promos */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 px-1">
-                    <Store size={14} className="text-iogga-accent" />
-                    <span className="text-[10px] font-black text-iogga-accent uppercase tracking-widest font-sans">Promos y Patrocinios Coincidentes ({getMatchingPromosForPlan(lastPublishedPlan).length})</span>
-                  </div>
-                  <div className="space-y-2 max-h-[160px] overflow-y-auto no-scrollbar">
-                    {getMatchingPromosForPlan(lastPublishedPlan).map(mPromo => (
-                      <div key={mPromo.id} className="p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-all flex items-center justify-between gap-3">
-                        <div className="flex gap-3 items-center min-w-0 flex-1">
-                          <img src={mPromo.image} className="w-9 h-9 rounded-xl object-cover shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <span className="font-bold text-xs text-white block uppercase truncate">{mPromo.title}</span>
-                            <span className="text-[9px] text-iogga-accent font-black uppercase tracking-wider block font-sans">{mPromo.offer}</span>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => {
-                            setShowMatchCelebration(false);
-                            setSelectedPromo(mPromo);
-                          }}
-                          className="px-3 py-1.5 bg-iogga-accent text-zinc-950 text-[9px] font-black uppercase rounded-xl hover:scale-105 active:scale-95 transition-all text-center min-h-[30px]"
-                        >
-                          Reclamar
-                        </button>
-                      </div>
-                    ))}
-                    {getMatchingPromosForPlan(lastPublishedPlan).length === 0 && (
-                      <p className="text-[11px] text-zinc-500 italic pl-1 font-sans">Buscando patrocinio de locales para tu plan hoy...</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="pt-2 flex gap-3">
                   <button
                     onClick={() => {
+                      sharePlanWhatsApp(lastPublishedPlan);
                       setShowMatchCelebration(false);
-                      setActiveTab('active');
                       maybeOfferInstall();
                     }}
-                    className="flex-1 py-4 bg-white/5 text-white border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all text-center min-h-[44px]"
+                    className="w-full py-5 bg-green-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
                   >
-                    Ver mis planes
+                    <UserPlus size={18} />
+                    Invitar por WhatsApp
                   </button>
                   <button
                     onClick={() => {
                       setShowMatchCelebration(false);
+                      setActiveTab('search');
                       maybeOfferInstall();
                     }}
-                    className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all text-center min-h-[44px]"
+                    className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-iogga-primary/20 flex items-center justify-center gap-2"
                   >
-                    ¡Excelente!
+                    <Globe size={18} />
+                    Compartir en iogga
                   </button>
                 </div>
+
+                <button
+                  onClick={() => { setShowMatchCelebration(false); setActiveTab('active'); }}
+                  className="w-full py-3 text-zinc-500 hover:text-white text-[10px] uppercase tracking-widest font-bold transition-all"
+                >
+                  Ver mis planes
+                </button>
               </div>
             </Modal>
           )}
@@ -4834,6 +4773,37 @@ export default function App() {
           </div>
         )}
 
+        {/* Bienvenida a iogga para Negocios: popup grande en verde */}
+        {showBizWelcome && (
+          <div className="fixed inset-0 z-[340] flex items-end sm:items-center justify-center">
+            <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={() => setShowBizWelcome(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 0.61, 0.36, 1] } }}
+              className="relative w-full sm:max-w-md bg-zinc-950 border border-iogga-accent/30 rounded-t-[32px] sm:rounded-[32px] p-7 pb-[max(2.5rem,env(safe-area-inset-bottom))] space-y-5 text-center"
+            >
+              <div className="flex justify-center">
+                <div className="p-4 rounded-3xl bg-iogga-accent/15 border border-iogga-accent/30 text-iogga-accent">
+                  <Store size={34} />
+                </div>
+              </div>
+              <h2 className="font-black text-white leading-[1.05]" style={{ fontSize: '2.1rem' }}>
+                iogga para <span className="text-iogga-accent">negocios</span>
+              </h2>
+              <p className="text-lg text-zinc-200 leading-snug font-medium">
+                Se acabó pagar por prospectos inciertos. Aquí ves <span className="font-black text-white">personas que YA están buscando tu producto ahora mismo</span> y les mandas tu promoción.
+              </p>
+              <p className="text-sm text-iogga-accent font-bold">Clientes reales en tiempo real, no leads. 🧲</p>
+              <button
+                onClick={() => setShowBizWelcome(false)}
+                className="w-full py-5 bg-iogga-accent text-white rounded-[24px] font-black text-base active:scale-95 transition-all shadow-xl shadow-iogga-accent/30"
+              >
+                Empezar
+              </button>
+            </motion.div>
+          </div>
+        )}
+
         {/* Legales: Aviso de Privacidad y Términos (textos genéricos de MVP) */}
         {showLegal && (
           <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center">
@@ -5182,8 +5152,8 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-xl font-black text-white leading-tight">{currentStep.title}</h3>
-              <p className="text-sm text-zinc-400 leading-relaxed">{currentStep.description}</p>
+              <h3 className={`font-black text-white leading-tight ${step === 0 ? 'text-3xl' : 'text-xl'}`}>{currentStep.title}</h3>
+              <p className={`text-zinc-400 leading-relaxed ${step === 0 ? 'text-base' : 'text-sm'}`}>{currentStep.description}</p>
             </div>
 
             <div className="flex gap-2 pt-2">

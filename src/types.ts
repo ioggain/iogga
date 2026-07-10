@@ -66,6 +66,7 @@ export interface Plan {
   budgetAmount?: string;
   transportNote?: string;
   privateKey?: string; // frase/clave privada que deja el creador para dar confianza
+  isSeed?: boolean; // dato de prueba temporal (se distingue con etiqueta "Prueba")
 }
 
 export interface GroupedPlan {
@@ -101,6 +102,7 @@ export interface Promotion {
   totalEarnings: number;
   qrCode?: string;
   tags: string[];
+  isSeed?: boolean; // dato de prueba temporal (se distingue con etiqueta "Prueba")
 }
 
 export const MOCK_PLANS: Plan[] = [

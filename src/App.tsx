@@ -64,6 +64,7 @@ import {
   Area 
 } from 'recharts';
 import { Plan, Promotion, UserMode, MOCK_PLANS, MOCK_PROMOS, IDEAS, MOCK_GROUPED_PLANS, GUEST_NAME, GENERIC_AVATAR } from './types';
+import { SEED_PLANS, SEED_PROMOS } from './lib/seed';
 import {
   isFirebaseEnabled,
   watchAuth,
@@ -395,6 +396,38 @@ function MicButton({ onText, tone = 'primary', inline = false }: { onText: (t: s
   );
 }
 
+// Etiqueta "Prueba" para distinguir datos ficticios (esquina, sin mover el diseño).
+function SeedTag() {
+  return (
+    <div className="absolute top-0 left-0 bg-amber-500/20 px-3 py-1 rounded-br-2xl border-r border-b border-amber-400/30 flex items-center gap-1 z-20 backdrop-blur-md">
+      <span className="text-[9px] font-black text-amber-300 uppercase tracking-[0.2em]">Prueba</span>
+    </div>
+  );
+}
+
+// ---- Motor de coincidencias por palabras (ligero, sin costo de IA) ----
+const STOPWORDS = new Set(['de','la','el','los','las','un','una','y','o','en','con','por','para','a','al','del','que','mi','tu','su','me','te','se','lo','es','un','busco','vamos','ir','hacer','plan']);
+function tokenize(s: string): string[] {
+  return (s || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita acentos
+    .replace(/[^a-z0-9ñ\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !STOPWORDS.has(w));
+}
+// Puntaje de similitud entre el texto de un plan y otro contenido (0..1).
+function similarity(aTokens: string[], bText: string): number {
+  const b = new Set(tokenize(bText));
+  if (!aTokens.length || !b.size) return 0;
+  let hits = 0;
+  for (const t of aTokens) {
+    if (b.has(t)) { hits += 1; continue; }
+    // coincidencia parcial (raíz de palabra), p.ej. "cafetería" ~ "café"
+    for (const w of b) { if (w.length > 3 && (w.startsWith(t.slice(0, 4)) || t.startsWith(w.slice(0, 4)))) { hits += 0.5; break; } }
+  }
+  return hits / aTokens.length;
+}
+
 export default function App() {
   const [isIntro, setIsIntro] = useState(true);
   const [showNotificationsMenu, setShowNotificationsMenu] = useState(false);
@@ -419,13 +452,15 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   // Con Firebase conectado la app inicia EN BLANCO y se llena con datos reales
   // de los usuarios en tiempo real. Sin Firebase, usa datos de ejemplo.
-  const [plans, setPlans] = useState<Plan[]>(isFirebaseEnabled ? [] : MOCK_PLANS);
-  const [promos, setPromos] = useState<Promotion[]>(isFirebaseEnabled ? [] : MOCK_PROMOS);
+  // La base ficticia (SEED_*) siempre acompaña a los datos reales para que la
+  // app se vea llena. Los datos reales van primero; los de prueba, al final.
+  const [plans, setPlans] = useState<Plan[]>([...(isFirebaseEnabled ? [] : MOCK_PLANS), ...SEED_PLANS]);
+  const [promos, setPromos] = useState<Promotion[]>([...(isFirebaseEnabled ? [] : MOCK_PROMOS), ...SEED_PROMOS]);
 
   useEffect(() => {
     if (!isFirebaseEnabled) return;
-    const unsubPlans = watchCollectionDocs<Plan>('plans', setPlans);
-    const unsubPromos = watchCollectionDocs<Promotion>('promos', setPromos);
+    const unsubPlans = watchCollectionDocs<Plan>('plans', (docs) => setPlans([...docs, ...SEED_PLANS]));
+    const unsubPromos = watchCollectionDocs<Promotion>('promos', (docs) => setPromos([...docs, ...SEED_PROMOS]));
     return () => {
       unsubPlans();
       unsubPromos();
@@ -1120,33 +1155,27 @@ export default function App() {
   };
 
   // Coincidence / Link calculation functions
+  // Coincidencias de la comunidad: planes p\u00fablicos con palabras similares al tuyo,
+  // ordenados por qu\u00e9 tanto se parecen (usa el motor ligero, sin costo de IA).
   const getMatchingPlansForPlan = (targetPlan: Plan) => {
     if (!targetPlan || !targetPlan.activity) return [];
-    const queryWords = targetPlan.activity.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/\s+/).filter(w => w.length > 2);
-    // Coincidencias de la comunidad: planes p\u00fablicos de cualquier parte del mundo
-    // con palabras similares (no restringido por ubicaci\u00f3n).
-    return plans.filter(p => {
-      if (p.id === targetPlan.id) return false;
-      if (!p.isPublic) return false;
-      if (isMyPlan(p)) return false;
-      const activityNorm = p.activity.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const words = activityNorm.split(/\s+/).filter(w => w.length > 2);
-      const sharesWord = words.some(w => queryWords.includes(w) || targetPlan.activity.toLowerCase().includes(w));
-      const sharesTag = p.tags.some(t => targetPlan.tags.includes(t) || targetPlan.activity.toLowerCase().includes(t.toLowerCase()));
-      return sharesWord || sharesTag;
-    });
+    const q = tokenize(`${targetPlan.activity} ${(targetPlan.tags || []).join(' ')} ${targetPlan.comment || ''}`);
+    return plans
+      .filter(p => p.id !== targetPlan.id && p.isPublic && !isMyPlan(p))
+      .map(p => ({ p, score: similarity(q, `${p.activity} ${(p.tags || []).join(' ')} ${p.comment || ''}`) }))
+      .filter(x => x.score >= 0.2)
+      .sort((a, b) => b.score - a.score)
+      .map(x => x.p);
   };
 
   const getMatchingPromosForPlan = (targetPlan: Plan) => {
     if (!targetPlan || !targetPlan.activity) return [];
-    const queryWords = targetPlan.activity.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/\s+/).filter(w => w.length > 2);
-    return promos.filter(pr => {
-      const titleNorm = pr.title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const titleWords = titleNorm.split(/\s+/).filter(w => w.length > 2);
-      const sharesTitleWord = titleWords.some(w => queryWords.includes(w) || targetPlan.activity.toLowerCase().includes(w));
-      const sharesTag = pr.tags.some(t => targetPlan.tags.includes(t) || targetPlan.activity.toLowerCase().includes(t.toLowerCase()) || pr.title.toLowerCase().includes(t.toLowerCase()));
-      return sharesTitleWord || sharesTag;
-    });
+    const q = tokenize(`${targetPlan.activity} ${(targetPlan.tags || []).join(' ')} ${targetPlan.comment || ''}`);
+    return promos
+      .map(pr => ({ pr, score: similarity(q, `${pr.title} ${pr.description || ''} ${(pr.tags || []).join(' ')}`) }))
+      .filter(x => x.score >= 0.2)
+      .sort((a, b) => b.score - a.score)
+      .map(x => x.pr);
   };
 
   const getMatchingPlansForPromo = (targetPromo: Promotion) => {
@@ -2197,6 +2226,7 @@ export default function App() {
                                 onClick={() => setSelectedPlanForDetails(plan)}
                                 className="relative aspect-[4/5] rounded-[32px] overflow-hidden group shadow-2xl cursor-pointer border border-white/10"
                               >
+                                {plan.isSeed && <SeedTag />}
                                 <img src={plan.image || `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=400&q=80`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-4 flex flex-col justify-end">
                                   <div className="flex items-center gap-2 mb-2">
@@ -2406,7 +2436,7 @@ export default function App() {
                                 </div>
                                 
                                 <div className="flex flex-col gap-3">
-                                  {promos.filter(pr => pr.tags.some(t => plan.tags.includes(t))).map(promo => (
+                                  {getMatchingPromosForPlan(plan).map(promo => (
                                     <div 
                                       key={promo.id}
                                       onClick={() => {
@@ -2454,7 +2484,7 @@ export default function App() {
                                       </div>
                                     </div>
                                   ))}
-                                  {promos.filter(pr => pr.tags.some(t => plan.tags.includes(t))).length === 0 && (
+                                  {getMatchingPromosForPlan(plan).length === 0 && (
                                     <div className="w-full p-8 rounded-3xl bg-white/5 border border-dashed border-white/10 text-center">
                                       <p className="text-sm text-zinc-500 italic">No hay ofertas específicas aún...</p>
                                     </div>
@@ -2531,7 +2561,7 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {promos.filter(p => (p.uid ? p.uid === currentUser?.uid : true)).length === 0 && (
+                    {promos.filter(p => (p.uid ? p.uid === currentUser?.uid : !isFirebaseEnabled)).length === 0 && (
                       <div className="py-16 flex flex-col items-center gap-4 text-center">
                         <div className="p-5 rounded-full bg-iogga-accent/10 border border-iogga-accent/20">
                           <PackagePlus size={28} className="text-iogga-accent" />
@@ -2548,7 +2578,7 @@ export default function App() {
                         </button>
                       </div>
                     )}
-                    {promos.filter(p => (p.uid ? p.uid === currentUser?.uid : true)).map((promo, idx) => (
+                    {promos.filter(p => (p.uid ? p.uid === currentUser?.uid : !isFirebaseEnabled)).map((promo, idx) => (
                       <motion.div
                         key={promo.id}
                         id={idx === 0 ? "tutorial-business-offer-card" : undefined}
@@ -6153,6 +6183,7 @@ function PlanCard({ plan, onAccept, onIgnore }: { plan: Plan, onAccept?: () => v
 
   return (
     <div className="p-6 rounded-[32px] border border-white/10 bg-white/5 shadow-2xl space-y-5 relative overflow-hidden group hover:bg-white/[0.08] transition-all duration-500">
+      {plan.isSeed && <SeedTag />}
       {isAiRecommended && (
         <div className="absolute top-0 right-0 bg-iogga-primary/20 px-4 py-1.5 rounded-bl-2xl border-l border-b border-iogga-primary/30 flex items-center gap-1.5 z-10 backdrop-blur-md">
           <Sparkles size={12} className="text-iogga-primary animate-pulse" />
@@ -6307,10 +6338,11 @@ interface PromoCardProps {
 
 const PromoCard: React.FC<PromoCardProps> = ({ promo, onClick, onBusinessClick }) => {
   return (
-    <div 
+    <div
       onClick={onClick}
       className="relative aspect-[9/16] rounded-[32px] overflow-hidden group shadow-2xl cursor-pointer border border-white/10"
     >
+      {promo.isSeed && <SeedTag />}
       <img src={promo.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" referrerPolicy="no-referrer" />
       
       <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent p-4 flex flex-col justify-end">

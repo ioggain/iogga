@@ -527,6 +527,8 @@ export async function createRedemption(
       ...redemption,
       createdAt: serverTimestamp(),
     });
+    // El cliente bajó el QR: cuenta como "QR bajado" en las analíticas.
+    await updateDoc(doc(db, 'promos', promo.id), { qrScans: increment(1) }).catch(() => {});
   } else {
     const data = demoRead();
     data[redemption.code] = redemption;
@@ -568,9 +570,8 @@ export async function validateRedemption(rawCode: string, validatorUid?: string 
       const problem = checkRedemption(redemption, validatorUid);
       if (problem) return problem;
       await updateDoc(ref, { status: 'redeemed', redeemedAt: serverTimestamp(), redeemedAtMs: Date.now(), redeemedBy: validatorUid || null });
-      // Reflejar el canje en las analíticas reales de la promoción
+      // Reflejar el canje: solo cuenta como "canjeado" (el "QR bajado" ya se contó al generarlo).
       await updateDoc(doc(db, 'promos', redemption.promoId), {
-        qrScans: increment(1),
         salesCount: increment(1),
         totalEarnings: increment(redemption.priceAmount || 0),
       }).catch(() => {});

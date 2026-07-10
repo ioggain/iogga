@@ -2693,35 +2693,35 @@ export default function App() {
                             <h3 className="font-black text-xl text-white truncate flex-1">{promo.title}</h3>
                           </div>
                           <p className="text-sm text-zinc-400 font-medium line-clamp-2 mb-6">{promo.description || "Sin descripción disponible"}</p>
-                          <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                            <div className="flex items-center gap-8">
-                              <div className="flex flex-col">
-                                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Interesados</span>
-                                <div className="flex items-center gap-2">
-                                  <Users size={14} className="text-iogga-primary" />
-                                  <span className="text-xl font-black text-white">{promo.realTimeSearchers}</span>
-                                </div>
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Scans</span>
-                                <div className="flex items-center gap-2">
-                                  <QrCode size={14} className="text-iogga-accent" />
-                                  <span className="text-xl font-black text-white">{promo.qrScans}</span>
-                                </div>
-                              </div>
+                          {/* Métricas claras: la tienen en su plan · bajaron QR · lo canjearon */}
+                          <div className="grid grid-cols-3 gap-2 pt-4 border-t border-white/5">
+                            <div className="flex flex-col items-center p-2 rounded-2xl bg-white/5">
+                              <Users size={14} className="text-iogga-primary mb-1" />
+                              <span className="text-lg font-black text-white leading-none">{promo.realTimeSearchers}</span>
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1 text-center leading-tight">En su plan</span>
+                            </div>
+                            <div className="flex flex-col items-center p-2 rounded-2xl bg-white/5">
+                              <QrCode size={14} className="text-iogga-accent mb-1" />
+                              <span className="text-lg font-black text-white leading-none">{promo.qrScans}</span>
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1 text-center leading-tight">QR bajados</span>
+                            </div>
+                            <div className="flex flex-col items-center p-2 rounded-2xl bg-emerald-500/10">
+                              <CheckCircle2 size={14} className="text-emerald-400 mb-1" />
+                              <span className="text-lg font-black text-emerald-400 leading-none">{promo.salesCount}</span>
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1 text-center leading-tight">Canjeados</span>
                             </div>
                           </div>
 
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedPromoForMatches(promo);
-                            }}
-                            className="w-full mt-4 py-3.5 bg-teal-500/10 text-teal-400 hover:bg-teal-500/20 active:scale-[0.98] transition-all text-xs font-black uppercase rounded-2xl border border-teal-500/20 flex items-center justify-center gap-2"
-                          >
-                            <Sparkles size={12} className="animate-pulse" />
-                            Ver planes coincidentes ({getMatchingPlansForPromo(promo).length} en vivo)
-                          </button>
+                          {/* Sin sesión: la oferta existe pero aún no es pública */}
+                          {!isLoggedIn && !promo.isSeed && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setIsRegistering(true); setShowLoginModal(true); }}
+                              className="w-full mt-3 flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-left"
+                            >
+                              <Eye size={14} className="text-amber-400 shrink-0" />
+                              <span className="text-[11px] text-amber-200 leading-snug flex-1">Solo tú la ves. Inicia sesión para publicarla a toda la comunidad.</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                       {isWiggleMode && (
@@ -2959,45 +2959,44 @@ export default function App() {
                       </div>
                     </div>
                     
-                    <div className="p-6 rounded-[32px] bg-iogga-accent text-white shadow-xl shadow-iogga-accent/20">
+                    {/* Encabezado del producto */}
+                    <div className="p-5 rounded-[28px] bg-gradient-to-br from-iogga-accent to-teal-600 text-white shadow-xl shadow-iogga-accent/20">
                       <div className="flex items-center gap-4">
-                        <img src={selectedProductAnalytics.image} className="w-16 h-16 rounded-2xl object-cover border-2 border-white/20" />
+                        <img src={selectedProductAnalytics.image} className="w-16 h-16 rounded-2xl object-cover border-2 border-white/30" />
                         <div>
-                          <h3 className="font-bold">{selectedProductAnalytics.title}</h3>
-                          <p className="text-xs opacity-80">Analítica de producto</p>
+                          <h3 className="font-black text-lg leading-tight">{selectedProductAnalytics.title}</h3>
+                          <p className="text-xs opacity-80">{selectedProductAnalytics.businessName}</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 pt-4">
-                        <div className="p-3 rounded-2xl bg-white/10">
-                          <p className="text-xs opacity-70">Ventas</p>
-                          <p className="text-xl font-bold">${selectedProductAnalytics.totalEarnings}</p>
-                        </div>
-                        <div className="p-3 rounded-2xl bg-white/10">
-                          <p className="text-xs opacity-70">Conversión</p>
-                          <p className="text-xl font-bold">{selectedProductAnalytics.qrScans > 0 ? Math.round((selectedProductAnalytics.salesCount / selectedProductAnalytics.qrScans) * 100) : 0}%</p>
-                        </div>
-                        <div className="p-3 rounded-2xl bg-white/10">
-                          <p className="text-xs opacity-70">QRs Escaneados</p>
-                          <p className="text-xl font-bold">{selectedProductAnalytics.qrScans || 12}</p>
-                        </div>
-                        <div className="p-3 rounded-2xl bg-white/10">
-                          <p className="text-xs opacity-70">Clientes Totales</p>
-                          <p className="text-xl font-bold">{selectedProductAnalytics.salesCount || 5}</p>
-                        </div>
-                      </div>
+                    </div>
 
-                      <div className="p-6 rounded-3xl bg-white/5 border border-white/10 space-y-4">
+                    {/* Métricas clave (tiles legibles sobre fondo oscuro) */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Ventas</p>
+                        <p className="text-2xl font-black text-emerald-400 mt-1">${selectedProductAnalytics.totalEarnings.toLocaleString('es-MX')}</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Conversión</p>
+                        <p className="text-2xl font-black text-white mt-1">{selectedProductAnalytics.qrScans > 0 ? Math.round((selectedProductAnalytics.salesCount / selectedProductAnalytics.qrScans) * 100) : 0}%</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">QR bajados</p>
+                        <p className="text-2xl font-black text-iogga-accent mt-1">{selectedProductAnalytics.qrScans || 0}</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">QR canjeados</p>
+                        <p className="text-2xl font-black text-indigo-400 mt-1">{selectedProductAnalytics.salesCount || 0}</p>
+                      </div>
+                    </div>
+
+                    {/* Gráfica sobre fondo oscuro (ahora sí legible) */}
+                    <div className="p-5 rounded-3xl bg-zinc-900 border border-white/10 space-y-4">
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Ventas en el Tiempo</p>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 rounded-full bg-iogga-accent"></div>
-                              <span className="text-[8px] text-zinc-500">Ventas</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 rounded-full bg-white/30"></div>
-                              <span className="text-[8px] text-zinc-500">Tendencia</span>
-                            </div>
+                          <p className="text-xs font-black text-white uppercase tracking-widest">Ventas en el tiempo</p>
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 rounded-full bg-iogga-accent"></div>
+                            <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-widest">Ventas</span>
                           </div>
                         </div>
                         <div className="h-48 w-full">
@@ -3006,7 +3005,7 @@ export default function App() {
                             <AreaChart data={salesSeries(selectedProductAnalytics?.id)} margin={{ top: 10, right: 8, left: 8, bottom: 0 }}>
                               <defs>
                                 <linearGradient id="colorSalesProd" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#2dd4bf" stopOpacity={0.5}/>
+                                  <stop offset="5%" stopColor="#2dd4bf" stopOpacity={0.55}/>
                                   <stop offset="95%" stopColor="#2dd4bf" stopOpacity={0.02}/>
                                 </linearGradient>
                               </defs>
@@ -3024,9 +3023,9 @@ export default function App() {
                             </div>
                           )}
                         </div>
-                      </div>
-                      
-                      <div className="p-6 rounded-3xl bg-white text-zinc-900 space-y-4 text-center">
+                    </div>
+
+                    <div className="p-6 rounded-3xl bg-white text-zinc-900 space-y-4 text-center">
                         <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Código QR de Producto</p>
                         <div className="flex justify-center py-2">
                           <div className="p-4 bg-zinc-100 rounded-2xl">
@@ -3034,7 +3033,6 @@ export default function App() {
                           </div>
                         </div>
                         <p className="text-xs text-zinc-500">Este es el código que tus clientes escanean para obtener la oferta.</p>
-                      </div>
                     </div>
                   </div>
                 ) : (

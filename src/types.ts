@@ -102,6 +102,7 @@ export interface Promotion {
   totalEarnings: number;
   qrCode?: string;
   tags: string[];
+  phone?: string; // teléfono/WhatsApp del negocio para contacto directo
   isSeed?: boolean; // dato de prueba temporal (se distingue con etiqueta "Prueba")
 }
 

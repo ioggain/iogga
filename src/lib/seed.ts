@@ -166,7 +166,7 @@ export const SEED_PLANS: Plan[] = rawPlans.map(({ av, ...p }) => ({
 
 type SeedPromo = Promotion;
 
-export const SEED_PROMOS: Promotion[] = [
+const rawPromos: Promotion[] = [
   {
     id: 'sp_cafe', businessName: 'Café Cortez', businessLogo: 'https://images.unsplash.com/photo-1559925393-8be0ec4767c8?auto=format&fit=crop&w=150&q=80',
     title: '2x1 en café de especialidad', description: 'Todos los días de 4 a 6 pm. Trae a un amigo y el segundo café va por la casa.',
@@ -224,3 +224,6 @@ export const SEED_PROMOS: Promotion[] = [
     tags: ['bar', 'mezcal', 'after', 'noche', 'cata'], isSeed: true, timestamp: mins(130),
   },
 ];
+
+// Teléfono de demo para que "Llamar/WhatsApp" funcione en la vista de negocio.
+export const SEED_PROMOS: Promotion[] = rawPromos.map((p, i) => ({ ...p, phone: `61410000${(10 + i).toString()}` }));

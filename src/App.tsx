@@ -5080,6 +5080,9 @@ export default function App() {
           {selectedBusinessProfile && (
             <BusinessProfileModal
               business={selectedBusinessProfile}
+              offers={promos.filter(p => p.businessName === selectedBusinessProfile.businessName)}
+              onOpenOffer={(p) => { setSelectedBusinessProfile(null); setSelectedPromo(p); }}
+              waLink={waLink}
               onClose={() => setSelectedBusinessProfile(null)}
               appMode={mode}
               onComingSoon={comingSoon}
@@ -6779,7 +6782,10 @@ function UserProfileModal({ user, onClose, onComingSoon }: { user: Plan, onClose
   );
 }
 
-function BusinessProfileModal({ business, onClose, appMode, onStartBusinessFlow, onComingSoon }: { business: Promotion, onClose: () => void, appMode?: UserMode, onStartBusinessFlow?: () => void, onComingSoon: (f: string) => void }) {
+function BusinessProfileModal({ business, offers = [], onOpenOffer, waLink, onClose, appMode, onStartBusinessFlow, onComingSoon }: { business: Promotion, offers?: Promotion[], onOpenOffer?: (p: Promotion) => void, waLink?: (phone: string, text: string) => string, onClose: () => void, appMode?: UserMode, onStartBusinessFlow?: () => void, onComingSoon: (f: string) => void }) {
+  const [showOffers, setShowOffers] = React.useState(false);
+  const [askCall, setAskCall] = React.useState(false);
+  const phone = business.phone;
   return (
     <Modal onClose={onClose} title="Perfil de Negocio">
       <div className="space-y-8">
@@ -6851,23 +6857,63 @@ function BusinessProfileModal({ business, onClose, appMode, onStartBusinessFlow,
 
         <div className="space-y-4">
           <h4 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em]">Ubicación</h4>
-          <div className="p-5 rounded-[32px] bg-white/5 border border-white/10 flex items-center gap-4">
+          {/* Ubicación activa: abre el mapa con la dirección del negocio */}
+          <a
+            href={`https://maps.google.com/?q=${encodeURIComponent(business.location || '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-5 rounded-[32px] bg-white/5 border border-white/10 flex items-center gap-4 active:scale-[0.98] transition-all"
+          >
             <div className="p-3 bg-iogga-accent/10 rounded-2xl text-iogga-accent">
               <MapPin size={20} />
             </div>
-            <div>
+            <div className="flex-1">
               <span className="text-white font-bold block">{business.location}</span>
-              <span className="text-xs text-zinc-500">Abierto ahora • Cierra 22:00</span>
+              <span className="text-xs text-iogga-accent font-bold">Ver en el mapa →</span>
             </div>
-          </div>
+          </a>
         </div>
 
+        {/* Ver ofertas: se despliegan hacia abajo; al tocar una, abre su tarjeta */}
+        {showOffers && (
+          <div className="space-y-2">
+            <h4 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em]">Ofertas de {business.businessName}</h4>
+            {offers.length === 0 && <p className="text-xs text-zinc-500 italic py-2">Este negocio aún no tiene ofertas publicadas.</p>}
+            {offers.map(o => (
+              <button key={o.id} onClick={() => onOpenOffer?.(o)} className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-left">
+                <img src={o.image} className="w-14 h-14 rounded-xl object-cover shrink-0" referrerPolicy="no-referrer" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-black text-white truncate">{o.title}</p>
+                  <p className="text-[10px] text-iogga-accent font-black uppercase tracking-widest">{o.offer} · {o.price}</p>
+                </div>
+                <ChevronRight size={16} className="text-zinc-500 shrink-0" />
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="flex gap-4">
-          <button onClick={() => onComingSoon("Llamar al negocio")} className="flex-1 py-5 bg-white/5 text-white rounded-[24px] font-black text-lg border border-white/10 hover:bg-white/10 transition-all">
-            Llamar
-          </button>
-          <button onClick={() => onComingSoon("Ver menú del negocio")} className="flex-1 py-5 bg-iogga-accent text-white rounded-[24px] font-black text-lg shadow-xl shadow-iogga-accent/20 hover:scale-[1.02] active:scale-95 transition-all">
-            Ver Menú
+          {/* Llamar: pregunta si llamada o WhatsApp */}
+          <div className="flex-1 relative">
+            {askCall && (
+              <div className="absolute bottom-full mb-2 left-0 right-0 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-10">
+                <a href={phone ? `tel:${phone}` : undefined} onClick={() => setAskCall(false)} className="w-full px-4 py-3 flex items-center gap-2 text-sm font-bold text-white hover:bg-white/5 border-b border-white/5">
+                  <Smartphone size={15} className="text-iogga-primary" /> Llamada telefónica
+                </a>
+                <a href={phone && waLink ? waLink(phone, `¡Hola ${business.businessName}! Los vi en iogga.`) : undefined} target="_blank" rel="noopener noreferrer" onClick={() => setAskCall(false)} className="w-full px-4 py-3 flex items-center gap-2 text-sm font-bold text-white hover:bg-white/5">
+                  <MessageSquare size={15} className="text-green-400" /> WhatsApp
+                </a>
+              </div>
+            )}
+            <button
+              onClick={() => phone ? setAskCall(v => !v) : onComingSoon('Este negocio aún no puso su teléfono')}
+              className="w-full py-5 bg-white/5 text-white rounded-[24px] font-black text-lg border border-white/10 hover:bg-white/10 transition-all"
+            >
+              Llamar
+            </button>
+          </div>
+          <button onClick={() => setShowOffers(v => !v)} className="flex-1 py-5 bg-iogga-accent text-white rounded-[24px] font-black text-lg shadow-xl shadow-iogga-accent/20 hover:scale-[1.02] active:scale-95 transition-all">
+            Ver ofertas
           </button>
         </div>
       </div>

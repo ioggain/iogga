@@ -3399,59 +3399,85 @@ export default function App() {
                     </div>
                   </div>
                 ) : (
-                  <div className="p-6 flex flex-col items-center text-center space-y-4">
-                    <div className="relative">
-                      <button onClick={() => setShowEditProfile(true)} className="block">
-                        <img src={userProfile.photoURL || GENERIC_AVATAR} className="w-24 h-24 rounded-full border-4 border-zinc-900 shadow-xl object-cover" referrerPolicy="no-referrer" />
-                      </button>
-                      <button onClick={() => setShowEditProfile(true)} className="absolute bottom-0 right-0 p-2 bg-zinc-800 rounded-full shadow-lg text-iogga-primary border border-white/10 active:scale-90 transition-transform">
-                        <Edit3 size={16} />
-                      </button>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-center gap-2">
-                        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                          {currentUser?.name || GUEST_NAME}
-                          <User size={20} className="text-indigo-400/60" />
-                        </h2>
-                        {currentUser && !currentUser.isAnonymous && (
-                          <div className="flex items-center gap-0.5 text-yellow-500">
-                            <Star size={14} fill="currentColor" />
-                            <Star size={14} fill="currentColor" />
-                            <Star size={14} fill="currentColor" />
-                            <Star size={14} fill="currentColor" />
-                            <Star size={14} className="opacity-30" />
-                          </div>
-                        )}
+                  <div className="p-6 space-y-5">
+                    {/* Cabecera estilo Instagram: foto + números en fila */}
+                    <div className="flex items-center gap-5">
+                      <div className="relative shrink-0">
+                        <button onClick={() => setShowEditProfile(true)} className="block">
+                          <img src={userProfile.photoURL || GENERIC_AVATAR} className="w-20 h-20 rounded-full border-2 border-white/10 object-cover" referrerPolicy="no-referrer" />
+                        </button>
+                        <button onClick={() => setShowEditProfile(true)} className="absolute -bottom-1 -right-1 p-1.5 bg-zinc-800 rounded-full shadow-lg text-iogga-primary border border-white/10 active:scale-90 transition-transform">
+                          <Edit3 size={13} />
+                        </button>
                       </div>
-                      <p className="text-zinc-500 text-sm">@{(currentUser?.name || GUEST_NAME).toLowerCase().replace(/\s+/g, '')} • {userProfile.location || 'Chihuahua, MX'}</p>
-                      {socialChips(userProfile).length > 0 && (
-                        <div className="flex flex-wrap gap-2 justify-center mt-3">
-                          {socialChips(userProfile).map(c => (
-                            <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`px-3 py-1.5 rounded-full border text-xs font-bold active:scale-95 transition-all ${c.color}`}>{c.label}</a>
-                          ))}
+                      <div className="flex-1 flex items-center justify-around">
+                        <div className="flex flex-col items-center">
+                          <span className="text-lg font-black text-white">{plans.filter(p => isMyPlan(p)).length}</span>
+                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Planes</span>
                         </div>
-                      )}
-
-                      {/* Amigos estilo Instagram: seguidos / seguidores */}
-                      <div className="flex items-center justify-center gap-8 pt-4">
                         <button onClick={() => setShowFriends('following')} className="flex flex-col items-center active:scale-95 transition-transform">
                           <span className="text-lg font-black text-white">{followingAll.length}</span>
                           <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Amigos</span>
                         </button>
-                        <div className="w-px h-8 bg-white/10" />
                         <button onClick={() => setShowFriends('followers')} className="flex flex-col items-center active:scale-95 transition-transform">
                           <span className="text-lg font-black text-white">{followersAll.length}</span>
                           <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Seguidores</span>
                         </button>
                       </div>
+                    </div>
+
+                    {/* Nombre, usuario y bio */}
+                    <div className="space-y-1">
+                      <h2 className="text-lg font-black text-white flex items-center gap-2">
+                        {currentUser?.name || GUEST_NAME}
+                        {currentUser && !currentUser.isAnonymous && (
+                          <span className="text-[11px] text-yellow-500 font-bold flex items-center gap-0.5"><Star size={11} fill="currentColor" /> 4.8</span>
+                        )}
+                      </h2>
+                      <p className="text-zinc-500 text-xs">@{(currentUser?.name || GUEST_NAME).toLowerCase().replace(/\s+/g, '')}</p>
+                      {userProfile.bio && <p className="text-sm text-white/80 leading-snug pt-1">{userProfile.bio}</p>}
+                      {socialChips(userProfile).length > 0 && (
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          {socialChips(userProfile).map(c => (
+                            <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`px-3 py-1 rounded-full border text-[11px] font-bold active:scale-95 transition-all ${c.color}`}>{c.label}</a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Acciones: Editar perfil · Compartir · Agregar amigos */}
+                    <div className="flex gap-2">
+                      <button onClick={() => setShowEditProfile(true)} className="flex-1 py-2.5 rounded-xl bg-white/10 text-white text-xs font-black uppercase tracking-widest active:scale-95 transition-all">
+                        Editar perfil
+                      </button>
                       <button
-                        onClick={() => { setShowFriends('following'); }}
-                        className="mt-3 mx-auto flex items-center gap-2 px-5 py-2.5 rounded-full bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary text-xs font-black uppercase tracking-widest active:scale-95 transition-all"
+                        onClick={() => {
+                          const name = currentUser?.name || 'Alguien';
+                          const text = `Encuéntrame en iogga: ${window.location.origin}\n\niogga es la app para salir del móvil y vivir lo espontáneo.`;
+                          if ((navigator as any).share) { (navigator as any).share({ title: name, text }).catch(() => {}); }
+                          else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                        }}
+                        className="flex-1 py-2.5 rounded-xl bg-white/10 text-white text-xs font-black uppercase tracking-widest active:scale-95 transition-all"
                       >
-                        <UserPlus size={15} /> Agregar amigos
+                        Compartir
+                      </button>
+                      <button onClick={() => setShowFriends('following')} title="Agregar amigos" className="px-3 py-2.5 rounded-xl bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary active:scale-95 transition-all">
+                        <UserPlus size={16} />
                       </button>
                     </div>
+
+                    {/* Cuadrícula de mis planes (como el feed de tu perfil) */}
+                    {plans.filter(p => isMyPlan(p)).length > 0 && (
+                      <div className="grid grid-cols-3 gap-1 pt-2">
+                        {plans.filter(p => isMyPlan(p)).map(pl => (
+                          <button key={pl.id} onClick={() => setSelectedPlanForDetails(pl)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
+                            <img src={pl.image || `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=300&q=80`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                            <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{pl.activity}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

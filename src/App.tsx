@@ -1019,17 +1019,35 @@ export default function App() {
     window.open(`https://wa.me/?text=${encodeURIComponent(inviteText(plan))}`, '_blank');
   };
 
+  // Compartir una promoción por donde sea; el link siempre lleva a iogga.
+  const promoShareText = (promo: Promotion) =>
+    `🔥 ${promo.title} — ${promo.offer || ''} en ${promo.businessName}.\n${promo.description || ''}\n\nActívala en iogga: ${window.location.origin}/?promo=${promo.id}\n\niogga es la app para salir del móvil y vivir lo espontáneo.`;
+  const sharePromo = async (promo: Promotion) => {
+    const text = promoShareText(promo);
+    const url = `${window.location.origin}/?promo=${promo.id}`;
+    if ((navigator as any).share) {
+      try { await (navigator as any).share({ title: promo.title, text, url }); return; } catch { /* cancelado */ }
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
   // Si alguien llega con un link de invitación (?inv=ID), mostrarla de inmediato
   const [invitationPlan, setInvitationPlan] = useState<Plan | null>(null);
   useEffect(() => {
-    const invId = new URLSearchParams(window.location.search).get('inv');
-    if (!invId) return;
-    fetchDocIn<Plan>('plans', invId).then(p => {
-      if (p) {
-        setInvitationPlan(p);
-        setIsIntro(false);
-      }
-    });
+    const params = new URLSearchParams(window.location.search);
+    const invId = params.get('inv');
+    if (invId) {
+      fetchDocIn<Plan>('plans', invId).then(p => {
+        if (p) { setInvitationPlan(p); setIsIntro(false); }
+      });
+    }
+    // Enlace de una promoción compartida: abre su tarjeta en iogga.
+    const promoId = params.get('promo');
+    if (promoId) {
+      const local = SEED_PROMOS.find(pr => pr.id === promoId);
+      if (local) { setSelectedPromo(local); setIsIntro(false); }
+      else fetchDocIn<Promotion>('promos', promoId).then(pr => { if (pr) { setSelectedPromo(pr); setIsIntro(false); } });
+    }
   }, []);
   // Al abrir "Editar Perfil", precargar lo que ya tiene guardado
   useEffect(() => {
@@ -2769,7 +2787,7 @@ export default function App() {
                                   >
                                     <BarChart3 size={14} />
                                   </button>
-                                  <button 
+                                  <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleEditPromo(promo);
@@ -2777,6 +2795,19 @@ export default function App() {
                                     className="p-2.5 bg-zinc-900/90 backdrop-blur-md rounded-full hover:bg-zinc-800 transition-colors border border-white/20 text-white shadow-2xl"
                                   >
                                     <Edit3 size={14} />
+                                  </button>
+                                  {/* Eliminar SIEMPRE visible (con confirmación) */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (window.confirm(`¿Eliminar la oferta "${promo.title}"? No se puede deshacer.`)) {
+                                        void deleteDocIn('promos', promo.id);
+                                        setPromos(promos.filter(p => p.id !== promo.id));
+                                      }
+                                    }}
+                                    className="p-2.5 bg-red-500/90 backdrop-blur-md rounded-full hover:bg-red-500 transition-colors border border-white/20 text-white shadow-2xl"
+                                  >
+                                    <Trash2 size={14} />
                                   </button>
                                 </>
                               )}
@@ -3139,14 +3170,16 @@ export default function App() {
                         </div>
                     </div>
 
-                    <div className="p-6 rounded-3xl bg-white text-zinc-900 space-y-4 text-center">
-                        <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Código QR de Producto</p>
-                        <div className="flex justify-center py-2">
-                          <div className="p-4 bg-zinc-100 rounded-2xl">
-                            <QrCode size={140} className="text-zinc-900" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-zinc-500">Este es el código que tus clientes escanean para obtener la oferta.</p>
+                    {/* Compartir la promoción por donde sea; el link lleva a iogga */}
+                    <div className="p-5 rounded-3xl bg-white/5 border border-white/10 space-y-3 text-center">
+                        <p className="text-xs font-black text-white uppercase tracking-widest">Comparte tu promoción</p>
+                        <p className="text-[11px] text-zinc-400 leading-relaxed px-2">Compártela en WhatsApp, Instagram o donde sea. El enlace lleva a tu oferta en iogga para atraer más clientes.</p>
+                        <button
+                          onClick={() => sharePromo(selectedProductAnalytics)}
+                          className="w-full py-4 bg-iogga-accent text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-iogga-accent/20 flex items-center justify-center gap-2"
+                        >
+                          <Send size={18} /> Compartir promoción
+                        </button>
                     </div>
                   </div>
                 ) : (
@@ -3305,12 +3338,12 @@ export default function App() {
               >
                 {mode === 'business' ? (
                   <div className="flex flex-col">
-                    <div className="h-40 w-full relative">
-                      <img src={businessProfile.cover} className="w-full h-full object-cover" />
+                    <div className="h-40 w-full relative bg-gradient-to-br from-iogga-accent/30 to-teal-800/30">
+                      {businessProfile.cover && <img src={businessProfile.cover} className="w-full h-full object-cover" />}
                       <div className="absolute inset-0 bg-black/40"></div>
                       <div className="absolute -bottom-10 left-6">
                         <div className="relative">
-                          <img src={businessProfile.logo} className="w-20 h-20 rounded-2xl border-4 border-zinc-950 shadow-xl object-cover" />
+                          <img src={businessProfile.logo || GENERIC_AVATAR} className="w-20 h-20 rounded-2xl border-4 border-zinc-950 shadow-xl object-cover" />
                           <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-iogga-accent border-2 border-zinc-950 rounded-full flex items-center justify-center shadow-lg">
                             <Store size={12} className="text-white" />
                           </div>
@@ -3322,18 +3355,20 @@ export default function App() {
                         <div>
                           <div className="flex items-center gap-2">
                             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                              {businessProfile.name}
+                              {businessProfile.name || 'Tu negocio'}
                               <Store size={20} className="text-teal-400/60" />
                             </h2>
-                            <div className="flex items-center gap-0.5 text-yellow-500">
-                              <Star size={14} fill="currentColor" />
-                              <Star size={14} fill="currentColor" />
-                              <Star size={14} fill="currentColor" />
-                              <Star size={14} fill="currentColor" />
-                              <Star size={14} fill="currentColor" />
-                            </div>
+                            {isLoggedIn && businessProfile.name && (
+                              <div className="flex items-center gap-0.5 text-yellow-500">
+                                <Star size={14} fill="currentColor" />
+                                <Star size={14} fill="currentColor" />
+                                <Star size={14} fill="currentColor" />
+                                <Star size={14} fill="currentColor" />
+                                <Star size={14} fill="currentColor" />
+                              </div>
+                            )}
                           </div>
-                          <p className="text-zinc-400 text-sm">@{businessProfile.name.toLowerCase().replace(/\s+/g, '_')} • Cafetería</p>
+                          <p className="text-zinc-400 text-sm">{businessProfile.name ? `@${businessProfile.name.toLowerCase().replace(/\s+/g, '_')}` : 'Configura tu negocio'}{businessProfile.location ? ` • ${businessProfile.location}` : ''}</p>
                         </div>
                         <button
                           onClick={() => setShowEditBusinessProfile(true)}

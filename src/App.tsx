@@ -659,7 +659,12 @@ export default function App() {
       if (bud) {
         const b = bud.toLowerCase();
         const val = b.includes('invit') ? 'invites' : (b.includes('cada') ? 'split' : (b.includes('no se') || b.includes('necesita') ? 'not-needed' : (b.includes('sin') || b.includes('gratis') ? 'no-money' : null)));
-        if (val) setNewPlan(p => ({ ...p, budget: val as any }));
+        if (val) {
+          setNewPlan(p => ({ ...p, budget: val as any }));
+          const label = val === 'invites' ? 'tú invitas' : val === 'split' ? 'cada quien paga lo suyo' : val === 'no-money' ? 'sin dinero' : 'no se necesita dinero';
+          setPlaticaStatus('Seleccioné: ' + label);
+          await speakEs('Seleccioné: ' + label + '.');
+        }
       }
       if (cancelled()) return finish();
       if (await yesNo('¿Quieres agregar un comentario sobre el dinero?')) {
@@ -675,7 +680,12 @@ export default function App() {
       if (tr) {
         const t = tr.toLowerCase();
         const val = t.includes('carro') || t.includes('coche') ? 'has-transport' : (t.includes('cada') ? 'each-arrives' : (t.includes('no') ? 'no-transport' : null));
-        if (val) setNewPlan(p => ({ ...p, transport: val as any }));
+        if (val) {
+          setNewPlan(p => ({ ...p, transport: val as any }));
+          const label = val === 'has-transport' ? 'tengo carro' : val === 'each-arrives' ? 'cada quien llega' : 'no tengo transporte';
+          setPlaticaStatus('Seleccioné: ' + label);
+          await speakEs('Seleccioné: ' + label + '.');
+        }
       }
       if (cancelled()) return finish();
       if (await yesNo('¿Quieres agregar un comentario sobre el transporte?')) {

@@ -1588,6 +1588,18 @@ export default function App() {
       } else {
         void incrementPlanAccepted(id);
       }
+      // Avisar EN VIVO al creador del plan que alguien se unió (notificación real).
+      if (plan?.uid && currentUser && plan.uid !== currentUser.uid) {
+        const me = (currentUser.name || 'Alguien').split(' ')[0];
+        void sendNotification({
+          type: 'accepted',
+          to: plan.uid,
+          fromName: currentUser.name || 'Alguien',
+          title: `${me} se unió a tu plan`,
+          message: `${me} se apuntó a "${plan.activity}". ¡Pónganse de acuerdo!`,
+          planId: plan.id,
+        });
+      }
       // Al unirte, si el creador dejó WhatsApp, abre el chat para coordinar.
       if (plan?.whatsapp) {
         window.open(waLink(plan.whatsapp, `¡Hola ${plan.userName}! Me uní a tu plan "${plan.activity}" en iogga. ¿Sigue en pie?`), '_blank');

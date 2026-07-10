@@ -447,7 +447,19 @@ function similarity(aTokens: string[], bText: string): number {
 }
 
 export default function App() {
-  const [isIntro, setIsIntro] = useState(true);
+  // ¿Saltamos el intro (logo blanco)? Sí para quien ya tiene la app instalada,
+  // ya se registró antes, o ya entró al menos dos veces. Así la app abre rápido
+  // y directo a Explorar para quien ya la usa.
+  const bootSkipIntro = (() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+      const visits = Number(localStorage.getItem('iogga_visits') || '0');
+      const registered = localStorage.getItem('iogga_tutorial_completed') === 'true';
+      return standalone || registered || visits >= 2;
+    } catch { return false; }
+  })();
+  const [isIntro, setIsIntro] = useState(!bootSkipIntro);
   const [showNotificationsMenu, setShowNotificationsMenu] = useState(false);
   const [isWiggleMode, setIsWiggleMode] = useState(false);
   const [showEditBusinessProfile, setShowEditBusinessProfile] = useState(false);
@@ -467,7 +479,8 @@ export default function App() {
     linkedin: '',
   });
   const [mode, setMode] = useState<UserMode>('person');
-  const [activeTab, setActiveTab] = useState('home');
+  // Quien ya usa la app entra directo a Explorar; los nuevos empiezan en Inicio.
+  const [activeTab, setActiveTab] = useState(bootSkipIntro ? 'search' : 'home');
   // Con Firebase conectado la app inicia EN BLANCO y se llena con datos reales
   // de los usuarios en tiempo real. Sin Firebase, usa datos de ejemplo.
   // La base ficticia (SEED_*) siempre acompaña a los datos reales para que la
@@ -822,7 +835,7 @@ export default function App() {
   // Arranque tipo "el cel parece apagado": pantalla negra, el usuario toca,
   // y el logo entra en fade in de 4s mientras suena el intro. El toque también
   // desbloquea el audio del navegador (por eso el sonido nunca falla aquí).
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(!bootSkipIntro);
   const [splashRevealed, setSplashRevealed] = useState(false);
   const chimePlayed = useRef(false);
 
@@ -1016,6 +1029,14 @@ export default function App() {
     'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
     'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80',
   ];
+
+  // Contar visitas (para decidir si mostramos el intro en futuras aperturas).
+  useEffect(() => {
+    try {
+      const v = Number(localStorage.getItem('iogga_visits') || '0');
+      localStorage.setItem('iogga_visits', String(v + 1));
+    } catch {}
+  }, []);
 
   // Mantener la sesión iniciada (Firebase recuerda al usuario entre visitas)
   useEffect(() => {
@@ -4891,10 +4912,20 @@ export default function App() {
                 <button
                   onClick={() => {
                     logoutUser();
+                    // Limpiar TODA la sesión para que no quede rastro del usuario.
                     setIsLoggedIn(false);
                     setCurrentUser(null);
+                    setUserProfile({});
+                    setBusinessProfile({ name: '', bio: '', logo: '', cover: '', location: '', phone: '', email: '', website: '', instagram: '', facebook: '', tiktok: '', linkedin: '' });
+                    setHasBusiness(false);
+                    setMode('person');
+                    setFollowing([]);
+                    setFollowers([]);
+                    setAcceptedPlanIds([]);
                     setShowSettingsMenu(false);
+                    setActiveTab('home');
                     setIsIntro(true);
+                    try { localStorage.removeItem('iogga_visits'); } catch {}
                   }}
                   className="w-full p-5 rounded-3xl bg-red-500/10 text-red-500 flex items-center justify-center gap-2 font-bold border border-red-500/20 active:scale-95 transition-transform"
                 >

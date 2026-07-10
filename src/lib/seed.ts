@@ -124,8 +124,36 @@ const rawPlans: SeedPlan[] = [
     id: 's_concierto', av: 4, userName: 'Andrés', activity: 'Concierto de rock en vivo',
     dateLabel: 'el viernes', startTime: '21:00', endTime: '23:59', location: 'Teatro de la Ciudad',
     budget: 'split', transport: 'each-arrives', guests: 'public', acceptedCount: 11, isPublic: true,
-    timestamp: mins(200), tags: ['concierto', 'música', 'rock', 'noche'],
+    timestamp: mins(200), tags: ['concierto', 'música', 'rock', 'noche', 'fiesta'],
     image: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 's_cine2', av: 5, userName: 'Ximena', activity: 'Noche de estrenos en el cine',
+    dateLabel: 'mañana', startTime: '20:00', endTime: '22:30', location: 'Cinemex Sendero',
+    budget: 'split', transport: 'each-arrives', guests: 'public', acceptedCount: 4, isPublic: true,
+    timestamp: mins(55), tags: ['cine', 'estreno', 'película', 'noche'],
+    image: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 's_tacos', av: 6, userName: 'Beto', activity: 'Tacos y cheve en la noche',
+    dateLabel: 'hoy', startTime: '21:00', endTime: '23:00', location: 'Tacos El Poblano',
+    budget: 'split', transport: 'each-arrives', guests: 'public', acceptedCount: 6, isPublic: true,
+    timestamp: mins(18), tags: ['tacos', 'comida', 'cena', 'cerveza', 'noche'],
+    image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 's_alitas', av: 7, userName: 'Mariana', activity: 'Alitas y el partido',
+    dateLabel: 'el domingo', startTime: '15:00', endTime: '18:00', location: 'Wings Station',
+    budget: 'split', transport: 'each-arrives', guests: 'public', acceptedCount: 9, isPublic: true,
+    timestamp: mins(80), tags: ['alitas', 'comida', 'deporte', 'futbol', 'social'],
+    image: 'https://images.unsplash.com/photo-1608039755401-742074f0548d?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 's_roadtrip', av: 0, userName: 'Toño', activity: 'Roadtrip a Creel el fin de semana',
+    dateLabel: 'el sábado', startTime: '07:00', endTime: '20:00', location: 'Creel, Chih.',
+    budget: 'split', transport: 'has-transport', guests: 'public', acceptedCount: 5, isPublic: true,
+    timestamp: mins(160), tags: ['viaje', 'roadtrip', 'naturaleza', 'aventura'],
+    image: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=800&q=80',
   },
 ];
 

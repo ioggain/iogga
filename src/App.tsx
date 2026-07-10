@@ -905,12 +905,35 @@ export default function App() {
     setTimeout(() => setShowInstall(true), 700);
   };
 
-  // Categoría seleccionada en Explorar (modo persona)
+  // Categoría seleccionada en Explorar (modo persona) + clasificaciones por palabra clave
   const [personExploreCategory, setPersonExploreCategory] = useState('Todos');
-  const matchesCategory = (p: Plan) =>
-    personExploreCategory === 'Todos' ||
-    p.tags.some(t => t.includes(personExploreCategory.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''))) ||
-    p.activity.toLowerCase().includes(personExploreCategory.toLowerCase());
+  const [customCats, setCustomCats] = useState<string[]>([]);
+  const [addingCat, setAddingCat] = useState(false);
+  const [newCat, setNewCat] = useState('');
+  const norm = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  // Cada categoría agrupa varias palabras clave (para que se llene de verdad).
+  const CAT_KEYS: Record<string, string[]> = {
+    'Café': ['cafe', 'coworking', 'desayuno'],
+    'Cine': ['cine', 'pelicula', 'estreno'],
+    'Deporte': ['padel', 'tenis', 'bici', 'correr', 'caminar', 'gym', 'yoga', 'deporte', 'raqueta', 'ciclismo', 'futbol'],
+    'Fiesta': ['after', 'bar', 'cerveza', 'antro', 'fiesta', 'concierto', 'musica', 'mezcal', 'boliche'],
+    'Comida': ['sushi', 'tacos', 'pizza', 'comida', 'cena', 'alitas', 'postres'],
+    'Aire libre': ['cerro', 'senderismo', 'parque', 'naturaleza', 'picnic', 'playa', 'roadtrip'],
+    'Viaje': ['viaje', 'cancun', 'roadtrip', 'vacaciones', 'aventura'],
+  };
+  const PERSON_CATS = ['Todos', ...Object.keys(CAT_KEYS)];
+  const matchesCategory = (p: Plan) => {
+    if (personExploreCategory === 'Todos') return true;
+    const hay = norm(`${p.activity} ${(p.tags || []).join(' ')} ${p.comment || ''}`);
+    const keys = CAT_KEYS[personExploreCategory] || [norm(personExploreCategory)]; // categoría personalizada = su propia palabra
+    return keys.some(k => hay.includes(k));
+  };
+  const matchesPromoCategory = (pr: Promotion) => {
+    if (personExploreCategory === 'Todos') return true;
+    const hay = norm(`${pr.title} ${pr.description || ''} ${(pr.tags || []).join(' ')}`);
+    const keys = CAT_KEYS[personExploreCategory] || [norm(personExploreCategory)];
+    return keys.some(k => hay.includes(k));
+  };
 
   // ---- Fotos sugeridas por actividad (solo se cargan miniaturas ligeras) ----
   const PHOTO_BANK: [RegExp, string[]][] = [
@@ -2238,7 +2261,7 @@ export default function App() {
                   {mode === 'person' && (
                     <div className="flex items-center justify-between">
                       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                        {['Todos', 'Café', 'Cine', 'Deporte', 'Fiesta', 'Comida'].map(cat => (
+                        {[...PERSON_CATS, ...customCats].map(cat => (
                           <button
                             key={cat}
                             onClick={() => setPersonExploreCategory(cat)}
@@ -2247,8 +2270,34 @@ export default function App() {
                             {cat}
                           </button>
                         ))}
+                        {/* Más +: crear una clasificación por palabra clave (vigilancia tecnológica) */}
+                        {addingCat ? (
+                          <input
+                            autoFocus
+                            value={newCat}
+                            onChange={e => setNewCat(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' && newCat.trim()) {
+                                const c = newCat.trim();
+                                setCustomCats(prev => prev.includes(c) ? prev : [...prev, c]);
+                                setPersonExploreCategory(c);
+                                setNewCat(''); setAddingCat(false);
+                              } else if (e.key === 'Escape') { setNewCat(''); setAddingCat(false); }
+                            }}
+                            onBlur={() => { setNewCat(''); setAddingCat(false); }}
+                            placeholder="palabra clave…"
+                            className="px-4 py-1.5 rounded-full text-xs font-bold bg-white/5 border border-iogga-primary/40 text-white placeholder:text-white/30 outline-none w-36"
+                          />
+                        ) : (
+                          <button
+                            onClick={() => setAddingCat(true)}
+                            className="px-4 py-1.5 rounded-full text-xs font-black whitespace-nowrap border border-dashed border-iogga-primary/40 text-iogga-primary bg-iogga-primary/5"
+                          >
+                            Más +
+                          </button>
+                        )}
                       </div>
-                      <button 
+                      <button
                         onClick={() => setShowTrends(!showTrends)}
                         className={`ml-2 p-2 rounded-xl border transition-all ${showTrends ? 'bg-iogga-accent/20 border-iogga-accent text-iogga-accent' : 'bg-white/5 border-white/10 text-zinc-500'}`}
                       >
@@ -2344,7 +2393,7 @@ export default function App() {
                             <span className="text-[10px] font-black text-iogga-accent uppercase tracking-widest">Ofertas de negocios cerca de ti</span>
                           </div>
                           <div className="grid grid-cols-2 gap-3 border-l-2 border-iogga-accent/30 pl-3">
-                          {promos.map(promo => (
+                          {promos.filter(matchesPromoCategory).map(promo => (
                             <PromoCard
                               key={promo.id}
                               promo={promo}
@@ -2353,6 +2402,9 @@ export default function App() {
                             />
                           ))}
                           </div>
+                          {promos.filter(matchesPromoCategory).length === 0 && (
+                            <p className="col-span-2 text-xs text-zinc-500 text-center py-10">No hay ofertas en "{personExploreCategory}" todavía.</p>
+                          )}
                         </div>
                       )}
                     </>

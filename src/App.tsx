@@ -70,6 +70,7 @@ import {
   watchAuth,
   registerUser,
   loginUser,
+  resetPassword,
   loginWithGoogle,
   ensureAnonSession,
   logoutUser,
@@ -215,7 +216,7 @@ const renderPlanTechnicalDetails = (plan: Plan) => {
     switch (budget) {
       case 'invites': return 'Yo invito';
       case 'split': return 'Dividimos';
-      case 'no-money': return 'Sin dinero';
+      case 'no-money': return 'Sin presupuesto';
       case 'not-needed': return 'No se necesita';
       default: return budget;
     }
@@ -303,19 +304,27 @@ function speakEs(text: string): Promise<void> {
   });
 }
 
+let activeRecognition: any = null;
+// Cortar cualquier escucha activa (al salir de la pantalla, el micro se apaga).
+function abortListen() {
+  try { activeRecognition?.abort?.(); } catch {}
+  activeRecognition = null;
+}
 function listenEs(): Promise<string | null> {
   return new Promise((resolve) => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return resolve(null);
     try {
       const rec = new SR();
+      activeRecognition = rec;
       rec.lang = 'es-MX';
       rec.interimResults = false;
       rec.maxAlternatives = 1;
       let done = false;
-      rec.onresult = (e: any) => { done = true; resolve(e.results?.[0]?.[0]?.transcript || null); };
-      rec.onerror = () => { if (!done) { done = true; resolve(null); } };
-      rec.onend = () => { if (!done) { done = true; resolve(null); } };
+      const finish = (v: string | null) => { if (!done) { done = true; if (activeRecognition === rec) activeRecognition = null; resolve(v); } };
+      rec.onresult = (e: any) => finish(e.results?.[0]?.[0]?.transcript || null);
+      rec.onerror = () => finish(null);
+      rec.onend = () => finish(null);
       rec.start();
     } catch { resolve(null); }
   });
@@ -379,19 +388,28 @@ function MicButton({ onText, tone = 'primary', inline = false }: { onText: (t: s
   const [busy, setBusy] = React.useState(false);
   const color = tone === 'accent' ? 'text-iogga-accent' : 'text-iogga-primary';
   const pos = inline ? '' : 'absolute right-3 top-1/2 -translate-y-1/2 ';
+  // Al desmontar (salir de la pantalla), apagar el micrófono.
+  React.useEffect(() => () => { abortListen(); }, []);
   return (
     <button
       type="button"
       onClick={async () => {
+        if (busy) { abortListen(); setBusy(false); return; }
         setBusy(true);
         const t = await listenEs();
         setBusy(false);
         if (t) onText(t);
       }}
       title="Dictar por voz"
-      className={`${pos}w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${busy ? 'bg-red-500/20 text-red-400 animate-pulse' : `bg-white/5 ${color} hover:bg-white/10`}`}
+      className={`${pos}relative w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${busy ? 'bg-red-500 text-white' : `bg-white/5 ${color} hover:bg-white/10`}`}
     >
-      <Mic size={16} />
+      {busy && (
+        <>
+          <span className="absolute inset-0 rounded-full bg-red-500/40 animate-ping" />
+          <span className="absolute -inset-1 rounded-full border border-red-400/40 animate-pulse" />
+        </>
+      )}
+      <Mic size={16} className="relative z-10" />
     </button>
   );
 }
@@ -696,7 +714,7 @@ export default function App() {
         const val = b.includes('invit') ? 'invites' : (b.includes('cada') ? 'split' : (b.includes('no se') || b.includes('necesita') ? 'not-needed' : (b.includes('sin') || b.includes('gratis') ? 'no-money' : null)));
         if (val) {
           setNewPlan(p => ({ ...p, budget: val as any }));
-          const label = val === 'invites' ? 'tú invitas' : val === 'split' ? 'cada quien paga lo suyo' : val === 'no-money' ? 'sin dinero' : 'no se necesita dinero';
+          const label = val === 'invites' ? 'tú invitas' : val === 'split' ? 'cada quien paga lo suyo' : val === 'no-money' ? 'sin presupuesto' : 'no se necesita dinero';
           setPlaticaStatus('Seleccioné: ' + label);
           await speakEs('Seleccioné: ' + label + '.');
         }
@@ -753,9 +771,14 @@ export default function App() {
 
   useEffect(() => {
     if (platicaOn) { void runPlatica(platicaFromStep); }
-    else { platicaCancel.current = true; try { window.speechSynthesis?.cancel(); } catch {} }
+    else { platicaCancel.current = true; abortListen(); try { window.speechSynthesis?.cancel(); } catch {} }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [platicaOn]);
+
+  // Al cerrar el modal de crear plan, apagar micrófono y voz.
+  useEffect(() => {
+    if (!showCreatePlan) { platicaCancel.current = true; abortListen(); try { window.speechSynthesis?.cancel(); } catch {} }
+  }, [showCreatePlan]);
 
   // ---- Dictado por micrófono en cada paso: interpreta y selecciona/ajusta ----
   const applyDateTime = (t: string) => {
@@ -921,7 +944,7 @@ export default function App() {
     const budget =
       plan.budget === 'invites' ? `Invita ${firstName}` :
       plan.budget === 'split' ? 'Cada quien paga lo suyo' :
-      plan.budget === 'no-money' ? 'Plan sin costo' :
+      plan.budget === 'no-money' ? 'Sin presupuesto' :
       plan.budget === 'not-needed' ? 'No se necesita dinero' : '';
     if (budget) parts.push(`${budget}${plan.budgetAmount ? ` (${plan.budgetAmount})` : ''}.`);
 
@@ -3631,14 +3654,22 @@ export default function App() {
               {/* Platica por voz: la app pregunta y tú respondes hablando */}
               {platicaOn && (
                 <div className="mb-5 p-5 rounded-3xl bg-iogga-primary/10 border border-iogga-primary/30 text-center space-y-3">
+                  {(() => { const listening = /escuchando/i.test(platicaStatus); return (
                   <div className="flex justify-center">
-                    <div className="w-14 h-14 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center animate-pulse">
-                      <Mic size={26} />
+                    <div className={`relative w-16 h-16 rounded-full flex items-center justify-center ${listening ? 'bg-red-500 text-white' : 'bg-iogga-primary/20 text-iogga-primary'}`}>
+                      {listening && (
+                        <>
+                          <span className="absolute inset-0 rounded-full bg-red-500/40 animate-ping" />
+                          <span className="absolute -inset-2 rounded-full border-2 border-red-400/40 animate-pulse" />
+                        </>
+                      )}
+                      <Mic size={28} className="relative z-10" />
                     </div>
                   </div>
+                  ); })()}
                   <p className="text-sm font-bold text-white leading-snug min-h-[40px] flex items-center justify-center">{platicaStatus || 'Preparando…'}</p>
                   <button
-                    onClick={() => { platicaCancel.current = true; try { window.speechSynthesis?.cancel(); } catch {} setPlaticaOn(false); setPlaticaStatus(''); }}
+                    onClick={() => { platicaCancel.current = true; abortListen(); try { window.speechSynthesis?.cancel(); } catch {} setPlaticaOn(false); setPlaticaStatus(''); }}
                     className="text-[10px] font-black text-zinc-400 uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full active:scale-95"
                   >
                     Terminar platica
@@ -3828,8 +3859,8 @@ export default function App() {
                           onClick={() => setNewPlan({...newPlan, budget: 'no-money'})}
                           className={`p-4 rounded-2xl border text-left transition-all ${newPlan.budget === 'no-money' ? 'bg-iogga-primary/20 border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
                         >
-                          <p className="font-bold">Sin dinero</p>
-                          <p className="text-xs opacity-60">Plan gratuito o sin costo</p>
+                          <p className="font-bold">Sin presupuesto</p>
+                          <p className="text-xs opacity-60">No cuento con dinero para este plan</p>
                         </button>
                         <button
                           onClick={() => setNewPlan({...newPlan, budget: 'not-needed'})}
@@ -4188,7 +4219,7 @@ export default function App() {
                 offer: '',
                 location: ''
               });
-            }} title={editingPromoId ? "Editar Producto" : "Publicar Producto"}>
+            }} title={editingPromoId ? "Editar oferta" : "Publicar oferta"}>
               <div className="space-y-6">
                 <button
                   onClick={async () => {
@@ -4271,7 +4302,7 @@ export default function App() {
                   onClick={handlePublishPromo}
                   className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-bold text-lg shadow-lg shadow-iogga-accent/20 active:scale-95 transition-transform"
                 >
-                  {editingPromoId ? 'Guardar Cambios' : 'Publicar Producto'}
+                  {editingPromoId ? 'Guardar Cambios' : 'Publicar oferta'}
                 </button>
 
                 {editingPromoId && (
@@ -4653,30 +4684,47 @@ export default function App() {
                   )}
                 </div>
 
-                 <div className="flex gap-4">
-                  <button 
-                    onClick={() => {
-                      handleIgnorePlan(selectedPlanForDetails.id);
-                      setSelectedPlanForDetails(null);
-                    }}
-                    className="flex-1 py-4 rounded-2xl bg-white/5 text-zinc-400 font-bold hover:bg-white/10 transition-all text-xs uppercase"
-                  >
-                    Ignorar
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleAcceptPlan(selectedPlanForDetails.id);
-                      // Si el creador dejó WhatsApp, abrir chat para coordinar
-                      if (selectedPlanForDetails.whatsapp) {
-                        window.open(waLink(selectedPlanForDetails.whatsapp, `¡Hola ${selectedPlanForDetails.userName}! Me uní a tu plan "${selectedPlanForDetails.activity}" en iogga. ¿Sigue en pie?`), '_blank');
-                      }
-                      setSelectedPlanForDetails(null);
-                    }}
-                    className="flex-[2] py-4 rounded-2xl bg-iogga-primary text-white font-black shadow-lg shadow-iogga-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-center flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
-                  >
-                    <CheckCircle2 size={16} /> Unirme al plan
-                  </button>
-                </div>
+                {isMyPlan(selectedPlanForDetails) ? (
+                  // Es TU plan: no puedes unirte al tuyo; muestra acciones útiles.
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => { const p = selectedPlanForDetails; setSelectedPlanForDetails(null); handleEditPlan(p); }}
+                      className="flex-1 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+                    >
+                      <Edit3 size={16} /> Editar
+                    </button>
+                    <button
+                      onClick={() => { const p = selectedPlanForDetails; setSelectedPlanForDetails(null); openInvite(p); }}
+                      className="flex-[2] py-4 rounded-2xl bg-green-500 text-white font-black shadow-lg shadow-green-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
+                    >
+                      <UserPlus size={16} /> Invitar personas
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => {
+                        handleIgnorePlan(selectedPlanForDetails.id);
+                        setSelectedPlanForDetails(null);
+                      }}
+                      className="flex-1 py-4 rounded-2xl bg-white/5 text-zinc-400 font-bold hover:bg-white/10 transition-all text-xs uppercase"
+                    >
+                      Ignorar
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleAcceptPlan(selectedPlanForDetails.id);
+                        if (selectedPlanForDetails.whatsapp) {
+                          window.open(waLink(selectedPlanForDetails.whatsapp, `¡Hola ${selectedPlanForDetails.userName}! Me uní a tu plan "${selectedPlanForDetails.activity}" en iogga. ¿Sigue en pie?`), '_blank');
+                        }
+                        setSelectedPlanForDetails(null);
+                      }}
+                      className="flex-[2] py-4 rounded-2xl bg-iogga-primary text-white font-black shadow-lg shadow-iogga-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-center flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
+                    >
+                      <CheckCircle2 size={16} /> Unirme al plan
+                    </button>
+                  </div>
+                )}
               </div>
             </Modal>
           )}
@@ -4824,9 +4872,10 @@ export default function App() {
                 <div className="space-y-2">
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2">Cuenta y Seguridad</p>
                   <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden">
-                    <SettingsItem 
-                      icon={<User size={18} />} 
-                      label="Editar Perfil" 
+                    <SettingsItem
+                      icon={<User size={18} />}
+                      label="Editar Perfil"
+                      tone="personal"
                       onClick={() => {
                         setShowSettingsMenu(false);
                         setShowEditProfile(true);
@@ -5304,6 +5353,38 @@ export default function App() {
                   >
                     {authBusy ? "Un momento…" : isRegistering ? "Crear mi Cuenta" : "Entrar ahora"}
                   </button>
+
+                  {/* Registrarse SIEMPRE visible y destacado (para quien aún no tiene cuenta) */}
+                  {!isRegistering && (
+                    <button
+                      type="button"
+                      onClick={() => { setAuthError(''); setIsRegistering(true); }}
+                      className="w-full py-4 bg-violet-500/15 text-violet-300 border border-violet-400/40 rounded-[20px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all"
+                    >
+                      Regístrate ahora — es gratis
+                    </button>
+                  )}
+
+                  {/* Recuperar contraseña (solo al iniciar sesión) */}
+                  {!isRegistering && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!loginEmail.trim()) { setAuthError('Escribe tu correo arriba y toca de nuevo para enviarte el enlace.'); return; }
+                        if (!isFirebaseEnabled) { triggerBeta('Modo demo', 'La recuperación de contraseña funciona con la base de datos conectada.'); return; }
+                        try {
+                          await resetPassword(loginEmail.trim());
+                          triggerBeta('Revisa tu correo', `Te enviamos un enlace a ${loginEmail.trim()} para restablecer tu contraseña.`);
+                        } catch (err) {
+                          setAuthError(authErrorMessage(err));
+                        }
+                      }}
+                      className="w-full text-center text-xs font-bold text-zinc-400 hover:text-white transition-all"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  )}
+
                   {/* Salida visible: que nadie sienta que tiene que registrarse para entrar */}
                   <button
                     type="button"
@@ -5319,14 +5400,14 @@ export default function App() {
                 </form>
 
                 <div className="flex flex-col gap-3 pt-2">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setIsRegistering(!isRegistering)}
                     className="text-xs font-bold text-iogga-primary hover:underline transition-all block text-center bg-transparent border-none outline-none cursor-pointer"
                   >
-                    {isRegistering ? "¿Ya tienes cuenta? Inicia Sesión" : "¿No tienes cuenta? Regístrate gratis"}
+                    {isRegistering ? "¿Ya tienes cuenta? Inicia Sesión" : ""}
                   </button>
-                  
+
                   <div className="relative flex py-2 items-center">
                     <div className="flex-grow border-t border-white/5"></div>
                     <span className="flex-shrink mx-4 text-zinc-600 text-[10px] font-bold uppercase tracking-widest font-sans">o</span>
@@ -6416,18 +6497,23 @@ function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   );
 }
 
-function SettingsItem({ icon, label, onClick, tone }: { icon: React.ReactNode, label: string, onClick?: () => void, tone?: 'business' }) {
+function SettingsItem({ icon, label, onClick, tone }: { icon: React.ReactNode, label: string, onClick?: () => void, tone?: 'business' | 'personal' }) {
   const biz = tone === 'business';
+  const per = tone === 'personal';
+  const bg = biz ? 'bg-emerald-500/10 hover:bg-emerald-500/20' : per ? 'bg-violet-500/10 hover:bg-violet-500/20' : 'hover:bg-white/5';
+  const iconCls = biz ? 'text-emerald-400' : per ? 'text-violet-400' : 'text-zinc-500 group-hover:text-iogga-primary';
+  const textCls = biz ? 'text-emerald-300' : per ? 'text-violet-300' : 'text-zinc-300';
+  const chevCls = biz ? 'text-emerald-500/60' : per ? 'text-violet-500/60' : 'text-zinc-600';
   return (
     <button
       onClick={onClick}
-      className={`w-full p-4 flex items-center justify-between transition-colors border-b border-white/5 last:border-0 group ${biz ? 'bg-emerald-500/10 hover:bg-emerald-500/20' : 'hover:bg-white/5'}`}
+      className={`w-full p-4 flex items-center justify-between transition-colors border-b border-white/5 last:border-0 group ${bg}`}
     >
       <div className="flex items-center gap-3">
-        <div className={`transition-colors ${biz ? 'text-emerald-400' : 'text-zinc-500 group-hover:text-iogga-primary'}`}>{icon}</div>
-        <span className={`text-sm font-bold ${biz ? 'text-emerald-300' : 'text-zinc-300'}`}>{label}</span>
+        <div className={`transition-colors ${iconCls}`}>{icon}</div>
+        <span className={`text-sm font-bold ${textCls}`}>{label}</span>
       </div>
-      <ChevronRight size={16} className={biz ? 'text-emerald-500/60' : 'text-zinc-600'} />
+      <ChevronRight size={16} className={chevCls} />
     </button>
   );
 }

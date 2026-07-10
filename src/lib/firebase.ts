@@ -6,6 +6,7 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithPopup,
   signInAnonymously,
   linkWithCredential,
@@ -133,6 +134,12 @@ export async function loginUser(email: string, password: string): Promise<AuthUs
     name: cred.user.displayName || email.split('@')[0],
     email: cred.user.email || email,
   };
+}
+
+// Enviar correo para restablecer la contraseña.
+export async function resetPassword(email: string): Promise<void> {
+  if (!auth) throw new Error('demo');
+  await sendPasswordResetEmail(auth, email);
 }
 
 export async function loginWithGoogle(): Promise<AuthUser> {

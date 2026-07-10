@@ -64,7 +64,7 @@ import {
   Area 
 } from 'recharts';
 import { Plan, Promotion, UserMode, MOCK_PLANS, MOCK_PROMOS, IDEAS, MOCK_GROUPED_PLANS, GUEST_NAME, GENERIC_AVATAR } from './types';
-import { SEED_PLANS, SEED_PROMOS } from './lib/seed';
+import { SEED_PLANS, SEED_PROMOS, SEED_USERS } from './lib/seed';
 import {
   isFirebaseEnabled,
   watchAuth,
@@ -1128,12 +1128,32 @@ export default function App() {
     return () => clearTimeout(t);
   }, [friendSearch, currentUser?.uid]);
 
-  const isFollowing = (uid: string) => following.some(f => f.uid === uid);
+  // Seguidos de PRUEBA (usuarios semilla): se guardan localmente para la demo.
+  const [seedFollowIds, setSeedFollowIds] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('iogga_seed_follows') || '[]'); } catch { return []; }
+  });
+  const persistSeedFollows = (ids: string[]) => { setSeedFollowIds(ids); try { localStorage.setItem('iogga_seed_follows', JSON.stringify(ids)); } catch {} };
+  const isSeedUid = (uid: string) => uid.startsWith('su_');
+  const isFollowing = (uid: string) => following.some(f => f.uid === uid) || seedFollowIds.includes(uid);
   const toggleFollow = async (f: Friend) => {
+    if (isSeedUid(f.uid)) {
+      persistSeedFollows(seedFollowIds.includes(f.uid) ? seedFollowIds.filter(id => id !== f.uid) : [...seedFollowIds, f.uid]);
+      return;
+    }
     if (!currentUser) { setShowLoginModal(true); return; }
     if (isFollowing(f.uid)) await unfollowUser(currentUser.uid, f.uid);
     else await followUser(currentUser, f);
   };
+  // Amigos que sigo, incluyendo los de prueba (para que las listas se vean llenas).
+  const followingAll: Friend[] = [
+    ...following,
+    ...SEED_USERS.filter(u => seedFollowIds.includes(u.uid)).map(u => ({ uid: u.uid, name: u.name, photo: u.photo })),
+  ];
+  // Seguidores (reales + algunos de prueba, para simular la experiencia).
+  const followersAll: Friend[] = [
+    ...followers,
+    ...SEED_USERS.slice(0, 4).map(u => ({ uid: u.uid, name: u.name, photo: u.photo })),
+  ];
   const unreadNotifs = realNotifs.filter(n => !n.read).length;
 
   // Ventas REALES del negocio (canjes validados) para las gráficas
@@ -3299,7 +3319,7 @@ export default function App() {
                           </div>
                         )}
                       </div>
-                      <p className="text-zinc-500 text-sm">{currentUser?.email || 'Sin iniciar sesión'} • {userProfile.location || 'Chihuahua, MX'}</p>
+                      <p className="text-zinc-500 text-sm">@{(currentUser?.name || GUEST_NAME).toLowerCase().replace(/\s+/g, '')} • {userProfile.location || 'Chihuahua, MX'}</p>
                       {socialChips(userProfile).length > 0 && (
                         <div className="flex flex-wrap gap-2 justify-center mt-3">
                           {socialChips(userProfile).map(c => (
@@ -3311,12 +3331,12 @@ export default function App() {
                       {/* Amigos estilo Instagram: seguidos / seguidores */}
                       <div className="flex items-center justify-center gap-8 pt-4">
                         <button onClick={() => setShowFriends('following')} className="flex flex-col items-center active:scale-95 transition-transform">
-                          <span className="text-lg font-black text-white">{following.length}</span>
+                          <span className="text-lg font-black text-white">{followingAll.length}</span>
                           <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Amigos</span>
                         </button>
                         <div className="w-px h-8 bg-white/10" />
                         <button onClick={() => setShowFriends('followers')} className="flex flex-col items-center active:scale-95 transition-transform">
-                          <span className="text-lg font-black text-white">{followers.length}</span>
+                          <span className="text-lg font-black text-white">{followersAll.length}</span>
                           <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Seguidores</span>
                         </button>
                       </div>
@@ -4721,7 +4741,7 @@ export default function App() {
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-1 text-amber-400">
                             <Star size={12} fill="currentColor" />
-                            <span className="text-xs font-bold">{selectedPromo.businessStats?.rating || '4.8'}</span>
+                            <span className="text-xs font-bold">{(selectedPromo.businessStats?.rating ?? 4.8).toFixed(1)}</span>
                           </div>
                           <span className="text-zinc-500 text-xs">•</span>
                           <span className="text-zinc-400 text-xs font-medium">{selectedPromo.businessStats?.followers || '1.2k'} seguidores</span>
@@ -5675,12 +5695,13 @@ export default function App() {
         {showFriends && (
           <Modal onClose={() => { setShowFriends(null); setFriendSearch(''); }} title="Amigos en iogga">
             <div className="space-y-5">
-              {!currentUser || currentUser.isAnonymous ? (
-                <div className="text-center space-y-4 py-6">
-                  <p className="text-sm text-zinc-400">Crea tu cuenta para agregar amigos y que puedan sumarse a tus planes.</p>
-                  <button onClick={() => { setShowFriends(null); setIsRegistering(true); setShowLoginModal(true); }} className="w-full py-4 bg-iogga-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest">Crear cuenta gratis</button>
-                </div>
-              ) : (
+              {(!currentUser || currentUser.isAnonymous) && (
+                <button onClick={() => { setShowFriends(null); setIsRegistering(true); setShowLoginModal(true); }} className="w-full p-3 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/25 text-left flex items-center gap-2">
+                  <Shield size={16} className="text-iogga-primary shrink-0" />
+                  <span className="text-xs text-zinc-300 leading-snug">Explora la comunidad. <span className="text-iogga-primary font-black">Inicia sesión</span> para guardar tus amigos.</span>
+                </button>
+              )}
+              {(
                 <>
                   {/* Buscar usuarios para agregar */}
                   <div className="space-y-3">
@@ -5693,29 +5714,40 @@ export default function App() {
                         className="w-full h-14 pl-12 pr-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/25 outline-none focus:ring-2 focus:ring-iogga-primary text-sm font-medium"
                       />
                     </div>
-                    {friendResults.map(f => (
-                      <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
-                        {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
-                        <span className="text-sm font-bold text-white flex-1">{f.name}</span>
-                        <button onClick={() => toggleFollow(f)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all ${isFollowing(f.uid) ? 'bg-white/10 text-zinc-300' : 'bg-iogga-primary text-white'}`}>
-                          {isFollowing(f.uid) ? 'Siguiendo' : 'Agregar'}
-                        </button>
-                      </div>
-                    ))}
-                    {friendSearch.trim().length >= 2 && friendResults.length === 0 && (
-                      <p className="text-xs text-zinc-500 text-center py-2">Sin resultados. Invita a tus amigos a iogga por WhatsApp para que aparezcan aquí.</p>
-                    )}
+                    {/* Universo de iogga: todos (semilla + reales), foto, nombre y ranking */}
+                    {(() => {
+                      const q = friendSearch.trim().toLowerCase();
+                      const byId: Record<string, { uid: string; name: string; photo?: string | null; rating?: number }> = {};
+                      SEED_USERS.forEach(u => { byId[u.uid] = u; });
+                      friendResults.forEach(f => { if (!byId[f.uid]) byId[f.uid] = f; });
+                      let list = Object.values(byId);
+                      if (q) list = list.filter(u => u.name.toLowerCase().includes(q));
+                      return list.map(f => (
+                        <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
+                          {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-bold text-white block truncate">{f.name}</span>
+                            {typeof f.rating === 'number' && (
+                              <span className="text-[10px] text-yellow-500 font-bold flex items-center gap-0.5"><Star size={9} fill="currentColor" /> {f.rating.toFixed(1)}</span>
+                            )}
+                          </div>
+                          <button onClick={() => toggleFollow(f as Friend)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all ${isFollowing(f.uid) ? 'bg-white/10 text-zinc-300' : 'bg-iogga-primary text-white'}`}>
+                            {isFollowing(f.uid) ? 'Siguiendo' : 'Agregar'}
+                          </button>
+                        </div>
+                      ));
+                    })()}
                   </div>
 
                   {/* Pestañas */}
                   <div className="flex gap-2">
-                    <button onClick={() => setShowFriends('following')} className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${showFriends === 'following' ? 'bg-iogga-primary text-white' : 'bg-white/5 text-zinc-400'}`}>Amigos ({following.length})</button>
-                    <button onClick={() => setShowFriends('followers')} className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${showFriends === 'followers' ? 'bg-iogga-primary text-white' : 'bg-white/5 text-zinc-400'}`}>Seguidores ({followers.length})</button>
+                    <button onClick={() => setShowFriends('following')} className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${showFriends === 'following' ? 'bg-iogga-primary text-white' : 'bg-white/5 text-zinc-400'}`}>Amigos ({followingAll.length})</button>
+                    <button onClick={() => setShowFriends('followers')} className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${showFriends === 'followers' ? 'bg-iogga-primary text-white' : 'bg-white/5 text-zinc-400'}`}>Seguidores ({followersAll.length})</button>
                   </div>
 
                   {/* Lista */}
                   <div className="space-y-2">
-                    {(showFriends === 'following' ? following : followers).map(f => (
+                    {(showFriends === 'following' ? followingAll : followersAll).map(f => (
                       <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
                         {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
                         <span className="text-sm font-bold text-white flex-1">{f.name}</span>
@@ -5726,7 +5758,7 @@ export default function App() {
                         ) : null}
                       </div>
                     ))}
-                    {(showFriends === 'following' ? following : followers).length === 0 && (
+                    {(showFriends === 'following' ? followingAll : followersAll).length === 0 && (
                       <p className="text-xs text-zinc-500 text-center py-6">
                         {showFriends === 'following' ? 'Aún no tienes amigos. Búscalos arriba o invítalos por WhatsApp.' : 'Aún no tienes seguidores.'}
                       </p>
@@ -6590,7 +6622,7 @@ function UserProfileModal({ user, onClose, onComingSoon }: { user: Plan, onClose
               </div>
               <div className="bg-iogga-primary px-4 py-2 rounded-2xl flex items-center gap-1.5 shadow-lg shadow-iogga-primary/20">
                 <Star size={14} className="text-white fill-white" />
-                <span className="text-sm font-black text-white">{user.userStats?.rating || '5.0'}</span>
+                <span className="text-sm font-black text-white">{(user.userStats?.rating ?? 5).toFixed(1)}</span>
               </div>
             </div>
           </div>
@@ -6694,7 +6726,7 @@ function BusinessProfileModal({ business, onClose, appMode, onStartBusinessFlow,
             <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Seguidores</span>
           </div>
           <div className="p-4 rounded-3xl bg-white/5 border border-white/10 text-center">
-            <span className="text-2xl font-black text-white block">{business.businessStats?.rating || '5.0'}</span>
+            <span className="text-2xl font-black text-white block">{(business.businessStats?.rating ?? 5).toFixed(1)}</span>
             <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Rating</span>
           </div>
         </div>

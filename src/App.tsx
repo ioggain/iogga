@@ -778,6 +778,11 @@ export default function App() {
   // Al cerrar el modal de crear plan, apagar micrófono y voz.
   useEffect(() => {
     if (!showCreatePlan) { platicaCancel.current = true; abortListen(); try { window.speechSynthesis?.cancel(); } catch {} }
+    // Autorrellenar el nombre (firma) con lo que ya sabemos del usuario.
+    else if (!editingPlanId && !guestName.trim()) {
+      const known = (currentUser && !currentUser.isAnonymous ? currentUser.name : '') || userProfile.name || '';
+      if (known) setGuestName(known);
+    }
   }, [showCreatePlan]);
 
   // ---- Dictado por micrófono en cada paso: interpreta y selecciona/ajusta ----
@@ -3440,86 +3445,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* "Para ti": tu actividad personal (planes que aceptaste + ofertas
-                      según tus intereses). Solo tiene sentido en el perfil de persona. */}
-                  {mode === 'person' && (
-                  <div className="space-y-6 pt-4">
-                    <div className="px-2">
-                      <h3 className="text-lg font-bold text-white">Para ti</h3>
-                      <p className="text-xs text-zinc-500">Los planes a los que te uniste y ofertas según tus gustos</p>
-                    </div>
-
-                    {/* Sub-section: Planes */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between px-2">
-                        <p className="text-xs font-bold text-iogga-primary uppercase tracking-widest">Planes y Compromisos</p>
-                        <span className="text-xs text-zinc-500">{acceptedPlanIds.length} aceptados</span>
-                      </div>
-                      <div className="space-y-3">
-                        {/* Invitations (Not yet accepted/ignored) */}
-                        {plans.filter(p => !isMyPlan(p) && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id)).slice(0, 2).map(plan => (
-                          <div key={plan.id} className="p-4 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-between opacity-60">
-                            <div className="flex items-center gap-3">
-                              <img src={plan.userAvatar} className="w-8 h-8 rounded-full" />
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-bold text-white">Invitación de {plan.userName}</p>
-                                  <div className="flex items-center gap-0.5 text-yellow-500">
-                                    <Star size={8} fill="currentColor" />
-                                    <Star size={8} fill="currentColor" />
-                                    <Star size={8} fill="currentColor" />
-                                    <Star size={8} fill="currentColor" />
-                                    <Star size={8} className="opacity-30" />
-                                  </div>
-                                </div>
-                                <p className="text-xs text-zinc-500">{plan.activity}</p>
-                              </div>
-                            </div>
-                            <button onClick={() => handleAcceptPlan(plan.id)} className="p-2 bg-iogga-primary/20 text-iogga-primary rounded-full">
-                              <Plus size={16} />
-                            </button>
-                          </div>
-                        ))}
-
-                        {/* Accepted Plans */}
-                        {plans.filter(p => acceptedPlanIds.includes(p.id)).map(plan => (
-                          <div key={plan.id} className="p-4 rounded-3xl bg-iogga-primary/10 border border-iogga-primary/20 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-500">
-                                <CheckCircle2 size={20} />
-                              </div>
-                              <div>
-                                <p className="text-sm font-bold text-white">{plan.activity}</p>
-                                <p className="text-xs text-zinc-500">{plan.startTime} • {plan.location}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[8px] font-bold text-green-500 uppercase">Aceptada</span>
-                              <ChevronRight size={16} className="text-zinc-600" />
-                            </div>
-                          </div>
-                        ))}
-                        {acceptedPlanIds.length === 0 && plans.filter(p => !isMyPlan(p) && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id)).length === 0 && (
-                          <p className="text-xs text-zinc-500 px-2 italic text-center">No hay planes pendientes...</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Sub-section: Ofertas */}
-                    <div className="space-y-3">
-                      <p className="text-xs font-bold text-iogga-accent uppercase tracking-widest px-2">Ofertas Personalizadas</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        {promos.filter(p => {
-                          const userPlans = plans.filter(pl => isMyPlan(pl));
-                          const userTags = userPlans.flatMap(pl => pl.tags);
-                          return p.tags.some(t => userTags.includes(t)) || userPlans.length === 0;
-                        }).slice(0, 4).map(promo => (
-                          <PromoCard key={promo.id} promo={promo} onClick={() => setSelectedPromo(promo)} />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  )}
                 </div>
               </motion.div>
             )}
@@ -4171,24 +4096,20 @@ export default function App() {
                   )}
                 </AnimatePresence>
 
-                {/* Vista previa: así se leerá tu invitación (sin registrarte) */}
-                {currentPlanStep === 6 && newPlan.activity && (
-                  <div className="mt-4 p-4 rounded-[24px] bg-emerald-500/10 border border-emerald-500/20 space-y-1.5">
-                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Así se leerá tu invitación:</p>
-                    <p className="text-xs text-emerald-200 leading-relaxed italic">
-                      "{buildInviteMessage({
-                        ...(newPlan as Plan),
-                        id: 'preview',
-                        userName: currentUser && !currentUser.isAnonymous ? currentUser.name : (guestName.trim() || 'Tú'),
-                      } as Plan)}"
-                    </p>
-                  </div>
-                )}
-
                 <div className="flex gap-3 pt-4">
                   {currentPlanStep < 6 ? (
                     <button
-                      onClick={() => setCurrentPlanStep(currentPlanStep + 1)}
+                      onClick={() => {
+                        const next = currentPlanStep + 1;
+                        setCurrentPlanStep(next);
+                        // Si la plática está activa, córtala y arranca con la pregunta de la pantalla siguiente.
+                        if (platicaOn) {
+                          platicaCancel.current = true; abortListen(); try { window.speechSynthesis?.cancel(); } catch {}
+                          setPlaticaOn(false);
+                          setPlaticaFromStep(next);
+                          setTimeout(() => setPlaticaOn(true), 200);
+                        }
+                      }}
                       disabled={currentPlanStep === 0 && !newPlan.activity}
                       className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-base shadow-xl shadow-iogga-primary/20 active:scale-95 transition-transform disabled:opacity-50"
                     >
@@ -4199,7 +4120,7 @@ export default function App() {
                       onClick={() => { void handlePublishPlan(); }}
                       className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-base shadow-xl shadow-iogga-primary/20 active:scale-95 transition-transform"
                     >
-                      {editingPlanId ? 'Guardar Cambios' : 'Publicar y Enviar'}
+                      {editingPlanId ? 'Guardar Cambios' : 'Publicar y ver mi invitación'}
                     </button>
                   )}
                 </div>
@@ -5081,27 +5002,29 @@ export default function App() {
                   )}
                 </div>
 
-                {/* ── ASÍ SE VERÁ EN WHATSAPP (misma estructura que iogga) ── */}
+                {/* ── ASÍ SE VERÁ EN WHATSAPP (solo la vista previa dentro del cuadro) ── */}
                 <div className="rounded-[28px] border border-green-500/25 bg-green-500/5 overflow-hidden">
                   <div className="px-4 py-3 bg-green-500/15 flex items-center gap-2">
                     <MessageSquare size={16} className="text-green-400" />
                     <p className="text-base font-black text-white tracking-tight">Así se verá en WhatsApp</p>
                   </div>
-                  <div className="p-4 space-y-3">
+                  <div className="p-4">
                     <div className="rounded-2xl bg-[#0b141a] p-3">
                       <div className="max-w-[88%] ml-auto bg-[#005c4b] rounded-2xl rounded-tr-md px-3 py-2 shadow">
                         <p className="text-[13px] text-white whitespace-pre-line leading-snug">{inviteText(lastPublishedPlan)}</p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => sharePlanWhatsApp(lastPublishedPlan)}
-                      className="w-full py-4 bg-green-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
-                    >
-                      <UserPlus size={18} />
-                      Invitar por WhatsApp
-                    </button>
                   </div>
                 </div>
+
+                {/* El botón de WhatsApp va FUERA del cuadro (no es parte de la invitación) */}
+                <button
+                  onClick={() => sharePlanWhatsApp(lastPublishedPlan)}
+                  className="w-full py-4 bg-green-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                >
+                  <UserPlus size={18} />
+                  Invitar por WhatsApp
+                </button>
 
                 <button
                   onClick={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); maybeOfferInstall(); }}

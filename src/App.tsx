@@ -2875,8 +2875,8 @@ export default function App() {
                           <notif.icon size={24} className="shrink-0" />
                         </div>
 
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
+                        <div className="flex-1 min-w-0 pr-8">
+                          <div className="flex items-center justify-between mb-1 gap-2">
                             <h3 className={`font-black text-sm truncate ${notif.isRead ? 'text-zinc-400' : 'text-white'}`}>
                               {notif.title}
                             </h3>
@@ -2886,20 +2886,31 @@ export default function App() {
                             {notif.message}
                           </p>
                           
-                          {!notif.isRead && (
-                            <div className="mt-3 flex gap-2">
-                              <button onClick={() => comingSoon("Ver detalle del cliente")} className="px-3 py-1.5 bg-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white/20 transition-all">
-                                Ver detalle
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              onClick={() => { setActiveTab(mode === 'business' ? 'analytics' : 'active'); }}
+                              className="px-3 py-1.5 bg-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white/20 transition-all"
+                            >
+                              Ver detalle
+                            </button>
+                            {notif.category === 'plan' && (
+                              <button
+                                onClick={() => { setActiveTab(mode === 'business' ? 'analytics' : 'active'); }}
+                                className="px-3 py-1.5 bg-iogga-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-iogga-primary/20"
+                              >
+                                Abrir
                               </button>
-                              {notif.category === 'plan' && (
-                                <button onClick={() => comingSoon("Aceptar solicitud")} className="px-3 py-1.5 bg-iogga-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-iogga-primary/20">
-                                  Aceptar
-                                </button>
-                              )}
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
-                        <button onClick={() => comingSoon("Descartar")} className="absolute top-4 right-4 p-1.5 text-zinc-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100">
+                        {/* Cerrar con tachita SIEMPRE visible (pokayoke, además del deslizar) */}
+                        <button
+                          onClick={() => {
+                            if (mode === 'person') setNotificationsPerson(prev => prev.filter(n => n.id !== notif.id));
+                            else setNotificationsBusiness(prev => prev.filter(n => n.id !== notif.id));
+                          }}
+                          className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/10 text-zinc-300 hover:bg-white/20 hover:text-white transition-colors flex items-center justify-center border border-white/10"
+                        >
                           <X size={14} />
                         </button>
                       </motion.div>

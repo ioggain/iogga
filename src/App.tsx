@@ -1541,10 +1541,15 @@ export default function App() {
     // Momento clave: aceptar un plan requiere cuenta (explorar sigue siendo libre)
     ensureLoggedIn(() => {
       setAcceptedPlanIds(prev => (prev.includes(id) ? prev : [...prev, id]));
+      const plan = plans.find(p => p.id === id);
       if (currentUser) {
         void acceptPlanAs(id, currentUser, userProfile.photoURL);
       } else {
         void incrementPlanAccepted(id);
+      }
+      // Al unirte, si el creador dejó WhatsApp, abre el chat para coordinar.
+      if (plan?.whatsapp) {
+        window.open(waLink(plan.whatsapp, `¡Hola ${plan.userName}! Me uní a tu plan "${plan.activity}" en iogga. ¿Sigue en pie?`), '_blank');
       }
     });
   };
@@ -2296,6 +2301,11 @@ export default function App() {
                                 className="relative aspect-[4/5] rounded-[32px] overflow-hidden group shadow-2xl cursor-pointer border border-white/10"
                               >
                                 {plan.isSeed && <SeedTag />}
+                                {acceptedPlanIds.includes(plan.id) && (
+                                  <div className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-iogga-primary text-white flex items-center justify-center shadow-lg border-2 border-white/30" title="Ya estás unido">
+                                    <Check size={16} />
+                                  </div>
+                                )}
                                 <img src={plan.image || `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=400&q=80`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-4 flex flex-col justify-end">
                                   <div className="flex items-center gap-2 mb-2">
@@ -4672,6 +4682,17 @@ export default function App() {
                     </button>
                   </div>
                 ) : (
+                  acceptedPlanIds.includes(selectedPlanForDetails.id) ? (
+                    // Ya te uniste: confirmación clara (palomita morada) y salir.
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => setSelectedPlanForDetails(null)}
+                        className="w-full py-4 rounded-2xl bg-iogga-primary/15 text-iogga-primary border border-iogga-primary/40 font-black flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
+                      >
+                        <CheckCircle2 size={16} /> Ya estás unido
+                      </button>
+                    </div>
+                  ) : (
                   <div className="flex gap-4">
                     <button
                       onClick={() => {
@@ -4683,18 +4704,13 @@ export default function App() {
                       Ignorar
                     </button>
                     <button
-                      onClick={() => {
-                        handleAcceptPlan(selectedPlanForDetails.id);
-                        if (selectedPlanForDetails.whatsapp) {
-                          window.open(waLink(selectedPlanForDetails.whatsapp, `¡Hola ${selectedPlanForDetails.userName}! Me uní a tu plan "${selectedPlanForDetails.activity}" en iogga. ¿Sigue en pie?`), '_blank');
-                        }
-                        setSelectedPlanForDetails(null);
-                      }}
+                      onClick={() => handleAcceptPlan(selectedPlanForDetails.id)}
                       className="flex-[2] py-4 rounded-2xl bg-iogga-primary text-white font-black shadow-lg shadow-iogga-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-center flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
                     >
                       <CheckCircle2 size={16} /> Unirme al plan
                     </button>
                   </div>
+                  )
                 )}
               </div>
             </Modal>

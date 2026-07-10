@@ -2837,11 +2837,15 @@ export default function App() {
                           <p className="text-sm text-zinc-400 font-medium line-clamp-2 mb-6">{promo.description || "Sin descripción disponible"}</p>
                           {/* Métricas claras: la tienen en su plan · bajaron QR · lo canjearon */}
                           <div className="grid grid-cols-3 gap-2 pt-4 border-t border-white/5">
-                            <div className="flex flex-col items-center p-2 rounded-2xl bg-white/5">
+                            {/* En su plan: personas con planes relacionados (tocar para ver la lista) */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedPromoForMatches(promo); }}
+                              className="flex flex-col items-center p-2 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/20 active:scale-95 transition-all"
+                            >
                               <Users size={14} className="text-iogga-primary mb-1" />
-                              <span className="text-lg font-black text-white leading-none">{promo.realTimeSearchers}</span>
-                              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1 text-center leading-tight">En su plan</span>
-                            </div>
+                              <span className="text-lg font-black text-white leading-none">{getMatchingPlansForPromo(promo).length}</span>
+                              <span className="text-[9px] font-bold text-iogga-primary/80 uppercase tracking-wider mt-1 text-center leading-tight">En su plan</span>
+                            </button>
                             <div className="flex flex-col items-center p-2 rounded-2xl bg-white/5">
                               <QrCode size={14} className="text-iogga-accent mb-1" />
                               <span className="text-lg font-black text-white leading-none">{promo.qrScans}</span>

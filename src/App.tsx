@@ -1976,11 +1976,12 @@ export default function App() {
                           .filter(p => p.activity.toLowerCase().includes(searchQuery.toLowerCase()) || p.userName.toLowerCase().includes(searchQuery.toLowerCase()))
                           .map(plan => (
                             <div key={plan.id} className="space-y-2">
-                              <motion.div 
+                              <motion.div
                                 layout
                                 onClick={() => setSelectedInvitationId(selectedInvitationId === plan.id ? null : plan.id)}
-                                className={`p-4 rounded-[32px] border transition-all cursor-pointer ${selectedInvitationId === plan.id ? 'bg-zinc-900 border-iogga-primary shadow-xl' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                                className={`relative overflow-hidden p-4 rounded-[32px] border transition-all cursor-pointer ${selectedInvitationId === plan.id ? 'bg-zinc-900 border-iogga-primary shadow-xl' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
                               >
+                                {plan.isSeed && <SeedTag />}
                                 <div className="flex items-center gap-4">
                                   <div 
                                     className="relative cursor-pointer hover:scale-105 transition-transform"
@@ -2748,9 +2749,9 @@ export default function App() {
                           <div className="relative w-full h-48 shrink-0">
                             <img src={promo.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
                             
-                            {/* Top Left: View as Customer */}
-                            <div className="absolute top-4 left-4 z-10">
-                              <button 
+                            {/* Top Left: View as Customer + Compartir */}
+                            <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+                              <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setSelectedPromo(promo);
@@ -2759,6 +2760,13 @@ export default function App() {
                               >
                                 <Eye size={14} />
                                 Ver cómo
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); void sharePromo(promo); }}
+                                title="Compartir promoción"
+                                className="p-2 bg-iogga-accent/90 backdrop-blur-md rounded-2xl text-white hover:bg-iogga-accent transition-all border border-white/20 shadow-2xl"
+                              >
+                                <Send size={14} />
                               </button>
                             </div>
 

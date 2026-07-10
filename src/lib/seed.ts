@@ -65,14 +65,14 @@ const rawPlans: SeedPlan[] = [
   {
     id: 's_cine', av: 3, userName: 'Ana', activity: 'Estreno en el cine — la nueva de terror',
     dateLabel: 'hoy', startTime: '21:30', endTime: '23:30', location: 'Cinépolis Fashion Mall',
-    budget: 'split', transport: 'each-arrives', guests: 'public', acceptedCount: 5, isPublic: true,
+    budget: 'split', transport: 'each-arrives', guests: 'public', acceptedCount: 5, isPublic: true, isInvitation: true,
     timestamp: mins(20), tags: ['cine', 'estreno', 'película', 'terror'],
     image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=800&q=80',
   },
   {
     id: 's_after', av: 4, userName: 'Paulina', activity: 'After office — unas chelas saliendo del trabajo',
     dateLabel: 'hoy', startTime: '18:30', endTime: '21:00', location: 'Distrito 1 Uno',
-    budget: 'split', transport: 'each-arrives', guests: 'public', acceptedCount: 9, isPublic: true,
+    budget: 'split', transport: 'each-arrives', guests: 'public', acceptedCount: 9, isPublic: true, isInvitation: true,
     timestamp: mins(8), tags: ['after', 'cerveza', 'bar', 'social'],
     image: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=800&q=80',
     comment: 'Los primeros que lleguen agarramos mesa.',
@@ -137,7 +137,7 @@ const rawPlans: SeedPlan[] = [
   {
     id: 's_tacos', av: 6, userName: 'Beto', activity: 'Tacos y cheve en la noche',
     dateLabel: 'hoy', startTime: '21:00', endTime: '23:00', location: 'Tacos El Poblano',
-    budget: 'split', transport: 'each-arrives', guests: 'public', acceptedCount: 6, isPublic: true,
+    budget: 'split', transport: 'each-arrives', guests: 'public', acceptedCount: 6, isPublic: true, isInvitation: true,
     timestamp: mins(18), tags: ['tacos', 'comida', 'cena', 'cerveza', 'noche'],
     image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=800&q=80',
   },

@@ -415,6 +415,88 @@ function MicButton({ onText, tone = 'primary', inline = false }: { onText: (t: s
   );
 }
 
+// ---- Imagen de ESTADO (WhatsApp/Instagram): 9:16 con logo, plan y URL ----
+async function buildStatusImage(plan: { activity: string; dateLabel?: string; startTime: string; endTime: string; location: string; image?: string }): Promise<string> {
+  const W = 1080, H = 1920;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d')!;
+
+  // Fondo: foto del plan (si carga) oscurecida, o degradado de marca
+  const drawBg = async () => {
+    if (plan.image) {
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(); img.src = plan.image!; });
+        const scale = Math.max(W / img.width, H / img.height);
+        ctx.drawImage(img, (W - img.width * scale) / 2, (H - img.height * scale) / 2, img.width * scale, img.height * scale);
+        ctx.fillStyle = 'rgba(9,9,11,0.72)';
+        ctx.fillRect(0, 0, W, H);
+        return;
+      } catch { /* sigue al degradado */ }
+    }
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, '#1e1b4b'); g.addColorStop(0.5, '#09090b'); g.addColorStop(1, '#134e4a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  };
+  await drawBg();
+
+  ctx.textAlign = 'center';
+  // Marca
+  ctx.fillStyle = '#a5b4fc';
+  ctx.font = '900 130px Quicksand, sans-serif';
+  ctx.fillText('iogga', W / 2, 360);
+  // Actividad (el corazón), con saltos de línea simples
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 92px Quicksand, sans-serif';
+  const words = (plan.activity || 'Un plan espontáneo').split(' ');
+  const lines: string[] = [];
+  let line = '';
+  for (const w of words) {
+    if ((line + ' ' + w).trim().length > 18) { lines.push(line.trim()); line = w; } else line += ' ' + w;
+  }
+  if (line.trim()) lines.push(line.trim());
+  lines.slice(0, 4).forEach((l, i) => ctx.fillText(l, W / 2, 640 + i * 110));
+  // Cuándo y dónde
+  ctx.fillStyle = '#d4d4d8';
+  ctx.font = '700 56px Quicksand, sans-serif';
+  const hasEnd = plan.endTime && plan.endTime !== '00:00';
+  const when = [plan.dateLabel, plan.startTime && plan.startTime !== '00:00' ? (hasEnd ? `de ${plan.startTime} a ${plan.endTime}` : `a las ${plan.startTime}`) : ''].filter(Boolean).join(' ');
+  if (when) ctx.fillText(when, W / 2, 1130);
+  if (plan.location) ctx.fillText(`📍 ${plan.location}`, W / 2, 1220);
+  // Frase de invitación a la app
+  ctx.fillStyle = '#6366f1';
+  ctx.font = '900 64px Quicksand, sans-serif';
+  ctx.fillText('Coincide con los que amas 💜', W / 2, 1480);
+  // URL real de la app
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '700 58px Quicksand, sans-serif';
+  ctx.fillText(window.location.host, W / 2, 1600);
+  ctx.fillStyle = '#71717a';
+  ctx.font = '600 40px Quicksand, sans-serif';
+  ctx.fillText('la app para salir del móvil y vivir lo espontáneo', W / 2, 1690);
+
+  return canvas.toDataURL('image/png');
+}
+
+// Compartir el estado: imagen + link (nativo si se puede; si no, descarga + WhatsApp)
+async function shareStatusImage(dataUrl: string, link: string) {
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const file = new File([blob], 'iogga-estado.png', { type: 'image/png' });
+    const nav: any = navigator;
+    if (nav.canShare && nav.canShare({ files: [file] })) {
+      await nav.share({ files: [file], text: `Coincide con los que amas 💜 ${link}` });
+      return;
+    }
+  } catch { /* cae al respaldo */ }
+  // Respaldo: descargar la imagen y abrir WhatsApp con el link
+  const a = document.createElement('a');
+  a.href = dataUrl; a.download = 'iogga-estado.png'; a.click();
+  window.open(`https://wa.me/?text=${encodeURIComponent(`Coincide con los que amas 💜 ${link}`)}`, '_blank');
+}
+
 // Etiqueta "Prueba" para distinguir datos ficticios (esquina, sin mover el diseño).
 function SeedTag() {
   return (
@@ -839,16 +921,17 @@ export default function App() {
     if (val) setNewPlan(p => ({ ...p, transport: val as any }));
   };
 
-  // Par de iconos de voz para un paso: ondas = platícalo desde aquí; micro = dictar.
+  // Par de iconos de voz para un paso: ondas = platícalo desde aquí (o detener); micro = dictar.
   const VoicePair = ({ step, onDicta, tone = 'primary' }: { step: number; onDicta?: (t: string) => void; tone?: 'primary' | 'accent' }) => (
     <div className="flex items-center gap-1.5 shrink-0">
       <button
         type="button"
-        onClick={() => startPlaticaAt(step)}
-        title="Platícalo por voz desde aquí"
-        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${tone === 'accent' ? 'bg-iogga-accent/15 text-iogga-accent hover:bg-iogga-accent/25' : 'bg-iogga-primary/15 text-iogga-primary hover:bg-iogga-primary/25'}`}
+        onClick={() => { if (platicaOn) { setPlaticaOn(false); } else { startPlaticaAt(step); } }}
+        title={platicaOn ? 'Detener la plática' : 'Platícalo por voz desde aquí'}
+        className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${platicaOn ? 'bg-iogga-primary text-white' : tone === 'accent' ? 'bg-iogga-accent/15 text-iogga-accent hover:bg-iogga-accent/25' : 'bg-iogga-primary/15 text-iogga-primary hover:bg-iogga-primary/25'}`}
       >
-        <AudioLines size={16} />
+        {platicaOn && <span className="absolute inset-0 rounded-full bg-iogga-primary/40 animate-ping" />}
+        <AudioLines size={16} className="relative z-10" />
       </button>
       {onDicta && <MicButton inline tone={tone} onText={onDicta} />}
     </div>
@@ -1172,6 +1255,14 @@ export default function App() {
   const [pendingFriendIds, setPendingFriendIds] = useState<string[]>([]);
   const [ioggaSent, setIoggaSent] = useState(false); // palomita "Enviado" en la pantalla final
   const [invitePreviewMore, setInvitePreviewMore] = useState(false); // "ver más" amigos en la pantalla final
+  const [statusImg, setStatusImg] = useState<string | null>(null); // imagen 9:16 para el estado
+  // Generar la imagen del estado cuando se abre "Revisa y publica"
+  useEffect(() => {
+    if (showMatchCelebration && lastPublishedPlan) {
+      setStatusImg(null);
+      void buildStatusImage(lastPublishedPlan).then(setStatusImg).catch(() => setStatusImg(null));
+    }
+  }, [showMatchCelebration, lastPublishedPlan?.id]);
   const [realNotifs, setRealNotifs] = useState<AppNotif[]>([]);
   const [invitePlan, setInvitePlan] = useState<Plan | null>(null); // ventana "invitar en iogga / WhatsApp"
   const [inviteSel, setInviteSel] = useState<string[]>([]); // amigos elegidos para invitar a ese plan
@@ -3941,8 +4032,8 @@ export default function App() {
                         <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => startPlaticaAt(0)}
-                            title="Platícalo por voz"
+                            onClick={() => { if (platicaOn) setPlaticaOn(false); else startPlaticaAt(0); }}
+                            title={platicaOn ? 'Detener la plática' : 'Platícalo por voz'}
                             className="w-9 h-9 rounded-full flex items-center justify-center bg-iogga-primary/15 text-iogga-primary hover:bg-iogga-primary/25 transition-all active:scale-90"
                           >
                             <AudioLines size={16} />
@@ -5272,7 +5363,7 @@ export default function App() {
             <Modal onClose={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); }} title="Revisa y publica">
               <div className="space-y-6">
 
-                {/* ── ASÍ SE VERÁ EN IOGGA (título dentro de la caja, estandarizado) ── */}
+                {/* ── CAJA IOGGA: vista previa + invitados + botón, TODO adentro ── */}
                 <div className="rounded-[28px] border border-iogga-primary/25 bg-iogga-primary/5 overflow-hidden">
                   <div className="px-4 py-3 bg-iogga-primary/15 flex items-center gap-2">
                     <Sparkles size={16} className="text-iogga-primary" />
@@ -5287,91 +5378,110 @@ export default function App() {
                     <div className="rounded-[28px] overflow-hidden pointer-events-none select-none">
                       <PlanCard plan={lastPublishedPlan} />
                     </div>
+
+                    {/* Invitados de iogga (dentro de la misma caja) */}
+                    <p className="text-xs font-black text-iogga-primary uppercase tracking-widest">Enviar a amigos de iogga</p>
+                    {!isLoggedIn ? (
+                      <div className="space-y-3">
+                        <p className="text-xs text-zinc-400 leading-relaxed">Inicia sesión para ver si conoces gente dentro de iogga y enviarles tu plan al instante.</p>
+                        <button
+                          onClick={() => setShowLoginModal(true)}
+                          className="w-full py-4 bg-iogga-primary text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-iogga-primary/20"
+                        >
+                          Iniciar sesión
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        {following.length > 0 ? (
+                          <>
+                            <div className="space-y-2">
+                              {(invitePreviewMore ? following : following.slice(0, 5)).map(f => {
+                                const sel = pendingFriendIds.includes(f.uid);
+                                return (
+                                  <button
+                                    key={f.uid}
+                                    onClick={() => setPendingFriendIds(prev => sel ? prev.filter(id => id !== f.uid) : [...prev, f.uid])}
+                                    className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border transition-all ${sel ? 'bg-iogga-primary/15 border-iogga-primary/40' : 'bg-white/5 border-white/10'}`}
+                                  >
+                                    {f.photo ? <img src={f.photo} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white">{f.name.charAt(0).toUpperCase()}</div>}
+                                    <span className="text-sm text-white flex-1 text-left">{f.name}</span>
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${sel ? 'bg-iogga-primary text-white' : 'border-2 border-white/20'}`}>
+                                      {sel && <Check size={14} />}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            {following.length > 5 && (
+                              <button onClick={() => setInvitePreviewMore(v => !v)} className="text-[11px] font-black text-iogga-primary">
+                                {invitePreviewMore ? 'Ver menos' : `Ver más (${following.length - 5})`}
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-xs text-zinc-400 leading-relaxed">Aún no tienes amigos en iogga. <button onClick={() => setShowFriends('following')} className="text-iogga-primary font-bold underline">Agrégalos aquí</button> o compártelo abajo 👇</p>
+                        )}
+                        <button
+                          onClick={() => {
+                            notifyPendingFriends(lastPublishedPlan);
+                            setIoggaSent(true);
+                          }}
+                          disabled={pendingFriendIds.length === 0 || ioggaSent}
+                          className={`w-full py-4 rounded-[24px] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${ioggaSent ? 'bg-green-500/20 text-green-300 border border-green-400/30' : pendingFriendIds.length === 0 ? 'bg-white/5 text-zinc-600 border border-white/10' : 'bg-iogga-primary text-white shadow-lg shadow-iogga-primary/20 active:scale-95'}`}
+                        >
+                          {ioggaSent ? <><Check size={18} /> Enviado</> : <><Send size={18} /> Enviar en iogga {pendingFriendIds.length > 0 ? `(${pendingFriendIds.length})` : ''}</>}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                {/* ── Agregar amigos en iogga ── */}
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                  <p className="text-base font-black text-white tracking-tight">Agregar amigos en iogga</p>
-                  {!isLoggedIn ? (
-                    <div className="space-y-3">
-                      <p className="text-xs text-zinc-400 leading-relaxed">Inicia sesión para ver si conoces gente dentro de iogga y enviarles tu plan al instante.</p>
-                      <button
-                        onClick={() => setShowLoginModal(true)}
-                        className="w-full py-3 bg-iogga-primary/15 text-iogga-primary border border-iogga-primary/25 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
-                      >
-                        Iniciar sesión
-                      </button>
-                    </div>
-                  ) : following.length > 0 ? (
-                    <>
-                      <div className="space-y-2">
-                        {(invitePreviewMore ? following : following.slice(0, 5)).map(f => {
-                          const sel = pendingFriendIds.includes(f.uid);
-                          return (
-                            <button
-                              key={f.uid}
-                              onClick={() => setPendingFriendIds(prev => sel ? prev.filter(id => id !== f.uid) : [...prev, f.uid])}
-                              className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border transition-all ${sel ? 'bg-iogga-primary/15 border-iogga-primary/40' : 'bg-white/5 border-white/10'}`}
-                            >
-                              {f.photo ? <img src={f.photo} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white">{f.name.charAt(0).toUpperCase()}</div>}
-                              <span className="text-sm text-white flex-1 text-left">{f.name}</span>
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${sel ? 'bg-iogga-primary text-white' : 'border-2 border-white/20'}`}>
-                                {sel && <Check size={14} />}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {following.length > 5 && (
-                        <button onClick={() => setInvitePreviewMore(v => !v)} className="text-[11px] font-black text-iogga-primary">
-                          {invitePreviewMore ? 'Ver menos' : `Ver más (${following.length - 5})`}
-                        </button>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-xs text-zinc-400 leading-relaxed">
-                      Aún no tienes amigos en iogga. Compártelo por WhatsApp aquí abajo 👇
-                    </p>
-                  )}
-
-                  {isLoggedIn && following.length > 0 && (
-                    <button
-                      onClick={() => {
-                        notifyPendingFriends(lastPublishedPlan);
-                        setIoggaSent(true);
-                      }}
-                      disabled={pendingFriendIds.length === 0 || ioggaSent}
-                      className={`w-full py-4 rounded-[24px] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${ioggaSent ? 'bg-green-500/20 text-green-300 border border-green-400/30' : pendingFriendIds.length === 0 ? 'bg-white/5 text-zinc-600 border border-white/10' : 'bg-iogga-primary text-white shadow-lg shadow-iogga-primary/20 active:scale-95'}`}
-                    >
-                      {ioggaSent ? <><Check size={18} /> Enviado</> : <><Send size={18} /> Enviar {pendingFriendIds.length > 0 ? `(${pendingFriendIds.length})` : 'en iogga'}</>}
-                    </button>
-                  )}
-                </div>
-
-                {/* ── ASÍ SE VERÁ EN WHATSAPP (solo la vista previa dentro del cuadro) ── */}
+                {/* ── CAJA WHATSAPP: vista previa + botón, TODO adentro ── */}
                 <div className="rounded-[28px] border border-green-500/25 bg-green-500/5 overflow-hidden">
                   <div className="px-4 py-3 bg-green-500/15 flex items-center gap-2">
                     <MessageSquare size={16} className="text-green-400" />
                     <p className="text-base font-black text-white tracking-tight">Así se verá en WhatsApp</p>
                   </div>
-                  <div className="p-4">
+                  <div className="p-4 space-y-3">
                     <div className="rounded-2xl bg-[#0b141a] p-3">
                       <div className="max-w-[88%] ml-auto bg-[#005c4b] rounded-2xl rounded-tr-md px-3 py-2 shadow">
                         <p className="text-[13px] text-white whitespace-pre-line leading-snug">{inviteText(lastPublishedPlan)}</p>
                       </div>
                     </div>
+                    <button
+                      onClick={() => sharePlanWhatsApp(lastPublishedPlan)}
+                      className="w-full py-4 bg-green-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                    >
+                      <UserPlus size={18} />
+                      Invitar por WhatsApp
+                    </button>
                   </div>
                 </div>
 
-                {/* El botón de WhatsApp va FUERA del cuadro (no es parte de la invitación) */}
-                <button
-                  onClick={() => sharePlanWhatsApp(lastPublishedPlan)}
-                  className="w-full py-4 bg-green-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
-                >
-                  <UserPlus size={18} />
-                  Invitar por WhatsApp
-                </button>
+                {/* ── CAJA ESTADO: imagen 9:16 para WhatsApp/Instagram + botón adentro ── */}
+                <div className="rounded-[28px] border border-fuchsia-500/25 bg-fuchsia-500/5 overflow-hidden">
+                  <div className="px-4 py-3 bg-fuchsia-500/15 flex items-center gap-2">
+                    <Camera size={16} className="text-fuchsia-400" />
+                    <p className="text-base font-black text-white tracking-tight">Así se verá en tu estado</p>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {statusImg ? (
+                      <img src={statusImg} className="w-40 mx-auto rounded-2xl border border-white/10 shadow-2xl" alt="Estado iogga" />
+                    ) : (
+                      <div className="w-40 h-72 mx-auto rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-500 text-xs">Generando…</div>
+                    )}
+                    <p className="text-[11px] text-zinc-400 text-center leading-snug">Súbela a tu estado de WhatsApp o Instagram: lleva tu plan, el logo y el link de iogga.</p>
+                    <button
+                      onClick={() => { if (statusImg) void shareStatusImage(statusImg, `${window.location.origin}/?inv=${lastPublishedPlan.id}`); }}
+                      disabled={!statusImg}
+                      className="w-full py-4 bg-fuchsia-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-fuchsia-500/20 flex items-center justify-center gap-2 disabled:opacity-40"
+                    >
+                      <Camera size={18} />
+                      Compartir en tu estado
+                    </button>
+                  </div>
+                </div>
 
                 <button
                   onClick={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); maybeOfferInstall(); }}

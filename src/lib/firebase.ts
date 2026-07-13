@@ -498,6 +498,30 @@ export async function acceptPlanAs(planId: string, user: AuthUser, photoURL?: st
   }).catch(() => {});
 }
 
+// ---- Calificaciones (modelo tipo Uber: promedio bayesiano, justo con pocos votos) ----
+// Se guardan sum y count en el doc del usuario; el promedio visible se pondera
+// con un "prior" para que 1 mala calificación temprana no te hunda.
+export const RATING_PRIOR_MEAN = 4.7; // arranque amable
+export const RATING_PRIOR_WEIGHT = 5; // equivale a 5 votos "prior"
+export function bayesianRating(sum = 0, count = 0): number {
+  return (RATING_PRIOR_MEAN * RATING_PRIOR_WEIGHT + sum) / (RATING_PRIOR_WEIGHT + count);
+}
+// Sumar una calificación (1..5) a un usuario.
+export async function rateUser(uid: string, stars: number): Promise<void> {
+  if (!db || !uid) return;
+  const s = Math.max(1, Math.min(5, Math.round(stars)));
+  await setDoc(doc(db, 'users', uid), { ratingSum: increment(s), ratingCount: increment(1) }, { merge: true }).catch(() => {});
+}
+// Leer sum/count de un usuario para mostrar su estrella.
+export async function fetchUserRating(uid: string): Promise<{ sum: number; count: number }> {
+  if (!db || !uid) return { sum: 0, count: 0 };
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    const x = (snap.data() as any) || {};
+    return { sum: x.ratingSum || 0, count: x.ratingCount || 0 };
+  } catch { return { sum: 0, count: 0 }; }
+}
+
 // Guardar el perfil de negocio dentro del documento del usuario
 export async function saveBusinessProfile(uid: string, business: BusinessProfile): Promise<void> {
   if (!db) return;

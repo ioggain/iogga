@@ -73,6 +73,8 @@ import {
   resetPassword,
   loginWithGoogle,
   completeGoogleRedirect,
+  rateUser,
+  bayesianRating,
   ensureAnonSession,
   logoutUser,
   authErrorMessage,
@@ -1063,6 +1065,30 @@ export default function App() {
     return d.getTime();
   };
   const isExpiredPlan = (p: Plan) => !p.isSeed && Date.now() > planEndMs(p);
+
+  // ---- Calificar al anfitrión al terminar el plan (se dispara con la hora de cierre) ----
+  const [ratedPlanIds, setRatedPlanIds] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('iogga_rated') || '[]'); } catch { return []; }
+  });
+  const [pendingRating, setPendingRating] = useState<Plan | null>(null);
+  useEffect(() => {
+    if (!currentUser || pendingRating) return;
+    // De los planes a los que me uní, ¿alguno ya cerró y aún no califico al anfitrión?
+    const toRate = plans.find(p =>
+      acceptedPlanIds.includes(p.id) && p.uid && p.uid !== currentUser.uid &&
+      isExpiredPlan(p) && !ratedPlanIds.includes(p.id)
+    );
+    if (toRate) setPendingRating(toRate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plans, acceptedPlanIds, currentUser?.uid, ratedPlanIds, pendingRating]);
+  const submitRating = (plan: Plan, stars: number) => {
+    if (plan.uid) void rateUser(plan.uid, stars);
+    const next = [...ratedPlanIds, plan.id];
+    setRatedPlanIds(next);
+    try { localStorage.setItem('iogga_rated', JSON.stringify(next)); } catch {}
+    setPendingRating(null);
+  };
+
   // ¿Este plan es una invitación PARA MÍ? (de prueba, o me agregaron como invitado)
   const isInviteForMe = (p: Plan) => !isMyPlan(p) && (!!p.isInvitation || (!!currentUser && !!p.invitedUids?.includes(currentUser.uid)));
   // Vivo = no borrado y no caducado. Es el filtro de TODAS las vistas públicas.
@@ -3669,7 +3695,7 @@ export default function App() {
                       <h2 className="text-lg font-black text-white flex items-center gap-2">
                         {currentUser?.name || GUEST_NAME}
                         {currentUser && !currentUser.isAnonymous && (
-                          <span className="text-[11px] text-yellow-500 font-bold flex items-center gap-0.5"><Star size={11} fill="currentColor" /> 4.8</span>
+                          <span className="text-[11px] text-yellow-500 font-bold flex items-center gap-0.5"><Star size={11} fill="currentColor" /> {bayesianRating((userProfile as any).ratingSum, (userProfile as any).ratingCount).toFixed(1)}</span>
                         )}
                       </h2>
                       <p className="text-zinc-500 text-xs">@{(currentUser?.name || GUEST_NAME).toLowerCase().replace(/\s+/g, '')}</p>
@@ -6234,6 +6260,29 @@ export default function App() {
                   </div>
                 </>
               )}
+            </div>
+          </Modal>
+        )}
+
+        {/* Calificar al anfitrión al terminar el plan (peer rating, justo) */}
+        {pendingRating && (
+          <Modal onClose={() => setPendingRating(null)} title="¿Qué tal estuvo el plan?">
+            <div className="space-y-5 text-center">
+              <img src={pendingRating.userAvatar} className="w-20 h-20 rounded-full object-cover mx-auto border-2 border-white/10" referrerPolicy="no-referrer" />
+              <div>
+                <p className="text-sm text-zinc-400">Califica a</p>
+                <h3 className="text-xl font-black text-white">{pendingRating.userName}</h3>
+                <p className="text-xs text-zinc-500 mt-1">por "{pendingRating.activity}"</p>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                {[1, 2, 3, 4, 5].map(s => (
+                  <button key={s} onClick={() => submitRating(pendingRating, s)} className="p-1 active:scale-90 transition-transform text-yellow-500 hover:scale-110" title={`${s} estrellas`}>
+                    <Star size={38} fill="currentColor" />
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-zinc-500">Toca una estrella. Tu opinión ayuda a que iogga sea confiable.</p>
+              <button onClick={() => setPendingRating(null)} className="w-full py-2.5 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Ahora no</button>
             </div>
           </Modal>
         )}

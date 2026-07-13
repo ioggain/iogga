@@ -789,13 +789,34 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [platicaOn]);
 
+  // Borrador de plan: nunca se pierde nada sin preguntar
+  const [askDraft, setAskDraft] = useState(false);
+  const closeCreatePlan = () => {
+    setShowCreatePlan(false);
+    setEditingPlanId(null);
+    setCurrentPlanStep(0);
+    setNewPlan({ activity: '', startTime: '09:00', endTime: '12:00', location: '', budget: 'split', budgetAmount: '', transport: 'each-arrives', transportNote: '', guests: 'public', isPublic: true, image: undefined });
+  };
+
   // Al cerrar el modal de crear plan, apagar micrófono y voz.
   useEffect(() => {
-    if (!showCreatePlan) { platicaCancel.current = true; abortListen(); try { window.speechSynthesis?.cancel(); } catch {} }
-    // Autorrellenar el nombre (firma) con lo que ya sabemos del usuario.
-    else if (!editingPlanId && !guestName.trim()) {
-      const known = (currentUser && !currentUser.isAnonymous ? currentUser.name : '') || userProfile.name || '';
-      if (known) setGuestName(known);
+    if (!showCreatePlan) { platicaCancel.current = true; abortListen(); try { window.speechSynthesis?.cancel(); } catch {} setAskDraft(false); }
+    else if (!editingPlanId) {
+      // ¿Hay borrador guardado? Recuperarlo para continuar donde iba.
+      try {
+        const raw = localStorage.getItem('iogga_plan_draft');
+        if (raw && !newPlan.activity) {
+          const d = JSON.parse(raw);
+          if (d?.plan) { setNewPlan(d.plan); setCurrentPlanStep(d.step || 0); if (d.guestName) setGuestName(d.guestName); }
+          localStorage.removeItem('iogga_plan_draft');
+          triggerBeta('Borrador recuperado', 'Continuamos donde te quedaste. Si quieres empezar de cero, borra los campos.');
+        }
+      } catch {}
+      // Autorrellenar el nombre (firma) con lo que ya sabemos del usuario.
+      if (!guestName.trim()) {
+        const known = (currentUser && !currentUser.isAnonymous ? currentUser.name : '') || userProfile.name || '';
+        if (known) setGuestName(known);
+      }
     }
   }, [showCreatePlan]);
 
@@ -2036,6 +2057,13 @@ export default function App() {
                                 className={`relative overflow-hidden p-4 rounded-[32px] border transition-all cursor-pointer ${selectedInvitationId === plan.id ? 'bg-zinc-900 border-iogga-primary shadow-xl' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
                               >
                                 {plan.isSeed && <SeedTag />}
+                                {/* Tachita: descartar la invitación desde la tarjeta (pokayoke, como en notificaciones) */}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleIgnorePlan(plan.id); }}
+                                  className="absolute top-3 right-3 z-20 w-7 h-7 rounded-full bg-white/10 text-zinc-300 hover:bg-white/20 hover:text-white transition-colors flex items-center justify-center border border-white/10"
+                                >
+                                  <X size={14} />
+                                </button>
                                 <div className="flex items-center gap-4">
                                   <div 
                                     className="relative cursor-pointer hover:scale-105 transition-transform"
@@ -3814,28 +3842,45 @@ export default function App() {
         {/* Modals */}
         <AnimatePresence>
           {showCreatePlan && (
-            <Modal 
+            <Modal
               onClose={() => {
-                setShowCreatePlan(false);
-                setEditingPlanId(null);
-                setCurrentPlanStep(0);
-                setNewPlan({
-                  activity: '',
-                  startTime: '09:00',
-                  endTime: '12:00',
-                  location: '',
-                  budget: 'split',
-                  budgetAmount: '',
-                  transport: 'each-arrives',
-                  transportNote: '',
-                  guests: 'public',
-                  isPublic: true,
-                  image: undefined
-                });
-              }} 
+                // Pokayoke: si ya escribió algo, preguntar antes de perderlo
+                if (!editingPlanId && (newPlan.activity || newPlan.location || newPlan.comment)) {
+                  setAskDraft(true);
+                  return;
+                }
+                closeCreatePlan();
+              }}
               onBack={currentPlanStep > 0 ? () => setCurrentPlanStep(currentPlanStep - 1) : undefined}
               title={editingPlanId ? "Editar Plan" : "Crear Plan"}
             >
+              {/* ¿Guardar borrador? — nunca se pierde nada sin preguntar */}
+              {askDraft && (
+                <div className="mb-5 p-5 rounded-3xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                  <p className="text-sm font-black text-white">¿Guardamos tu plan como borrador?</p>
+                  <p className="text-xs text-zinc-400">Podrás continuarlo la próxima vez que toques +.</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { try { localStorage.setItem('iogga_plan_draft', JSON.stringify({ plan: newPlan, step: currentPlanStep, guestName })); } catch {} setAskDraft(false); closeCreatePlan(); triggerBeta('Borrador guardado', 'Tu plan te espera: toca + para continuarlo.'); }}
+                      className="flex-1 py-3 rounded-2xl bg-iogga-primary text-white text-[11px] font-black uppercase tracking-widest active:scale-95"
+                    >
+                      Guardar borrador
+                    </button>
+                    <button
+                      onClick={() => { try { localStorage.removeItem('iogga_plan_draft'); } catch {} setAskDraft(false); closeCreatePlan(); }}
+                      className="flex-1 py-3 rounded-2xl bg-white/5 border border-white/10 text-zinc-400 text-[11px] font-black uppercase tracking-widest active:scale-95"
+                    >
+                      Descartar
+                    </button>
+                    <button
+                      onClick={() => setAskDraft(false)}
+                      className="flex-1 py-3 rounded-2xl bg-white/5 border border-white/10 text-white text-[11px] font-black uppercase tracking-widest active:scale-95"
+                    >
+                      Seguir editando
+                    </button>
+                  </div>
+                </div>
+              )}
               {/* Platica por voz: la app pregunta y tú respondes hablando */}
               {platicaOn && (
                 <div className="mb-5 p-5 rounded-3xl bg-iogga-primary/10 border border-iogga-primary/30 text-center space-y-3">
@@ -4302,25 +4347,37 @@ export default function App() {
                       className="space-y-6"
                     >
                       <label className="text-lg font-bold text-white block">Dale un toque visual</label>
-                      <button
-                        onClick={async () => {
-                          const img = await pickImage(900);
-                          if (img) setNewPlan({...newPlan, image: img});
-                        }}
-                        className="w-full aspect-video rounded-3xl bg-white/5 flex flex-col items-center justify-center border-2 border-dashed border-white/10 text-zinc-500 overflow-hidden relative group"
-                      >
-                        {newPlan.image ? (
-                          <img src={newPlan.image} className="w-full h-full object-cover" />
-                        ) : (
-                          <>
-                            <PlusCircle size={32} />
-                            <p className="text-xs mt-2 font-bold uppercase tracking-widest">Subir Foto</p>
-                          </>
+                      <div className="relative">
+                        <button
+                          onClick={async () => {
+                            const img = await pickImage(900);
+                            if (img) setNewPlan({...newPlan, image: img});
+                          }}
+                          className="w-full aspect-video rounded-3xl bg-white/5 flex flex-col items-center justify-center border-2 border-dashed border-white/10 text-zinc-500 overflow-hidden relative group"
+                        >
+                          {newPlan.image ? (
+                            <img src={newPlan.image} className="w-full h-full object-cover" />
+                          ) : (
+                            <>
+                              <PlusCircle size={32} />
+                              <p className="text-xs mt-2 font-bold uppercase tracking-widest">Subir Foto</p>
+                            </>
+                          )}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="text-xs font-bold text-white uppercase tracking-widest">{newPlan.image ? 'Cambiar Foto' : 'Subir Foto'}</span>
+                          </div>
+                        </button>
+                        {/* Botecito sobre la foto: otra forma pokayoke de quitarla */}
+                        {newPlan.image && (
+                          <button
+                            onClick={() => setNewPlan({...newPlan, image: undefined})}
+                            title="Quitar foto"
+                            className="absolute top-3 right-3 w-9 h-9 rounded-full bg-red-500/90 text-white flex items-center justify-center shadow-xl border border-white/20 active:scale-90 transition-all z-10"
+                          >
+                            <Trash2 size={15} />
+                          </button>
                         )}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <span className="text-xs font-bold text-white uppercase tracking-widest">{newPlan.image ? 'Cambiar Foto' : 'Subir Foto'}</span>
-                        </div>
-                      </button>
+                      </div>
                       {newPlan.image && (
                         <button
                           onClick={() => setNewPlan({...newPlan, image: undefined})}

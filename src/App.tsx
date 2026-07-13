@@ -416,67 +416,82 @@ function MicButton({ onText, tone = 'primary', inline = false }: { onText: (t: s
   );
 }
 
-// ---- Imagen de ESTADO (WhatsApp/Instagram): 9:16 con logo, plan y URL ----
-async function buildStatusImage(plan: { activity: string; dateLabel?: string; startTime: string; endTime: string; location: string; image?: string }): Promise<string> {
+// ---- Imagen de ESTADO (WhatsApp/Instagram): 9:16, el TEXTO es el protagonista ----
+// message = la invitación generada por iogga (sin clave privada). Sin emojis.
+async function buildStatusImage(message: string, image?: string): Promise<string> {
   const W = 1080, H = 1920;
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d')!;
 
-  // Fondo: foto del plan (si carga) oscurecida, o degradado de marca
+  // Fondo: foto del plan (cualquier formato, recortada a cubrir) muy oscurecida,
+  // o degradado de marca si no hay foto. El texto siempre debe leerse.
   const drawBg = async () => {
-    if (plan.image) {
+    if (image) {
       try {
         const img = new Image();
         img.crossOrigin = 'anonymous';
-        await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(); img.src = plan.image!; });
+        await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(); img.src = image; });
         const scale = Math.max(W / img.width, H / img.height);
         ctx.drawImage(img, (W - img.width * scale) / 2, (H - img.height * scale) / 2, img.width * scale, img.height * scale);
-        ctx.fillStyle = 'rgba(9,9,11,0.72)';
-        ctx.fillRect(0, 0, W, H);
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, 'rgba(9,9,11,0.82)'); grad.addColorStop(0.5, 'rgba(9,9,11,0.7)'); grad.addColorStop(1, 'rgba(9,9,11,0.9)');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
         return;
       } catch { /* sigue al degradado */ }
     }
     const g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, '#1e1b4b'); g.addColorStop(0.5, '#09090b'); g.addColorStop(1, '#134e4a');
+    g.addColorStop(0, '#1e1b4b'); g.addColorStop(0.5, '#09090b'); g.addColorStop(1, '#312e81');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   };
   await drawBg();
 
   ctx.textAlign = 'center';
-  // Marca
+
+  // Logo iogga arriba
   ctx.fillStyle = '#a5b4fc';
-  ctx.font = '900 130px Quicksand, sans-serif';
-  ctx.fillText('iogga', W / 2, 360);
-  // Actividad (el corazón), con saltos de línea simples
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '900 92px Quicksand, sans-serif';
-  const words = (plan.activity || 'Un plan espontáneo').split(' ');
-  const lines: string[] = [];
-  let line = '';
-  for (const w of words) {
-    if ((line + ' ' + w).trim().length > 18) { lines.push(line.trim()); line = w; } else line += ' ' + w;
+  ctx.font = '900 110px Quicksand, sans-serif';
+  ctx.fillText('iogga', W / 2, 300);
+
+  // El TEXTO de la invitación como protagonista: ajusta tamaño y envuelve según largo
+  const maxW = W - 160;
+  const wrap = (text: string, font: string): string[] => {
+    ctx.font = font;
+    const out: string[] = [];
+    text.split('\n').forEach(para => {
+      const words = para.split(' ');
+      let line = '';
+      for (const w of words) {
+        const test = line ? line + ' ' + w : w;
+        if (ctx.measureText(test).width > maxW && line) { out.push(line); line = w; } else line = test;
+      }
+      if (line) out.push(line);
+    });
+    return out;
+  };
+  // Elegir el tamaño más grande que quepa en ~9 líneas
+  let size = 86, lines: string[] = [];
+  for (; size >= 46; size -= 6) {
+    lines = wrap(message, `800 ${size}px Quicksand, sans-serif`);
+    if (lines.length <= 9) break;
   }
-  if (line.trim()) lines.push(line.trim());
-  lines.slice(0, 4).forEach((l, i) => ctx.fillText(l, W / 2, 640 + i * 110));
-  // Cuándo y dónde
-  ctx.fillStyle = '#d4d4d8';
-  ctx.font = '700 56px Quicksand, sans-serif';
-  const hasEnd = plan.endTime && plan.endTime !== '00:00';
-  const when = [plan.dateLabel, plan.startTime && plan.startTime !== '00:00' ? (hasEnd ? `de ${plan.startTime} a ${plan.endTime}` : `a las ${plan.startTime}`) : ''].filter(Boolean).join(' ');
-  if (when) ctx.fillText(when, W / 2, 1130);
-  if (plan.location) ctx.fillText(`📍 ${plan.location}`, W / 2, 1220);
-  // Frase de invitación a la app
-  ctx.fillStyle = '#6366f1';
-  ctx.font = '900 64px Quicksand, sans-serif';
-  ctx.fillText('Coincide con los que amas 💜', W / 2, 1480);
-  // URL real de la app
+  const lineH = size * 1.28;
+  const blockH = lines.length * lineH;
+  let y = Math.max(520, (H - blockH) / 2 - 40);
   ctx.fillStyle = '#ffffff';
-  ctx.font = '700 58px Quicksand, sans-serif';
-  ctx.fillText(window.location.host, W / 2, 1600);
-  ctx.fillStyle = '#71717a';
-  ctx.font = '600 40px Quicksand, sans-serif';
-  ctx.fillText('la app para salir del móvil y vivir lo espontáneo', W / 2, 1690);
+  ctx.font = `800 ${size}px Quicksand, sans-serif`;
+  lines.forEach(l => { ctx.fillText(l, W / 2, y); y += lineH; });
+
+  // Pie: invitación a la app + URL real (sin emojis)
+  ctx.fillStyle = '#c7d2fe';
+  ctx.font = '800 52px Quicksand, sans-serif';
+  ctx.fillText('Coincide con los que amas, en iogga', W / 2, H - 220);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 58px Quicksand, sans-serif';
+  ctx.fillText(window.location.host, W / 2, H - 140);
+  ctx.fillStyle = '#a1a1aa';
+  ctx.font = '600 38px Quicksand, sans-serif';
+  ctx.fillText('la app para salir del movil y vivir lo espontaneo', W / 2, H - 80);
 
   return canvas.toDataURL('image/png');
 }
@@ -1143,7 +1158,7 @@ export default function App() {
     const link = `${window.location.origin}/?inv=${plan.id}`;
     // La clave privada da confianza: aclara que el enlace no es virus ni fraude.
     const trust = plan.privateKey && plan.privateKey.trim()
-      ? `Para que no desconfíes, la persona dejó esta clave privada para que sepas que no es virus ni fraude 👇\nClave privada: ${plan.privateKey.trim()}\n\n`
+      ? `Para que no desconfíes, la persona dejó esta clave privada para que sepas que no es virus ni fraude.\nClave privada: ${plan.privateKey.trim()}\n\n`
       : '';
     return `${who} tiene un plan que puede interesarte:\n\n${link}\n\n${trust}iogga es la app para salir del móvil y vivir lo espontáneo. Es web: sin descargas y sin ocupar espacio.`;
   };
@@ -1273,7 +1288,9 @@ export default function App() {
   useEffect(() => {
     if (showMatchCelebration && lastPublishedPlan) {
       setStatusImg(null);
-      void buildStatusImage(lastPublishedPlan).then(setStatusImg).catch(() => setStatusImg(null));
+      // El protagonista es el texto de la invitación (sin la clave privada, que es privada)
+      const msg = buildInviteMessage(lastPublishedPlan).split('\n\nClave privada:')[0];
+      void buildStatusImage(msg, lastPublishedPlan.image).then(setStatusImg).catch(() => setStatusImg(null));
     }
   }, [showMatchCelebration, lastPublishedPlan?.id]);
   const [realNotifs, setRealNotifs] = useState<AppNotif[]>([]);
@@ -1771,7 +1788,7 @@ export default function App() {
           to: plan.uid,
           fromName: currentUser.name || 'Alguien',
           title: `${me} se unió a tu plan`,
-          message: `${me} se apuntó a "${plan.activity}". ¡Pónganse de acuerdo!`,
+          message: `${me} se apuntó a "${plan.activity}". Pónganse de acuerdo.`,
           planId: plan.id,
         });
       }
@@ -2674,7 +2691,7 @@ export default function App() {
                             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent"></div>
                             <div className="absolute top-4 left-4 flex items-center gap-2">
                               {expired ? (
-                                <span className="px-3 py-1 bg-zinc-700 text-zinc-300 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">⏰ Caducado</span>
+                                <span className="px-3 py-1 bg-zinc-700 text-zinc-300 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">Caducado</span>
                               ) : (
                                 <span className="px-3 py-1 bg-iogga-primary text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">Tu Plan Activo</span>
                               )}
@@ -2725,8 +2742,8 @@ export default function App() {
                                 <span className={`text-4xl font-black text-emerald-400 leading-none shrink-0 ${currentUser?.isAnonymous ? 'blur-[7px] select-none' : ''}`}>{plan.acceptedCount}</span>
                                 <p className="text-xs font-black uppercase tracking-wider text-emerald-300 leading-tight">
                                   {currentUser?.isAnonymous
-                                    ? 'se unieron a tu plan — crea tu cuenta gratis para ver quiénes 🎉'
-                                    : `${plan.acceptedCount === 1 ? 'persona se unió' : 'personas se unieron'} a tu plan 🎉`}
+                                    ? 'se unieron a tu plan — crea tu cuenta gratis para ver quiénes.'
+                                    : `${plan.acceptedCount === 1 ? 'persona se unió' : 'personas se unieron'} a tu plan.`}
                                 </p>
                               </button>
                             )}
@@ -5460,7 +5477,7 @@ export default function App() {
                             )}
                           </>
                         ) : (
-                          <p className="text-xs text-zinc-400 leading-relaxed">Aún no tienes amigos en iogga. <button onClick={() => setShowFriends('following')} className="text-iogga-primary font-bold underline">Agrégalos aquí</button> o compártelo abajo 👇</p>
+                          <p className="text-xs text-zinc-400 leading-relaxed">Aún no tienes amigos en iogga. <button onClick={() => setShowFriends('following')} className="text-iogga-primary font-bold underline">Agrégalos aquí</button> o compártelo abajo.</p>
                         )}
                         <button
                           onClick={() => {

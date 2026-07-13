@@ -87,6 +87,7 @@ import {
   saveFeedback,
   watchMyRedemptions,
   searchUsers,
+  listUsers,
   followUser,
   unfollowUser,
   watchFollowing,
@@ -928,6 +929,28 @@ export default function App() {
     const keys = CAT_KEYS[personExploreCategory] || [norm(personExploreCategory)]; // categoría personalizada = su propia palabra
     return keys.some(k => hay.includes(k));
   };
+  // ---- Caducidad: un plan se "apaga" al pasar su hora de fin ----
+  // Sin fecha elegida, se asume el día en que se publicó.
+  const planEndMs = (p: Plan): number => {
+    const day = p.date || (() => { const d = new Date(p.timestamp || Date.now()); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+    const hasEnd = !!p.endTime && p.endTime !== '00:00';
+    const hasStart = !!p.startTime && p.startTime !== '00:00';
+    const hm = hasEnd ? p.endTime : hasStart ? p.startTime : '23:59';
+    const [h, m] = hm.split(':').map(Number);
+    const d = new Date(`${day}T00:00:00`);
+    d.setHours(isNaN(h) ? 23 : h, isNaN(m) ? 59 : m, 59, 0);
+    if (!hasEnd && hasStart) d.setHours(d.getHours() + 2); // sin hora fin: 2h de vida tras el inicio
+    return d.getTime();
+  };
+  const isExpiredPlan = (p: Plan) => !p.isSeed && Date.now() > planEndMs(p);
+  // ¿Este plan es una invitación PARA MÍ? (de prueba, o me agregaron como invitado)
+  const isInviteForMe = (p: Plan) => !isMyPlan(p) && (!!p.isInvitation || (!!currentUser && !!p.invitedUids?.includes(currentUser.uid)));
+  // Vivo = no borrado y no caducado. Es el filtro de TODAS las vistas públicas.
+  const isLivePlan = (p: Plan) => !p.deleted && !isExpiredPlan(p);
+  // Refrescar cada minuto para que los planes se apaguen solos en pantalla
+  const [, setExpiryTick] = useState(0);
+  useEffect(() => { const t = setInterval(() => setExpiryTick(x => x + 1), 60000); return () => clearInterval(t); }, []);
+
   const matchesPromoCategory = (pr: Promotion) => {
     if (personExploreCategory === 'Todos') return true;
     const hay = norm(`${pr.title} ${pr.description || ''} ${(pr.tags || []).join(' ')}`);
@@ -967,10 +990,15 @@ export default function App() {
     const firstName = isGeneric ? 'Alguien que te conoce' : rawName.split(' ')[0];
     parts.push(`${firstName} desea: ${plan.activity}.`);
 
-    const when = [plan.dateLabel, plan.startTime ? `a las ${plan.startTime}` : ''].filter(Boolean).join(' ');
+    // Horario completo: "de 8:00 a 10:00" (o solo la hora de inicio si no hay fin)
+    const hasEnd = plan.endTime && plan.endTime !== '00:00';
+    const hasStart = plan.startTime && plan.startTime !== '00:00';
+    const timePart = hasStart && hasEnd ? `de ${plan.startTime} a ${plan.endTime}` : hasStart ? `a las ${plan.startTime}` : '';
+    const when = [plan.dateLabel, timePart].filter(Boolean).join(' ');
+    // Ubicaciones: 2 → "aquí o acá"; 3+ → "a, b o c"
     const allPlaces = [plan.location, ...(plan.locations || [])].filter(l => l && l.trim());
     const place = allPlaces.length > 1
-      ? allPlaces.slice(0, -1).join(', ') + ' y ' + allPlaces[allPlaces.length - 1]
+      ? allPlaces.slice(0, -1).join(', ') + ' o ' + allPlaces[allPlaces.length - 1]
       : allPlaces[0] || '';
     if (place && when) parts.push(`Estará en ${place} ${when}.`);
     else if (place) parts.push(`Estará en ${place}.`);
@@ -1118,6 +1146,7 @@ export default function App() {
   const [showFriends, setShowFriends] = useState<null | 'following' | 'followers'>(null);
   const [friendSearch, setFriendSearch] = useState('');
   const [friendResults, setFriendResults] = useState<Friend[]>([]);
+  const [allUsers, setAllUsers] = useState<Friend[]>([]); // universo real de iogga
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
   const [pendingFriendIds, setPendingFriendIds] = useState<string[]>([]);
   const [ioggaSent, setIoggaSent] = useState(false); // palomita "Enviado" en la pantalla final
@@ -1136,7 +1165,8 @@ export default function App() {
 
   // Enviar la intención a los amigos de iogga seleccionados (notificación real)
   const notifyPendingFriends = (plan: Plan) => {
-    pendingFriendIds.forEach(fid => {
+    const realIds = pendingFriendIds.filter(id => !id.startsWith('su_'));
+    realIds.forEach(fid => {
       void sendNotification({
         type: 'invite',
         to: fid,
@@ -1146,6 +1176,10 @@ export default function App() {
         planId: plan.id,
       });
     });
+    // Guardar en el plan la lista final de invitados: así les aparece en SU bandeja
+    if (realIds.length > 0) {
+      void saveDocIn('plans', plan.id, { ...plan, invitedUids: Array.from(new Set([...(plan.invitedUids || []), ...realIds])) });
+    }
   };
 
   useEffect(() => {
@@ -1158,6 +1192,12 @@ export default function App() {
     const u3 = watchNotifications(currentUser.uid, setRealNotifs);
     return () => { u1(); u2(); u3(); };
   }, [currentUser?.uid, currentUser?.isAnonymous]);
+
+  // Al abrir "Amigos", cargar TODOS los registrados reales de iogga
+  useEffect(() => {
+    if (!showFriends) return;
+    void listUsers(currentUser?.uid || '').then(setAllUsers);
+  }, [showFriends, currentUser?.uid]);
 
   // Búsqueda de usuarios para agregar (con pequeño retardo)
   useEffect(() => {
@@ -1271,7 +1311,7 @@ export default function App() {
     if (!targetPlan || !targetPlan.activity) return [];
     const q = tokenize(`${targetPlan.activity} ${(targetPlan.tags || []).join(' ')} ${targetPlan.comment || ''}`);
     return plans
-      .filter(p => p.id !== targetPlan.id && p.isPublic && !isMyPlan(p))
+      .filter(p => p.id !== targetPlan.id && p.isPublic && !isMyPlan(p) && isLivePlan(p))
       .map(p => ({ p, score: similarity(q, `${p.activity} ${(p.tags || []).join(' ')} ${p.comment || ''}`) }))
       .filter(x => x.score >= 0.2)
       .sort((a, b) => b.score - a.score)
@@ -1291,7 +1331,7 @@ export default function App() {
   const getMatchingPlansForPromo = (targetPromo: Promotion) => {
     if (!targetPromo || !targetPromo.title) return [];
     const prWords = targetPromo.title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/\s+/).filter(w => w.length > 2);
-    return plans.filter(p => {
+    return plans.filter(p => isLivePlan(p)).filter(p => {
       const activityNorm = p.activity.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       const pWords = activityNorm.split(/\s+/).filter(w => w.length > 2);
       const sharesWord = pWords.some(w => prWords.includes(w) || targetPromo.title.toLowerCase().includes(w));
@@ -1466,7 +1506,9 @@ export default function App() {
         timestamp: Date.now(),
         isPublic: newPlan.isPublic ?? true,
         image: newPlan.image || randomPhoto,
-        tags: (newPlan.activity || '').toLowerCase().split(' ')
+        tags: (newPlan.activity || '').toLowerCase().split(' '),
+        // A los amigos reales invitados les aparece en su bandeja "Invitaciones"
+        invitedUids: selectedFriendIds.filter(id => !id.startsWith('su_')),
       };
       void saveDocIn('plans', plan.id, plan);
       setPendingFriendIds([...selectedFriendIds]); // se enviarán al confirmar en "Verifica tu mensaje"
@@ -1957,7 +1999,7 @@ export default function App() {
                     <div className="flex items-center justify-between px-1">
                       <div id="tutorial-invitations-header">
                         <h2 className="text-2xl font-black text-white flex items-center gap-2">
-                          Invitaciones <span className="text-xs font-bold bg-iogga-primary/20 text-iogga-primary px-2 py-1 rounded-full">{plans.filter(p => p.isInvitation && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id)).length}</span>
+                          Invitaciones <span className="text-xs font-bold bg-iogga-primary/20 text-iogga-primary px-2 py-1 rounded-full">{plans.filter(p => isInviteForMe(p) && isLivePlan(p) && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id)).length}</span>
                         </h2>
                         <p className="text-xs text-zinc-500">Tus planes y propuestas</p>
                       </div>
@@ -1984,7 +2026,7 @@ export default function App() {
                     <div className="space-y-4">
                       <div className="space-y-3">
                         {plans
-                          .filter(p => p.isInvitation && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id))
+                          .filter(p => isInviteForMe(p) && isLivePlan(p) && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id))
                           .filter(p => p.activity.toLowerCase().includes(searchQuery.toLowerCase()) || p.userName.toLowerCase().includes(searchQuery.toLowerCase()))
                           .map(plan => (
                             <div key={plan.id} className="space-y-2">
@@ -2147,7 +2189,7 @@ export default function App() {
                             </div>
                           ))}
                         
-                        {plans.filter(p => p.isInvitation && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id)).length === 0 && (
+                        {plans.filter(p => isInviteForMe(p) && isLivePlan(p) && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id)).length === 0 && (
                           <div className="py-20 text-center space-y-4">
                             <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto">
                               <MessageSquare size={32} className="text-zinc-700" />
@@ -2352,7 +2394,7 @@ export default function App() {
                     <>
                       {searchFilter === 'plans' ? (
                         <div className="grid grid-cols-2 gap-4">
-                          {plans.filter(p => (searchSubFilter === 'public' ? p.isPublic : !p.isPublic) && matchesCategory(p)).length === 0 && (
+                          {plans.filter(p => (searchSubFilter === 'public' ? p.isPublic : !p.isPublic) && matchesCategory(p) && isLivePlan(p)).length === 0 && (
                             <div className="col-span-2 py-16 flex flex-col items-center gap-4 text-center">
                               <div className="p-5 rounded-full bg-iogga-primary/10 border border-iogga-primary/20">
                                 <Sparkles size={28} className="text-iogga-primary" />
@@ -2370,7 +2412,7 @@ export default function App() {
                             </div>
                           )}
                           {plans
-                            .filter(p => (searchSubFilter === 'public' ? p.isPublic : !p.isPublic) && matchesCategory(p))
+                            .filter(p => (searchSubFilter === 'public' ? p.isPublic : !p.isPublic) && matchesCategory(p) && isLivePlan(p))
                             .map((plan, index) => (
                               <motion.div 
                                 key={plan.id} 
@@ -2477,21 +2519,25 @@ export default function App() {
 
                 {mode === 'person' ? (
                   <div className="space-y-4">
-                    {plans.filter(p => isMyPlan(p)).map(plan => (
+                    {plans.filter(p => isMyPlan(p) && !p.deleted).map(plan => { const expired = isExpiredPlan(plan); return (
                       <div key={plan.id} className="space-y-2">
-                        <div 
+                        <div
                           onClick={() => setSelectedPlanForDetails(plan)}
-                          className="w-full text-left p-0 rounded-[32px] bg-zinc-900 border border-white/10 text-white shadow-xl relative overflow-hidden transition-transform active:scale-[0.98] group cursor-pointer"
+                          className={`w-full text-left p-0 rounded-[32px] bg-zinc-900 border text-white shadow-xl relative overflow-hidden transition-transform active:scale-[0.98] group cursor-pointer ${expired ? 'border-white/5 opacity-90' : 'border-white/10'}`}
                         >
                           <div className="h-48 w-full relative">
-                            <img 
-                              src={plan.image || `https://picsum.photos/seed/${plan.id}/800/400`} 
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                            <img
+                              src={plan.image || `https://picsum.photos/seed/${plan.id}/800/400`}
+                              className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ${expired ? 'grayscale opacity-60' : ''}`}
                               referrerPolicy="no-referrer"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent"></div>
                             <div className="absolute top-4 left-4 flex items-center gap-2">
-                              <span className="px-3 py-1 bg-iogga-primary text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">Tu Plan Activo</span>
+                              {expired ? (
+                                <span className="px-3 py-1 bg-zinc-700 text-zinc-300 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">⏰ Caducado</span>
+                              ) : (
+                                <span className="px-3 py-1 bg-iogga-primary text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">Tu Plan Activo</span>
+                              )}
                             </div>
                             <div className="absolute top-4 right-4 flex items-center gap-2">
                               <button 
@@ -2528,7 +2574,8 @@ export default function App() {
                             {/* Aviso de aceptados; sin cuenta: se ve borroso e invita a registrarse */}
                             {/* Indicador unificado: el número de unidos es el dato estrella
                                 (mismo estilo que "personas buscando" en negocios) */}
-                            {plan.acceptedCount > 0 ? (
+                            {/* Solo se muestra cuando HAY gente unida (el aviso genérico no aportaba) */}
+                            {plan.acceptedCount > 0 && (
                               <button
                                 onClick={(e) => {
                                   if (currentUser?.isAnonymous) { e.stopPropagation(); setIsRegistering(true); setShowLoginModal(true); }
@@ -2542,20 +2589,22 @@ export default function App() {
                                     : `${plan.acceptedCount === 1 ? 'persona se unió' : 'personas se unieron'} a tu plan 🎉`}
                                 </p>
                               </button>
-                            ) : (
-                              <div className="mb-4 flex items-center gap-2 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400">
-                                <Sparkles size={16} className="animate-bounce text-emerald-400 shrink-0" />
-                                <p className="text-xs font-black uppercase tracking-wider font-sans leading-tight">
-                                  ¡Tu plan está publicado! Invita amigos 👇
-                                </p>
-                              </div>
                             )}
 
                             <div className="mb-4">
                               <h3 className="text-2xl font-black mb-1">{plan.activity}</h3>
                               <p className="text-xs text-zinc-400 font-medium italic line-clamp-1">"{getPlanDescription(plan)}"</p>
                             </div>
-                            
+
+                            {expired ? (
+                              /* Caducado: renovar la hora lo vuelve a encender */
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleEditPlan(plan); setCurrentPlanStep(1); }}
+                                className="w-full py-3.5 bg-iogga-primary text-white rounded-2xl font-black text-xs flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all"
+                              >
+                                <Clock size={14} /> Renovar hora para reactivarlo
+                              </button>
+                            ) : (
                             <div className="flex gap-2">
                               <button
                                 onClick={(e) => {
@@ -2567,19 +2616,23 @@ export default function App() {
                                 <Edit3 size={14} />
                                 Editar
                               </button>
-                              {/* Un solo botón: abre coincidencias (ofertas + planes) dentro de la tarjeta */}
+                              {/* Un solo botón: abre coincidencias; el globo avisa cuántas hay */}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setExpandedPlanId(expandedPlanId === plan.id ? null : plan.id);
                                 }}
-                                className="flex-[2] py-3.5 bg-iogga-accent/20 hover:bg-iogga-accent/30 text-iogga-accent rounded-2xl font-black text-xs text-center border border-iogga-accent/20 flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all"
+                                className="relative flex-[2] py-3.5 bg-iogga-accent/20 hover:bg-iogga-accent/30 text-iogga-accent rounded-2xl font-black text-xs text-center border border-iogga-accent/20 flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all"
                               >
                                 <LayoutGrid size={14} />
                                 Coincidencias
+                                {(() => { const nM = getMatchingPlansForPlan(plan).length + getMatchingPromosForPlan(plan).length + plan.acceptedCount; return nM > 0 ? (
+                                  <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1.5 bg-red-500 text-white rounded-full text-[10px] font-black flex items-center justify-center border border-zinc-900">{nM}</span>
+                                ) : null; })()}
                                 <ChevronDown size={15} className={`transition-transform duration-500 ${expandedPlanId === plan.id ? 'rotate-180' : ''}`} />
                               </button>
                             </div>
+                            )}
                           </div>
                         </div>
                         
@@ -2719,7 +2772,7 @@ export default function App() {
                           )}
                         </AnimatePresence>
                       </div>
-                    ))}
+                    ); })}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -3481,6 +3534,16 @@ export default function App() {
                         <UserPlus size={16} />
                       </button>
                     </div>
+
+                    {/* Sin sesión: acceso siempre visible también en el perfil */}
+                    {!isLoggedIn && (
+                      <button
+                        onClick={() => setShowLoginModal(true)}
+                        className="w-full py-4 rounded-2xl bg-iogga-primary text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-iogga-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                      >
+                        <User size={16} /> Iniciar sesión o registrarte
+                      </button>
+                    )}
 
                     {/* Cuadrícula de mis planes (como el feed de tu perfil) */}
                     {plans.filter(p => isMyPlan(p)).length > 0 && (
@@ -4317,7 +4380,7 @@ export default function App() {
                       onClick={() => { void handlePublishPlan(); }}
                       className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-base shadow-xl shadow-iogga-primary/20 active:scale-95 transition-transform"
                     >
-                      {editingPlanId ? 'Guardar Cambios' : 'Publicar y ver mi invitación'}
+                      {editingPlanId ? 'Guardar Cambios' : 'Revisar mi invitación'}
                     </button>
                   )}
                 </div>
@@ -5082,29 +5145,40 @@ export default function App() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => {
-                    logoutUser();
-                    // Limpiar TODA la sesión para que no quede rastro del usuario.
-                    setIsLoggedIn(false);
-                    setCurrentUser(null);
-                    setUserProfile({});
-                    setBusinessProfile({ name: '', bio: '', logo: '', cover: '', location: '', phone: '', email: '', website: '', instagram: '', facebook: '', tiktok: '', linkedin: '' });
-                    setHasBusiness(false);
-                    setMode('person');
-                    setFollowing([]);
-                    setFollowers([]);
-                    setAcceptedPlanIds([]);
-                    setShowSettingsMenu(false);
-                    setActiveTab('home');
-                    setIsIntro(true);
-                    try { localStorage.removeItem('iogga_visits'); } catch {}
-                  }}
-                  className="w-full p-5 rounded-3xl bg-red-500/10 text-red-500 flex items-center justify-center gap-2 font-bold border border-red-500/20 active:scale-95 transition-transform"
-                >
-                  <LogOut size={20} />
-                  Cerrar Sesión
-                </button>
+                {isLoggedIn ? (
+                  <button
+                    onClick={() => {
+                      logoutUser();
+                      // Limpiar TODA la sesión para que no quede rastro del usuario.
+                      setIsLoggedIn(false);
+                      setCurrentUser(null);
+                      setUserProfile({});
+                      setBusinessProfile({ name: '', bio: '', logo: '', cover: '', location: '', phone: '', email: '', website: '', instagram: '', facebook: '', tiktok: '', linkedin: '' });
+                      setHasBusiness(false);
+                      setMode('person');
+                      setFollowing([]);
+                      setFollowers([]);
+                      setAcceptedPlanIds([]);
+                      setShowSettingsMenu(false);
+                      setActiveTab('home');
+                      setIsIntro(true);
+                      try { localStorage.removeItem('iogga_visits'); } catch {}
+                    }}
+                    className="w-full p-5 rounded-3xl bg-red-500/10 text-red-500 flex items-center justify-center gap-2 font-bold border border-red-500/20 active:scale-95 transition-transform"
+                  >
+                    <LogOut size={20} />
+                    Cerrar Sesión
+                  </button>
+                ) : (
+                  /* Sin sesión: aquí va el acceso, no "cerrar sesión" */
+                  <button
+                    onClick={() => { setShowSettingsMenu(false); setShowLoginModal(true); }}
+                    className="w-full p-5 rounded-3xl bg-iogga-primary text-white flex items-center justify-center gap-2 font-black border border-white/10 shadow-lg shadow-iogga-primary/20 active:scale-95 transition-transform"
+                  >
+                    <User size={20} />
+                    Iniciar sesión o registrarte
+                  </button>
+                )}
                 
                 <p className="text-center text-[10px] text-zinc-600 font-medium">iogga v2.4.0 • Hecho con amor en Chihuahua</p>
               </div>
@@ -5138,7 +5212,7 @@ export default function App() {
 
           {/* Coincidence / Match Celebration Modal for Users */}
           {showMatchCelebration && lastPublishedPlan && (
-            <Modal onClose={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); }} title="Tu invitación">
+            <Modal onClose={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); }} title="Revisa y publica">
               <div className="space-y-6">
 
                 {/* ── ASÍ SE VERÁ EN IOGGA (título dentro de la caja, estandarizado) ── */}
@@ -5874,7 +5948,9 @@ export default function App() {
                     {(() => {
                       const q = friendSearch.trim().toLowerCase();
                       const byId: Record<string, { uid: string; name: string; photo?: string | null; rating?: number }> = {};
-                      SEED_USERS.forEach(u => { byId[u.uid] = u; });
+                      // Usuarios REALES registrados primero; luego los de prueba
+                      allUsers.forEach(u => { byId[u.uid] = u; });
+                      SEED_USERS.forEach(u => { if (!byId[u.uid]) byId[u.uid] = u; });
                       friendResults.forEach(f => { if (!byId[f.uid]) byId[f.uid] = f; });
                       let list = Object.values(byId);
                       if (q) list = list.filter(u => u.name.toLowerCase().includes(q));

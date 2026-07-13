@@ -129,9 +129,19 @@ export async function registerUser(name: string, email: string, password: string
 export async function loginUser(email: string, password: string): Promise<AuthUser> {
   if (!auth) throw new Error('demo');
   const cred = await signInWithEmailAndPassword(auth, email, password);
+  const name = cred.user.displayName || email.split('@')[0];
+  // Asegurar que el usuario exista en /users con nameLower (para aparecer
+  // en "Agregar amigos" aunque se haya registrado antes de este campo).
+  if (db) {
+    void setDoc(doc(db, 'users', cred.user.uid), {
+      name,
+      nameLower: name.trim().toLowerCase(),
+      email: cred.user.email || email,
+    }, { merge: true }).catch(() => {});
+  }
   return {
     uid: cred.user.uid,
-    name: cred.user.displayName || email.split('@')[0],
+    name,
     email: cred.user.email || email,
   };
 }
@@ -241,6 +251,23 @@ export interface Friend {
   uid: string;
   name: string;
   photo?: string | null;
+}
+
+// TODOS los usuarios registrados (para la lista "Agregar amigos").
+// Sin orderBy: así nadie queda fuera aunque le falte algún campo.
+export async function listUsers(myUid: string): Promise<Friend[]> {
+  if (!db) return [];
+  try {
+    const snap = await getDocs(query(collection(db, 'users'), limit(150)));
+    return snap.docs
+      .filter((d) => d.id !== myUid)
+      .map((d) => {
+        const x = d.data() as any;
+        return { uid: d.id, name: x.name || (x.email ? String(x.email).split('@')[0] : 'Usuario'), photo: x.photoURL || null };
+      });
+  } catch {
+    return [];
+  }
 }
 
 // Buscar usuarios por nombre (prefijo) para agregarlos
@@ -382,7 +409,13 @@ export async function saveDocIn(name: 'plans' | 'promos', id: string, data: obje
 
 export async function deleteDocIn(name: 'plans' | 'promos', id: string): Promise<void> {
   if (!db) return;
-  await deleteDoc(doc(db, name, id));
+  try {
+    await deleteDoc(doc(db, name, id));
+  } catch {
+    // Si las reglas no dejan borrar (p. ej. se publicó con otra sesión anónima),
+    // lo marcamos como borrado y las vistas lo ocultan igual.
+    await updateDoc(doc(db, name, id), { deleted: true }).catch(() => {});
+  }
 }
 
 // Para abrir invitaciones desde un link compartido (iogga.com/?inv=ID)

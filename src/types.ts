@@ -66,6 +66,8 @@ export interface Plan {
   budgetAmount?: string;
   transportNote?: string;
   privateKey?: string; // frase/clave privada que deja el creador para dar confianza
+  invitedUids?: string[]; // amigos de iogga invitados: a ellos les aparece en "Invitaciones"
+  deleted?: boolean; // borrado lógico (respaldo cuando no se puede borrar el documento)
   isSeed?: boolean; // dato de prueba temporal (se distingue con etiqueta "Prueba")
 }
 

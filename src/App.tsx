@@ -955,6 +955,23 @@ export default function App() {
     </div>
   );
 
+  // Grupo ondas+micrófono DENTRO de una caja de texto (mismo formato que la
+  // primera barra "¿Qué quieres hacer?"). Se coloca en un contenedor relative
+  // y el input debe llevar pr-24. atTop = para textareas altas.
+  const FieldVoice = ({ step, onDicta, atTop = false }: { step: number; onDicta: (t: string) => void; atTop?: boolean }) => (
+    <div className={`absolute right-2.5 flex items-center gap-1.5 ${atTop ? 'top-3' : 'top-1/2 -translate-y-1/2'}`}>
+      <button
+        type="button"
+        onClick={() => { if (platicaOn) setPlaticaOn(false); else startPlaticaAt(step); }}
+        title={platicaOn ? 'Detener la plática' : 'Platícalo por voz'}
+        className="w-9 h-9 rounded-full flex items-center justify-center bg-iogga-primary/15 text-iogga-primary hover:bg-iogga-primary/25 transition-all active:scale-90"
+      >
+        <AudioLines size={16} />
+      </button>
+      <MicButton inline onText={onDicta} />
+    </div>
+  );
+
   // Arranque tipo "el cel parece apagado": pantalla negra, el usuario toca,
   // y el logo entra en fade in de 4s mientras suena el intro. El toque también
   // desbloquea el audio del navegador (por eso el sonido nunca falla aquí).
@@ -4137,22 +4154,25 @@ export default function App() {
                       )}
                       {(!currentUser || currentUser.isAnonymous) && (
                         <>
-                          <input
-                            type="text"
-                            placeholder="Tu nombre (para firmar tu invitación)"
-                            className="w-full h-14 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
-                            value={guestName}
-                            onChange={e => setGuestName(e.target.value)}
-                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="Tu nombre (para firmar tu invitación)"
+                              className="w-full h-14 pl-6 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                              value={guestName}
+                              onChange={e => setGuestName(e.target.value)}
+                            />
+                            <FieldVoice step={0} onDicta={t => setGuestName(t)} />
+                          </div>
                           <div className="relative">
                             <input
                               type="text"
                               placeholder="Clave privada (para que confíen: 'soy tu primo Beto')"
-                              className="w-full h-14 pl-6 pr-14 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                              className="w-full h-14 pl-6 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
                               value={newPlan.privateKey || ''}
                               onChange={e => setNewPlan({ ...newPlan, privateKey: e.target.value })}
                             />
-                            <MicButton onText={t => setNewPlan(p => ({ ...p, privateKey: t }))} />
+                            <FieldVoice step={0} onDicta={t => setNewPlan(p => ({ ...p, privateKey: t }))} />
                           </div>
                         </>
                       )}
@@ -4160,11 +4180,11 @@ export default function App() {
                         <input
                           type="text"
                           placeholder="Comentario (opcional). Ej. Lleven suéter"
-                          className="w-full h-14 pl-6 pr-14 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                          className="w-full h-14 pl-6 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
                           value={newPlan.comment || ''}
                           onChange={e => setNewPlan({...newPlan, comment: e.target.value})}
                         />
-                        <MicButton onText={t => setNewPlan(p => ({ ...p, comment: t }))} />
+                        <FieldVoice step={0} onDicta={t => setNewPlan(p => ({ ...p, comment: t }))} />
                       </div>
                     </motion.div>
                   )}
@@ -4210,15 +4230,15 @@ export default function App() {
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1 tracking-wider"><Clock size={12}/> Inicio</label>
                           <div className="relative">
-                            <input type="time" className="w-full h-16 pl-6 pr-14 rounded-[24px] bg-white/5 border border-white/10 text-white text-base font-medium" value={newPlan.startTime || ''} onChange={e => setNewPlan({...newPlan, startTime: e.target.value})} />
-                            <MicButton onText={t => { const p = parseTime(t); if (p) setNewPlan(np => ({ ...np, startTime: p })); }} />
+                            <input type="time" className="time-clean w-full h-16 pl-6 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white text-base font-medium" value={newPlan.startTime || ''} onChange={e => setNewPlan({...newPlan, startTime: e.target.value})} />
+                            <FieldVoice step={1} onDicta={t => { const p = parseTime(t); if (p) setNewPlan(np => ({ ...np, startTime: p })); }} />
                           </div>
                         </div>
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1 tracking-wider"><Clock size={12}/> Fin</label>
                           <div className="relative">
-                            <input type="time" className="w-full h-16 pl-6 pr-14 rounded-[24px] bg-white/5 border border-white/10 text-white text-base font-medium" value={newPlan.endTime || ''} onChange={e => setNewPlan({...newPlan, endTime: e.target.value})} />
-                            <MicButton onText={t => { const p = parseTime(t); if (p) setNewPlan(np => ({ ...np, endTime: p })); }} />
+                            <input type="time" className="time-clean w-full h-16 pl-6 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white text-base font-medium" value={newPlan.endTime || ''} onChange={e => setNewPlan({...newPlan, endTime: e.target.value})} />
+                            <FieldVoice step={1} onDicta={t => { const p = parseTime(t); if (p) setNewPlan(np => ({ ...np, endTime: p })); }} />
                           </div>
                         </div>
                       </div>
@@ -4274,11 +4294,11 @@ export default function App() {
                           <input
                             type="text"
                             placeholder="Ej. Traigan para la propina, la entrada es libre…"
-                            className="w-full h-16 pl-6 pr-14 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                            className="w-full h-16 pl-6 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
                             value={newPlan.budgetAmount || ''}
                             onChange={e => setNewPlan({...newPlan, budgetAmount: e.target.value})}
                           />
-                          <MicButton onText={t => setNewPlan(p => ({ ...p, budgetAmount: t }))} />
+                          <FieldVoice step={2} onDicta={t => setNewPlan(p => ({ ...p, budgetAmount: t }))} />
                         </div>
                       </div>
                     </motion.div>
@@ -4329,11 +4349,11 @@ export default function App() {
                               newPlan.transport === 'no-transport' ? "Ej. Yo pongo para la gas..." :
                               "Ej. Nos vemos en la entrada..."
                             }
-                            className="w-full h-24 pl-6 pr-14 py-4 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium resize-none"
+                            className="w-full h-24 pl-6 pr-24 py-4 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium resize-none"
                             value={newPlan.transportNote || ''}
                             onChange={e => setNewPlan({...newPlan, transportNote: e.target.value})}
                           />
-                          <div className="absolute right-3 top-4"><MicButton inline onText={t => setNewPlan(p => ({ ...p, transportNote: t }))} /></div>
+                          <FieldVoice step={3} atTop onDicta={t => setNewPlan(p => ({ ...p, transportNote: t }))} />
                         </div>
                       </div>
                     </motion.div>
@@ -4356,12 +4376,12 @@ export default function App() {
                         <input
                           type="text"
                           placeholder="Ej. Centro, Plaza, Starbucks..."
-                          className="w-full h-16 pl-12 pr-14 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium"
+                          className="w-full h-16 pl-12 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium"
                           value={newPlan.location || ''}
                           onChange={e => setNewPlan({...newPlan, location: e.target.value})}
                           autoFocus
                         />
-                        <MicButton onText={t => setNewPlan(p => ({ ...p, location: t }))} />
+                        <FieldVoice step={4} onDicta={t => setNewPlan(p => ({ ...p, location: t }))} />
                       </div>
                       {(newPlan.locations || []).map((loc, i) => (
                         <div key={i} className="flex gap-2">

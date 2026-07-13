@@ -83,3 +83,10 @@ button, a, input {
 .aspect-mobile-card {
   aspect-ratio: 4 / 5;
 }
+
+/* Inputs de hora sin el icono nativo de reloj (usamos los botones de voz).
+   Al tocar la caja sigue abriéndose el selector nativo en el celular. */
+.time-clean::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  display: none;
+}

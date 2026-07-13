@@ -72,6 +72,7 @@ import {
   loginUser,
   resetPassword,
   loginWithGoogle,
+  completeGoogleRedirect,
   ensureAnonSession,
   logoutUser,
   authErrorMessage,
@@ -1211,6 +1212,18 @@ export default function App() {
     } catch {}
   }, []);
 
+  // Si veníamos de iniciar sesión con Google por redirección, completarlo
+  useEffect(() => {
+    void completeGoogleRedirect().then(u => {
+      if (u) {
+        setCurrentUser(u);
+        setIsLoggedIn(true);
+        setShowLoginModal(false);
+        triggerBeta('¡Sesión iniciada!', `Bienvenido${u.name ? `, ${u.name}` : ''} a iogga.`);
+      }
+    });
+  }, []);
+
   // Mantener la sesión iniciada (Firebase recuerda al usuario entre visitas)
   useEffect(() => {
     const unsubscribe = watchAuth(user => {
@@ -1648,12 +1661,20 @@ export default function App() {
     });
   };
 
-  const handlePublishPromo = () => {
-    // Momento clave: publicar una oferta requiere cuenta
-    if (isFirebaseEnabled && !isLoggedIn) {
-      setLoginActionToResume(() => handlePublishPromo);
+  const handlePublishPromo = async () => {
+    // Primera oferta GRATIS sin cuenta (sesión anónima); a partir de la 2ª, pedir login.
+    const myCount = promos.filter(p => p.uid && p.uid === currentUser?.uid).length;
+    if (isFirebaseEnabled && !isLoggedIn && !editingPromoId && myCount >= 1) {
+      triggerBeta('Crea tu cuenta', 'Tu primera oferta ya está publicada. Para publicar más, inicia sesión gratis y así no pierdes tus ofertas.');
+      setLoginActionToResume(() => { void handlePublishPromo(); });
       setShowLoginModal(true);
       return;
+    }
+    // Asegurar sesión (anónima) para poder guardar la primera oferta sin registro
+    let publisher = currentUser;
+    if (isFirebaseEnabled && !publisher) {
+      publisher = await ensureAnonSession();
+      if (publisher) setCurrentUser(publisher);
     }
     if (editingPromoId) {
       const edited = promos.find(p => p.id === editingPromoId);
@@ -1683,7 +1704,7 @@ export default function App() {
     } else {
       const promo: Promotion = {
         id: Math.random().toString(36).substr(2, 9),
-        uid: currentUser?.uid,
+        uid: publisher?.uid,
         timestamp: Date.now(),
         businessName: businessProfile.name || currentUser?.name || 'Mi Negocio',
         businessLogo: businessProfile.logo || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=150&q=80',

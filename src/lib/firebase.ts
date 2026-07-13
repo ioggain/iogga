@@ -8,9 +8,12 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInAnonymously,
   linkWithCredential,
   linkWithPopup,
+  linkWithRedirect,
   EmailAuthProvider,
   GoogleAuthProvider,
   signOut,
@@ -152,9 +155,49 @@ export async function resetPassword(email: string): Promise<void> {
   await sendPasswordResetEmail(auth, email);
 }
 
+// En móvil los popups suelen bloquearse; ahí conviene redirigir.
+function preferRedirect(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+  const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (navigator as any).standalone === true;
+  return isMobile || isStandalone;
+}
+
+// Al volver de un login por redirección de Google, terminar de crear el perfil.
+export async function completeGoogleRedirect(): Promise<AuthUser | null> {
+  if (!auth || !db) return null;
+  try {
+    const res = await getRedirectResult(auth);
+    if (!res?.user) return null;
+    const user: AuthUser = {
+      uid: res.user.uid,
+      name: res.user.displayName || res.user.email?.split('@')[0] || 'Usuario',
+      email: res.user.email || '',
+    };
+    await setDoc(doc(db, 'users', user.uid), { name: user.name, nameLower: user.name.trim().toLowerCase(), email: user.email, photoURL: res.user.photoURL || null, updatedAt: serverTimestamp() }, { merge: true }).catch(() => {});
+    return user;
+  } catch {
+    return null;
+  }
+}
+
 export async function loginWithGoogle(): Promise<AuthUser> {
   if (!auth || !db) throw new Error('demo');
   const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+
+  // Móvil / app instalada: redirección (los popups fallan). Se completa al volver.
+  if (preferRedirect()) {
+    if (auth.currentUser?.isAnonymous) {
+      try { await linkWithRedirect(auth.currentUser, provider); } catch { await signInWithRedirect(auth, provider); }
+    } else {
+      await signInWithRedirect(auth, provider);
+    }
+    // El navegador se va a Google y regresa; el resultado se recoge en completeGoogleRedirect.
+    return new Promise(() => {});
+  }
+
   let cred;
   if (auth.currentUser?.isAnonymous) {
     // Invitado anónimo: vincular su cuenta de Google conservando todos sus datos
@@ -165,12 +208,24 @@ export async function loginWithGoogle(): Promise<AuthUser> {
       const code = (err as { code?: string })?.code || '';
       if (code.includes('credential-already-in-use') || code.includes('email-already-in-use')) {
         cred = await signInWithPopup(auth, provider);
+      } else if (code.includes('popup-blocked') || code.includes('operation-not-supported') || code.includes('cancelled-popup')) {
+        await signInWithRedirect(auth, provider);
+        return new Promise(() => {});
       } else {
         throw err;
       }
     }
   } else {
-    cred = await signInWithPopup(auth, provider);
+    try {
+      cred = await signInWithPopup(auth, provider);
+    } catch (err) {
+      const code = (err as { code?: string })?.code || '';
+      if (code.includes('popup-blocked') || code.includes('operation-not-supported') || code.includes('cancelled-popup')) {
+        await signInWithRedirect(auth, provider);
+        return new Promise(() => {});
+      }
+      throw err;
+    }
   }
   const user: AuthUser = {
     uid: cred.user.uid,

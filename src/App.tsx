@@ -1279,6 +1279,7 @@ export default function App() {
   const [friendSearch, setFriendSearch] = useState('');
   const [friendResults, setFriendResults] = useState<Friend[]>([]);
   const [allUsers, setAllUsers] = useState<Friend[]>([]); // universo real de iogga
+  const [selectedFriend, setSelectedFriend] = useState<(Friend & { rating?: number }) | null>(null); // perfil de una persona
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
   const [pendingFriendIds, setPendingFriendIds] = useState<string[]>([]);
   const [ioggaSent, setIoggaSent] = useState(false); // palomita "Enviado" en la pantalla final
@@ -5470,14 +5471,22 @@ export default function App() {
                                 );
                               })}
                             </div>
-                            {following.length > 5 && (
-                              <button onClick={() => setInvitePreviewMore(v => !v)} className="text-[11px] font-black text-iogga-primary">
-                                {invitePreviewMore ? 'Ver menos' : `Ver más (${following.length - 5})`}
+                            {/* Ver más + botón de agregar más (estilo etiquetar en IG) */}
+                            <div className="flex items-center justify-between">
+                              {following.length > 5 ? (
+                                <button onClick={() => setInvitePreviewMore(v => !v)} className="text-[11px] font-black text-iogga-primary">
+                                  {invitePreviewMore ? 'Ver menos' : `Ver más (${following.length - 5})`}
+                                </button>
+                              ) : <span />}
+                              <button onClick={() => setShowFriends('following')} className="flex items-center gap-1.5 text-[11px] font-black text-iogga-primary bg-iogga-primary/10 px-3 py-1.5 rounded-full border border-iogga-primary/25 active:scale-95">
+                                <UserPlus size={13} /> Agregar más
                               </button>
-                            )}
+                            </div>
                           </>
                         ) : (
-                          <p className="text-xs text-zinc-400 leading-relaxed">Aún no tienes amigos en iogga. <button onClick={() => setShowFriends('following')} className="text-iogga-primary font-bold underline">Agrégalos aquí</button> o compártelo abajo.</p>
+                          <button onClick={() => setShowFriends('following')} className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-iogga-primary/10 border border-dashed border-iogga-primary/30 text-iogga-primary text-xs font-black uppercase tracking-widest active:scale-95">
+                            <UserPlus size={15} /> Agregar amigos
+                          </button>
                         )}
                         <button
                           onClick={() => {
@@ -6180,13 +6189,16 @@ export default function App() {
                       if (q) list = list.filter(u => u.name.toLowerCase().includes(q));
                       return list.map(f => (
                         <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
-                          {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
-                          <div className="flex-1 min-w-0">
-                            <span className="text-sm font-bold text-white block truncate">{f.name}</span>
-                            {typeof f.rating === 'number' && (
-                              <span className="text-[10px] text-yellow-500 font-bold flex items-center gap-0.5"><Star size={9} fill="currentColor" /> {f.rating.toFixed(1)}</span>
-                            )}
-                          </div>
+                          {/* Tocar la persona abre su perfil (estilo Instagram) */}
+                          <button onClick={() => setSelectedFriend(f)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                            {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-bold text-white block truncate">{f.name}</span>
+                              {typeof f.rating === 'number' && (
+                                <span className="text-[10px] text-yellow-500 font-bold flex items-center gap-0.5"><Star size={9} fill="currentColor" /> {f.rating.toFixed(1)}</span>
+                              )}
+                            </div>
+                          </button>
                           <button onClick={() => toggleFollow(f as Friend)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all ${isFollowing(f.uid) ? 'bg-white/10 text-zinc-300' : 'bg-iogga-primary text-white'}`}>
                             {isFollowing(f.uid) ? 'Siguiendo' : 'Agregar'}
                           </button>
@@ -6222,6 +6234,42 @@ export default function App() {
                   </div>
                 </>
               )}
+            </div>
+          </Modal>
+        )}
+
+        {/* Perfil de una persona (desde Agregar amigos) — básico estilo Instagram */}
+        {selectedFriend && (
+          <Modal onClose={() => setSelectedFriend(null)} title="Perfil">
+            <div className="space-y-5 text-center">
+              {selectedFriend.photo ? (
+                <img src={selectedFriend.photo} className="w-24 h-24 rounded-full object-cover mx-auto border-2 border-white/10" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center text-3xl font-black mx-auto">{selectedFriend.name.charAt(0).toUpperCase()}</div>
+              )}
+              <div>
+                <h3 className="text-xl font-black text-white">{selectedFriend.name}</h3>
+                <p className="text-xs text-zinc-500">@{selectedFriend.name.toLowerCase().replace(/\s+/g, '')}</p>
+                {typeof selectedFriend.rating === 'number' && (
+                  <p className="text-xs text-yellow-500 font-bold flex items-center justify-center gap-1 mt-1"><Star size={12} fill="currentColor" /> {selectedFriend.rating.toFixed(1)}</p>
+                )}
+              </div>
+              {/* Sus planes públicos activos (si los hay) */}
+              {(() => { const theirPlans = plans.filter(p => p.uid === selectedFriend.uid && p.isPublic && isLivePlan(p)); return theirPlans.length > 0 ? (
+                <div className="grid grid-cols-3 gap-1">
+                  {theirPlans.slice(0, 6).map(pl => (
+                    <button key={pl.id} onClick={() => { setSelectedFriend(null); setShowFriends(null); setSelectedPlanForDetails(pl); }} className="aspect-square rounded-lg overflow-hidden relative">
+                      <img src={pl.image || `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=200&q=80`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    </button>
+                  ))}
+                </div>
+              ) : <p className="text-xs text-zinc-500 italic">Sin planes públicos por ahora.</p>; })()}
+              <button
+                onClick={() => toggleFollow(selectedFriend)}
+                className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all ${isFollowing(selectedFriend.uid) ? 'bg-white/10 text-zinc-300' : 'bg-iogga-primary text-white shadow-lg shadow-iogga-primary/20'}`}
+              >
+                {isFollowing(selectedFriend.uid) ? 'Dejar de seguir' : 'Agregar amigo'}
+              </button>
             </div>
           </Modal>
         )}

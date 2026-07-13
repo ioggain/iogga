@@ -3567,44 +3567,55 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                    <div className="pt-12 px-6 space-y-6">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                              {businessProfile.name || 'Tu negocio'}
-                              <Store size={20} className="text-teal-400/60" />
-                            </h2>
-                            {isLoggedIn && businessProfile.name && (
-                              <div className="flex items-center gap-0.5 text-yellow-500">
-                                <Star size={14} fill="currentColor" />
-                                <Star size={14} fill="currentColor" />
-                                <Star size={14} fill="currentColor" />
-                                <Star size={14} fill="currentColor" />
-                                <Star size={14} fill="currentColor" />
-                              </div>
-                            )}
-                          </div>
-                          <p className="text-zinc-400 text-sm">{businessProfile.name ? `@${businessProfile.name.toLowerCase().replace(/\s+/g, '_')}` : 'Configura tu negocio'}{businessProfile.location ? ` • ${businessProfile.location}` : ''}</p>
+                    {/* Mismo formato que el perfil de persona: números en fila */}
+                    <div className="pt-12 px-6 space-y-5">
+                      <div className="flex items-center justify-around">
+                        <div className="flex flex-col items-center">
+                          <span className="text-lg font-black text-white">{myPromos.length}</span>
+                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Ofertas</span>
                         </div>
+                        <button onClick={() => setShowFriends('followers')} className="flex flex-col items-center active:scale-95 transition-transform">
+                          <span className="text-lg font-black text-white">{followersAll.length}</span>
+                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Seguidores</span>
+                        </button>
+                        <div className="flex flex-col items-center">
+                          <span className="text-lg font-black text-white">{(businessProfile.name ? 4.8 : 5).toFixed(1)}</span>
+                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Rating</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <h2 className="text-lg font-black text-white flex items-center gap-2">
+                          {businessProfile.name || 'Tu negocio'}
+                          <Store size={16} className="text-teal-400/60" />
+                        </h2>
+                        <p className="text-zinc-500 text-xs">{businessProfile.name ? `@${businessProfile.name.toLowerCase().replace(/\s+/g, '_')}` : 'Configura tu negocio'}{businessProfile.location ? ` • ${businessProfile.location}` : ''}</p>
+                        {businessProfile.bio && <p className="text-sm text-white/80 leading-snug pt-1">{businessProfile.bio}</p>}
+                        {socialChips(businessProfile).length > 0 && (
+                          <div className="flex flex-wrap gap-2 pt-2">
+                            {socialChips(businessProfile).map(c => (
+                              <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`px-3 py-1 rounded-full border text-[11px] font-bold active:scale-95 transition-all ${c.color}`}>{c.label}</a>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Barra de acciones igual que en persona: Editar · Compartir */}
+                      <div className="flex gap-2">
+                        <button onClick={() => setShowEditBusinessProfile(true)} className="flex-1 py-2.5 rounded-xl bg-white/10 text-white text-xs font-black uppercase tracking-widest active:scale-95 transition-all">
+                          Editar negocio
+                        </button>
                         <button
-                          onClick={() => setShowEditBusinessProfile(true)}
-                          className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-500/15 text-emerald-400 rounded-full font-black text-[11px] uppercase tracking-widest border border-emerald-500/40 hover:bg-emerald-500/25 active:scale-95 transition-all"
+                          onClick={() => {
+                            const text = `${businessProfile.name || 'Mi negocio'} en iogga: ${window.location.origin}\n\niogga es la app para salir del móvil y vivir lo espontáneo.`;
+                            if ((navigator as any).share) { (navigator as any).share({ title: businessProfile.name || 'iogga', text }).catch(() => {}); }
+                            else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                          }}
+                          className="flex-1 py-2.5 rounded-xl bg-white/10 text-white text-xs font-black uppercase tracking-widest active:scale-95 transition-all"
                         >
-                          <Edit3 size={15} /> Editar negocio
+                          Compartir
                         </button>
                       </div>
-                      <p className="text-sm text-zinc-300 leading-relaxed">
-                        {businessProfile.bio}
-                      </p>
-                      {/* Enlaces y redes del negocio (chips clicables) */}
-                      {socialChips(businessProfile).length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {socialChips(businessProfile).map(c => (
-                            <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`px-3 py-1.5 rounded-full border text-xs font-bold active:scale-95 transition-all ${c.color}`}>{c.label}</a>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </div>
                 ) : (
@@ -4751,40 +4762,48 @@ export default function App() {
           {showEditBusinessProfile && (
             <Modal onClose={() => setShowEditBusinessProfile(false)} title="Editar Perfil de Negocio">
               <div className="space-y-6">
-                <div className="space-y-4">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Imágenes del Negocio</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      onClick={async () => {
-                        const img = await pickImage(900);
-                        if (img) setBusinessProfile({...businessProfile, cover: img});
-                      }}
-                      className="aspect-video rounded-2xl bg-white/5 border border-white/10 overflow-hidden relative group"
-                    >
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">1. Portada, logo y fotos</label>
+                  {/* Portada arriba (ancha), como en las apps de negocios */}
+                  <button
+                    onClick={async () => {
+                      const img = await pickImage(900);
+                      if (img) setBusinessProfile({...businessProfile, cover: img});
+                    }}
+                    className="w-full aspect-video rounded-2xl bg-white/5 border-2 border-dashed border-white/15 overflow-hidden relative group flex flex-col items-center justify-center text-zinc-500"
+                  >
+                    {businessProfile.cover ? (
                       <img src={businessProfile.cover} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">Subir Portada</span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={async () => {
-                        const img = await pickImage(300, 0.8);
-                        if (img) setBusinessProfile({...businessProfile, logo: img});
-                      }}
-                      className="aspect-square rounded-full bg-white/5 border border-white/10 overflow-hidden relative group w-24 mx-auto"
-                    >
+                    ) : (
+                      <><PlusCircle size={28} /><span className="text-[10px] font-bold uppercase tracking-widest mt-2">Subir portada</span></>
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-[10px] font-bold text-white uppercase tracking-widest">{businessProfile.cover ? 'Cambiar portada' : 'Subir portada'}</span>
+                    </div>
+                  </button>
+                  {/* Logo debajo */}
+                  <button
+                    onClick={async () => {
+                      const img = await pickImage(300, 0.8);
+                      if (img) setBusinessProfile({...businessProfile, logo: img});
+                    }}
+                    className="aspect-square rounded-full bg-white/5 border-2 border-dashed border-white/15 overflow-hidden relative group w-20 mx-auto flex flex-col items-center justify-center text-zinc-500"
+                  >
+                    {businessProfile.logo ? (
                       <img src={businessProfile.logo} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-[8px] font-bold text-white uppercase tracking-widest text-center">Subir Logo</span>
-                      </div>
-                    </button>
-                  </div>
+                    ) : (
+                      <><PlusCircle size={18} /><span className="text-[7px] font-bold uppercase tracking-widest mt-1">Logo</span></>
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-[7px] font-bold text-white uppercase tracking-widest text-center">{businessProfile.logo ? 'Cambiar' : 'Logo'}</span>
+                    </div>
+                  </button>
                 </div>
 
                 <div className="space-y-4">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Información Básica</label>
-                  <input 
-                    type="text" 
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">2. Datos del negocio</label>
+                  <input
+                    type="text"
                     value={businessProfile.name || ''}
                     onChange={e => setBusinessProfile({...businessProfile, name: e.target.value})}
                     placeholder="Nombre del Negocio"
@@ -4799,10 +4818,10 @@ export default function App() {
                 </div>
 
                 <div className="space-y-4">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Contacto</label>
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">3. Contacto</label>
                   <div className="grid grid-cols-2 gap-4">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={businessProfile.phone || ''}
                       onChange={e => setBusinessProfile({...businessProfile, phone: e.target.value})}
                       placeholder="Teléfono"

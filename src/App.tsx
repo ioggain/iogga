@@ -1338,6 +1338,7 @@ export default function App() {
   const [pendingFriendIds, setPendingFriendIds] = useState<string[]>([]);
   const [ioggaSent, setIoggaSent] = useState(false); // palomita "Enviado" en la pantalla final
   const [invitePreviewMore, setInvitePreviewMore] = useState(false); // "ver más" amigos en la pantalla final
+  const [inviteSearch, setInviteSearch] = useState(''); // buscar a quién invitar en la pantalla final
   const [statusImg, setStatusImg] = useState<string | null>(null); // imagen 9:16 para el estado
   // Generar la imagen del estado cuando se abre "Revisa y publica"
   useEffect(() => {
@@ -1398,11 +1399,12 @@ export default function App() {
     return () => { u1(); u2(); u3(); };
   }, [currentUser?.uid, currentUser?.isAnonymous]);
 
-  // Al abrir "Amigos", cargar TODOS los registrados reales de iogga
+  // Cargar TODOS los registrados reales de iogga: al iniciar sesión (para poder
+  // invitar a cualquiera) y también al abrir "Amigos".
   useEffect(() => {
-    if (!showFriends) return;
-    void listUsers(currentUser?.uid || '').then(setAllUsers);
-  }, [showFriends, currentUser?.uid]);
+    if (!currentUser || currentUser.isAnonymous) { setAllUsers([]); return; }
+    void listUsers(currentUser.uid).then(setAllUsers);
+  }, [currentUser?.uid, currentUser?.isAnonymous, showFriends]);
 
   // Búsqueda de usuarios para agregar (con pequeño retardo)
   useEffect(() => {
@@ -3990,13 +3992,20 @@ export default function App() {
         <nav className="glass absolute bottom-0 left-0 right-0 px-6 py-4 flex items-center justify-between z-40" id="tutorial-nav">
           {mode === 'person' ? (
             <>
-              <NavButton 
+              <NavButton
                 id="nav-home"
-                active={activeTab === 'home'} 
-                onClick={() => setActiveTab('home')} 
-                icon={<Home size={26} />} 
-                label="Inicio" 
-                color="text-iogga-primary" 
+                active={activeTab === 'home'}
+                onClick={() => setActiveTab('home')}
+                icon={
+                  <div className="relative">
+                    <Home size={26} />
+                    {(() => { const n = plans.filter(p => isInviteForMe(p) && isLivePlan(p) && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id)).length; return n > 0 ? (
+                      <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 bg-red-500 rounded-full border border-zinc-950 flex items-center justify-center text-[9px] font-black text-white">{n}</span>
+                    ) : null; })()}
+                  </div>
+                }
+                label="Inicio"
+                color="text-iogga-primary"
               />
               <NavButton
                 id="nav-search"
@@ -5640,43 +5649,58 @@ export default function App() {
                       </div>
                     ) : (
                       <>
-                        {following.length > 0 ? (
-                          <>
-                            <div className="space-y-2">
-                              {(invitePreviewMore ? following : following.slice(0, 5)).map(f => {
-                                const sel = pendingFriendIds.includes(f.uid);
-                                return (
-                                  <button
-                                    key={f.uid}
-                                    onClick={() => setPendingFriendIds(prev => sel ? prev.filter(id => id !== f.uid) : [...prev, f.uid])}
-                                    className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border transition-all ${sel ? 'bg-iogga-primary/15 border-iogga-primary/40' : 'bg-white/5 border-white/10'}`}
-                                  >
-                                    {f.photo ? <img src={f.photo} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white">{f.name.charAt(0).toUpperCase()}</div>}
-                                    <span className="text-sm text-white flex-1 text-left">{f.name}</span>
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${sel ? 'bg-iogga-primary text-white' : 'border-2 border-white/20'}`}>
-                                      {sel && <Check size={14} />}
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                            {/* Ver más + botón de agregar más (estilo etiquetar en IG) */}
-                            <div className="flex items-center justify-between">
-                              {following.length > 5 ? (
+                        {/* Buscar a cualquier usuario de iogga para invitarlo (no solo amigos) */}
+                        <div className="relative">
+                          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                          <input
+                            value={inviteSearch}
+                            onChange={e => setInviteSearch(e.target.value)}
+                            placeholder="Busca a quién invitar en iogga…"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-iogga-primary/40"
+                          />
+                        </div>
+                        {(() => {
+                          const q = inviteSearch.trim().toLowerCase();
+                          // Universo: mis amigos + todos los registrados, sin duplicar ni yo mismo
+                          const byId: Record<string, Friend> = {};
+                          following.forEach(f => { byId[f.uid] = f; });
+                          allUsers.forEach(f => { if (!byId[f.uid]) byId[f.uid] = f; });
+                          let list = Object.values(byId).filter(f => f.uid !== currentUser?.uid);
+                          if (q) list = list.filter(f => f.name.toLowerCase().includes(q));
+                          // Selecciona primero los ya elegidos
+                          list.sort((a, b) => (pendingFriendIds.includes(b.uid) ? 1 : 0) - (pendingFriendIds.includes(a.uid) ? 1 : 0));
+                          const shown = invitePreviewMore ? list : list.slice(0, 6);
+                          if (list.length === 0) {
+                            return <p className="text-xs text-zinc-400 leading-relaxed">{q ? 'Nadie con ese nombre en iogga todavía.' : 'Aún no hay más usuarios. Comparte tu plan por WhatsApp aquí abajo.'}</p>;
+                          }
+                          return (
+                            <>
+                              <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar">
+                                {shown.map(f => {
+                                  const sel = pendingFriendIds.includes(f.uid);
+                                  return (
+                                    <button
+                                      key={f.uid}
+                                      onClick={() => setPendingFriendIds(prev => sel ? prev.filter(id => id !== f.uid) : [...prev, f.uid])}
+                                      className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border transition-all ${sel ? 'bg-iogga-primary/15 border-iogga-primary/40' : 'bg-white/5 border-white/10'}`}
+                                    >
+                                      {f.photo ? <img src={f.photo} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white">{f.name.charAt(0).toUpperCase()}</div>}
+                                      <span className="text-sm text-white flex-1 text-left">{f.name}</span>
+                                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${sel ? 'bg-iogga-primary text-white' : 'border-2 border-white/20'}`}>
+                                        {sel && <Check size={14} />}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              {list.length > 6 && (
                                 <button onClick={() => setInvitePreviewMore(v => !v)} className="text-[11px] font-black text-iogga-primary">
-                                  {invitePreviewMore ? 'Ver menos' : `Ver más (${following.length - 5})`}
+                                  {invitePreviewMore ? 'Ver menos' : `Ver más (${list.length - 6})`}
                                 </button>
-                              ) : <span />}
-                              <button onClick={() => setShowFriends('following')} className="flex items-center gap-1.5 text-[11px] font-black text-iogga-primary bg-iogga-primary/10 px-3 py-1.5 rounded-full border border-iogga-primary/25 active:scale-95">
-                                <UserPlus size={13} /> Agregar más
-                              </button>
-                            </div>
-                          </>
-                        ) : (
-                          <button onClick={() => setShowFriends('following')} className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-iogga-primary/10 border border-dashed border-iogga-primary/30 text-iogga-primary text-xs font-black uppercase tracking-widest active:scale-95">
-                            <UserPlus size={15} /> Agregar amigos
-                          </button>
-                        )}
+                              )}
+                            </>
+                          );
+                        })()}
                         <button
                           onClick={() => {
                             notifyPendingFriends(lastPublishedPlan);

@@ -683,17 +683,20 @@ export default function App() {
   };
 
   // Enlaces/redes: construye chips clicables desde un perfil (negocio o persona)
-  const socialChips = (p: { website?: string; instagram?: string; facebook?: string; tiktok?: string; linkedin?: string; whatsapp?: string; phone?: string; location?: string }) => {
+  // Chips de contacto/redes. color = solo texto (sin caja/contorno).
+  // includeWhatsapp: solo para negocios; en personas el WhatsApp es PRIVADO
+  // (se revela únicamente al unirse a un plan).
+  const socialChips = (p: { website?: string; instagram?: string; facebook?: string; tiktok?: string; linkedin?: string; whatsapp?: string; phone?: string; location?: string }, opts?: { includeWhatsapp?: boolean }) => {
     const https = (u: string) => (/^https?:\/\//.test(u) ? u : `https://${u}`);
     const chips: { label: string; href: string; color: string }[] = [];
-    if (p.website) chips.push({ label: 'Sitio web', href: https(p.website), color: 'text-sky-300 border-sky-400/30 bg-sky-500/10' });
-    if (p.instagram) chips.push({ label: 'Instagram', href: `https://instagram.com/${p.instagram.replace(/[@\s]/g, '')}`, color: 'text-pink-300 border-pink-400/30 bg-pink-500/10' });
-    if (p.facebook) chips.push({ label: 'Facebook', href: /^https?:/.test(p.facebook) ? p.facebook : `https://facebook.com/${p.facebook.replace(/[@\s]/g, '')}`, color: 'text-blue-300 border-blue-400/30 bg-blue-500/10' });
-    if (p.tiktok) chips.push({ label: 'TikTok', href: `https://tiktok.com/@${p.tiktok.replace(/[@\s]/g, '')}`, color: 'text-zinc-200 border-white/20 bg-white/5' });
-    if (p.linkedin) chips.push({ label: 'LinkedIn', href: /^https?:/.test(p.linkedin) ? p.linkedin : `https://linkedin.com/in/${p.linkedin.replace(/[@\s]/g, '')}`, color: 'text-sky-300 border-sky-400/30 bg-sky-500/10' });
+    if (p.website) chips.push({ label: 'Sitio web', href: https(p.website), color: 'text-sky-300' });
+    if (p.instagram) chips.push({ label: 'Instagram', href: `https://instagram.com/${p.instagram.replace(/[@\s]/g, '')}`, color: 'text-pink-300' });
+    if (p.facebook) chips.push({ label: 'Facebook', href: /^https?:/.test(p.facebook) ? p.facebook : `https://facebook.com/${p.facebook.replace(/[@\s]/g, '')}`, color: 'text-blue-300' });
+    if (p.tiktok) chips.push({ label: 'TikTok', href: `https://tiktok.com/@${p.tiktok.replace(/[@\s]/g, '')}`, color: 'text-zinc-200' });
+    if (p.linkedin) chips.push({ label: 'LinkedIn', href: /^https?:/.test(p.linkedin) ? p.linkedin : `https://linkedin.com/in/${p.linkedin.replace(/[@\s]/g, '')}`, color: 'text-sky-300' });
     const wa = p.whatsapp || p.phone;
-    if (wa) chips.push({ label: 'WhatsApp', href: waLink(wa, '¡Hola! Te contacto desde iogga.'), color: 'text-green-300 border-green-400/30 bg-green-500/10' });
-    if (p.location) chips.push({ label: '📍 Ubicación', href: `https://maps.google.com/?q=${encodeURIComponent(p.location)}`, color: 'text-zinc-300 border-white/15 bg-white/5' });
+    if (wa && opts?.includeWhatsapp) chips.push({ label: 'WhatsApp', href: waLink(wa, '¡Hola! Te contacto desde iogga.'), color: 'text-green-400' });
+    if (p.location) chips.push({ label: 'Ubicación', href: `https://maps.google.com/?q=${encodeURIComponent(p.location)}`, color: 'text-zinc-300' });
     return chips;
   };
 
@@ -3690,10 +3693,10 @@ export default function App() {
                         </h2>
                         <p className="text-zinc-500 text-xs">{businessProfile.name ? `@${businessProfile.name.toLowerCase().replace(/\s+/g, '_')}` : 'Configura tu negocio'}{businessProfile.location ? ` • ${businessProfile.location}` : ''}</p>
                         {businessProfile.bio && <p className="text-sm text-white/80 leading-snug pt-1">{businessProfile.bio}</p>}
-                        {socialChips(businessProfile).length > 0 && (
-                          <div className="flex flex-wrap gap-2 pt-2">
-                            {socialChips(businessProfile).map(c => (
-                              <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`px-3 py-1 rounded-full border text-[11px] font-bold active:scale-95 transition-all ${c.color}`}>{c.label}</a>
+                        {socialChips(businessProfile, { includeWhatsapp: true }).length > 0 && (
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2">
+                            {socialChips(businessProfile, { includeWhatsapp: true }).map(c => (
+                              <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`text-[12px] font-black active:scale-95 transition-all ${c.color}`}>{c.label}</a>
                             ))}
                           </div>
                         )}
@@ -3756,9 +3759,9 @@ export default function App() {
                       <p className="text-zinc-500 text-xs">@{(currentUser?.name || GUEST_NAME).toLowerCase().replace(/\s+/g, '')}</p>
                       {userProfile.bio && <p className="text-sm text-white/80 leading-snug pt-1">{userProfile.bio}</p>}
                       {socialChips(userProfile).length > 0 && (
-                        <div className="flex flex-wrap gap-2 pt-2">
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2">
                           {socialChips(userProfile).map(c => (
-                            <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`px-3 py-1 rounded-full border text-[11px] font-bold active:scale-95 transition-all ${c.color}`}>{c.label}</a>
+                            <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`text-[12px] font-black active:scale-95 transition-all ${c.color}`}>{c.label}</a>
                           ))}
                         </div>
                       )}

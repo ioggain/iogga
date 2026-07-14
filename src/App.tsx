@@ -476,10 +476,20 @@ async function buildStatusImage(message: string, image?: string): Promise<string
 
   ctx.textAlign = 'center';
 
-  // Logo iogga arriba
-  ctx.fillStyle = '#a5b4fc';
-  ctx.font = '900 110px Quicksand, sans-serif';
-  ctx.fillText('iogga', W / 2, 300);
+  // Logo oficial de iogga arriba (sin caja de fondo): el círculo blanco de la marca
+  // con su halo suave y el wordmark debajo, tal cual el splash. No es texto suelto.
+  const cx = W / 2, cy = 250, r = 62;
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,255,255,0.45)';
+  ctx.shadowBlur = 60;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '600 92px Quicksand, sans-serif';
+  ctx.fillText('iogga', cx, cy + r + 92);
 
   // El TEXTO de la invitación como protagonista: ajusta tamaño y envuelve según largo
   const maxW = W - 160;
@@ -1435,6 +1445,7 @@ export default function App() {
   const [invitePreviewMore, setInvitePreviewMore] = useState(false); // "ver más" amigos en la pantalla final
   const [inviteSearch, setInviteSearch] = useState(''); // buscar a quién invitar en la pantalla final
   const [statusImg, setStatusImg] = useState<string | null>(null); // imagen 9:16 para el estado
+  const [showStatusHelp, setShowStatusHelp] = useState(false); // tutorial ilustrado de cómo subir el estado
   // Generar la imagen del estado cuando se abre "Revisa y publica"
   useEffect(() => {
     if (showMatchCelebration && lastPublishedPlan) {
@@ -5907,12 +5918,25 @@ export default function App() {
                     )}
                     <p className="text-[11px] text-zinc-400 text-center leading-snug">Súbela a tu estado de WhatsApp o Instagram: lleva tu plan, el logo y el link de iogga.</p>
                     <button
-                      onClick={() => { if (statusImg) void shareStatusImage(statusImg, `${window.location.origin}/?inv=${lastPublishedPlan.id}`); }}
+                      onClick={() => {
+                        if (!statusImg) return;
+                        // Las primeras 2 veces mostramos el mini tutorial ilustrado (pokayoke);
+                        // después comparte directo. Un botón de ayuda siempre lo reabre.
+                        const seen = parseInt(localStorage.getItem('iogga_status_help_seen') || '0', 10);
+                        if (seen < 2) setShowStatusHelp(true);
+                        else void shareStatusImage(statusImg, `${window.location.origin}/?inv=${lastPublishedPlan.id}`);
+                      }}
                       disabled={!statusImg}
                       className="w-full py-4 bg-fuchsia-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-fuchsia-500/20 flex items-center justify-center gap-2 disabled:opacity-40"
                     >
                       <Camera size={18} />
                       Compartir en tu estado
+                    </button>
+                    <button
+                      onClick={() => setShowStatusHelp(true)}
+                      className="w-full text-[11px] text-fuchsia-300/80 font-bold underline underline-offset-2 active:scale-95 transition-all"
+                    >
+                      ¿Cómo lo subo a mi estado?
                     </button>
                   </div>
                 </div>
@@ -6886,9 +6910,104 @@ export default function App() {
         setIsIntro={setIsIntro}
       />
     )}
+
+    {/* Mini tutorial ilustrado: cómo subir la imagen al estado (pokayoke) */}
+    {showStatusHelp && (
+      <StatusHelpOverlay
+        preview={statusImg}
+        onClose={() => setShowStatusHelp(false)}
+        onShare={() => {
+          const seen = parseInt(localStorage.getItem('iogga_status_help_seen') || '0', 10);
+          localStorage.setItem('iogga_status_help_seen', String(seen + 1));
+          setShowStatusHelp(false);
+          if (statusImg && lastPublishedPlan) void shareStatusImage(statusImg, `${window.location.origin}/?inv=${lastPublishedPlan.id}`);
+        }}
+      />
+    )}
   </div>
 </div>
 );
+}
+
+// Tutorial ilustrado, paso a paso y a prueba de errores, para publicar la imagen
+// en el estado de WhatsApp o Instagram. Se muestra las primeras 2 veces (skippable)
+// y siempre desde el enlace "¿Cómo lo subo a mi estado?".
+function StatusHelpOverlay({ preview, onClose, onShare }: { preview: string | null, onClose: () => void, onShare: () => void }) {
+  const steps = [
+    {
+      icon: <Camera size={30} className="text-fuchsia-400" />,
+      title: 'Toca "Compartir ahora"',
+      body: 'Se guarda la imagen y se abre el menú para compartir de tu celular.',
+    },
+    {
+      icon: <UserPlus size={30} className="text-green-400" />,
+      title: 'Elige "Estado" o "Historia"',
+      body: 'En WhatsApp toca Estado; en Instagram toca tu Historia. Ahí la publicas.',
+    },
+    {
+      icon: <Users size={30} className="text-violet-400" />,
+      title: 'Elige quién la ve',
+      body: 'Antes de publicar puedes escoger a qué personas mostrarles tu plan. Listo: quien toque tu estado entra a iogga.',
+    },
+  ];
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[600] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-t-[32px] sm:rounded-[32px] overflow-hidden shadow-2xl"
+      >
+        <div className="px-5 pt-5 pb-3 flex items-center gap-3 border-b border-white/5">
+          <div className="w-11 h-11 rounded-2xl bg-fuchsia-500/15 flex items-center justify-center"><Camera size={20} className="text-fuchsia-400" /></div>
+          <div>
+            <p className="text-lg font-black text-white tracking-tight leading-none">Súbela a tu estado</p>
+            <p className="text-[11px] text-zinc-400 mt-1">3 pasos y tu plan llega a todos</p>
+          </div>
+        </div>
+
+        <div className="p-5 flex gap-4">
+          {/* Vista previa 9:16 de la imagen que se va a subir */}
+          {preview && (
+            <img src={preview} className="w-24 rounded-2xl border border-white/10 shadow-xl shrink-0" alt="Vista previa del estado" />
+          )}
+          <div className="flex-1 space-y-4">
+            {steps.map((s, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="relative shrink-0">
+                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">{s.icon}</div>
+                  <div className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-fuchsia-500 text-white text-[11px] font-black flex items-center justify-center">{i + 1}</div>
+                </div>
+                <div className="pt-0.5">
+                  <p className="text-sm font-black text-white leading-tight">{s.title}</p>
+                  <p className="text-[12px] text-zinc-400 leading-snug mt-0.5">{s.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-5 pt-0 space-y-2">
+          <button
+            onClick={onShare}
+            className="w-full py-4 bg-fuchsia-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-fuchsia-500/20 flex items-center justify-center gap-2"
+          >
+            <Camera size={18} />
+            Compartir ahora
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full py-3 text-zinc-400 font-bold text-xs uppercase tracking-widest active:scale-95 transition-all"
+          >
+            Saltar
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
 }
 
 function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAppMode, activeTab, setActiveTab, isIntro, setIsIntro }: { 

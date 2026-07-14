@@ -67,6 +67,8 @@ export interface Plan {
   transportNote?: string;
   privateKey?: string; // frase/clave privada que deja el creador para dar confianza
   invitedUids?: string[]; // amigos de iogga invitados: a ellos les aparece en "Invitaciones"
+  confirmedUids?: string[]; // unidos que el anfitrión ya aceptó (palomita persistente)
+  closed?: boolean; // plan cerrado por el anfitrión (ya no recibe más, no afecta calificación)
   deleted?: boolean; // borrado lógico (respaldo cuando no se puede borrar el documento)
   isSeed?: boolean; // dato de prueba temporal (se distingue con etiqueta "Prueba")
 }

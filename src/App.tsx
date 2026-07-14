@@ -623,6 +623,7 @@ export default function App() {
 
   const [visibleIdeas, setVisibleIdeas] = useState<string[]>([]);
   const [selectedPlanForDetails, setSelectedPlanForDetails] = useState<Plan | null>(null);
+  const [pendingClose, setPendingClose] = useState<Plan | null>(null); // "¿cerrar o dejar abierto?"
   const [selectedUserProfile, setSelectedUserProfile] = useState<Plan | null>(null);
   const [selectedBusinessProfile, setSelectedBusinessProfile] = useState<Promotion | null>(null);
 
@@ -1110,8 +1111,8 @@ export default function App() {
 
   // ¿Este plan es una invitación PARA MÍ? (de prueba, o me agregaron como invitado)
   const isInviteForMe = (p: Plan) => !isMyPlan(p) && (!!p.isInvitation || (!!currentUser && !!p.invitedUids?.includes(currentUser.uid)));
-  // Vivo = no borrado y no caducado. Es el filtro de TODAS las vistas públicas.
-  const isLivePlan = (p: Plan) => !p.deleted && !isExpiredPlan(p);
+  // Vivo = no borrado, no cerrado y no caducado. Filtro de TODAS las vistas públicas.
+  const isLivePlan = (p: Plan) => !p.deleted && !p.closed && !isExpiredPlan(p);
   // Refrescar cada minuto para que los planes se apaguen solos en pantalla
   const [, setExpiryTick] = useState(0);
   useEffect(() => { const t = setInterval(() => setExpiryTick(x => x + 1), 60000); return () => clearInterval(t); }, []);
@@ -1350,6 +1351,10 @@ export default function App() {
     });
   };
   const [confirmSel, setConfirmSel] = useState<string[]>([]); // unidos que el anfitrión acepta
+  // Al abrir un plan mío, precargar a quiénes ya acepté (palomitas persistentes)
+  useEffect(() => {
+    if (selectedPlanForDetails) setConfirmSel(selectedPlanForDetails.confirmedUids || []);
+  }, [selectedPlanForDetails?.id]);
 
   // Enviar la intención a los amigos de iogga seleccionados (notificación real)
   // Enviar invitación de iogga a amigos reales: manda la notificación (campana)
@@ -2732,7 +2737,7 @@ export default function App() {
                       <div key={plan.id} className="space-y-2">
                         <div
                           onClick={() => setSelectedPlanForDetails(plan)}
-                          className={`w-full text-left p-0 rounded-[32px] bg-zinc-900 border text-white shadow-xl relative overflow-hidden transition-transform active:scale-[0.98] group cursor-pointer ${expired ? 'border-white/5 opacity-90' : 'border-white/10'}`}
+                          className={`w-full text-left p-0 rounded-[32px] bg-zinc-900 border-2 text-white shadow-xl relative overflow-hidden transition-transform active:scale-[0.98] group cursor-pointer ${plan.closed ? 'border-emerald-500/70 shadow-emerald-500/10' : expired ? 'border-white/5 opacity-90' : 'border-white/10'}`}
                         >
                           <div className="h-48 w-full relative">
                             <img
@@ -2742,7 +2747,9 @@ export default function App() {
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent"></div>
                             <div className="absolute top-4 left-4 flex items-center gap-2">
-                              {expired ? (
+                              {plan.closed ? (
+                                <span className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg flex items-center gap-1"><CheckCircle2 size={11} /> Cerrado</span>
+                              ) : expired ? (
                                 <span className="px-3 py-1 bg-zinc-700 text-zinc-300 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">Caducado</span>
                               ) : (
                                 <span className="px-3 py-1 bg-iogga-primary text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">Tu Plan Activo</span>
@@ -2783,6 +2790,29 @@ export default function App() {
                             {/* Aviso de aceptados; sin cuenta: se ve borroso e invita a registrarse */}
                             {/* Indicador unificado: el número de unidos es el dato estrella
                                 (mismo estilo que "personas buscando" en negocios) */}
+                            {/* Fila de perfiles que aceptaron (swipe horizontal), arriba del aviso.
+                                Los que ya aceptaste llevan palomita morada. */}
+                            {!currentUser?.isAnonymous && (plan.acceptedBy?.length || 0) > 0 && (
+                              <div className="flex gap-3 overflow-x-auto no-scrollbar mb-3 pb-1">
+                                {plan.acceptedBy!.map((a, i) => {
+                                  const ok = (plan.confirmedUids || []).includes(a.uid);
+                                  return (
+                                    <button
+                                      key={i}
+                                      onClick={(e) => { e.stopPropagation(); setSelectedPlanForDetails(plan); }}
+                                      className="flex flex-col items-center gap-1 shrink-0 w-14"
+                                    >
+                                      <div className="relative">
+                                        {a.photo ? <img src={a.photo} className="w-12 h-12 rounded-full object-cover border-2 border-white/10" referrerPolicy="no-referrer" /> : <div className="w-12 h-12 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center text-sm font-black">{a.name.charAt(0).toUpperCase()}</div>}
+                                        {ok && <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-iogga-primary text-white flex items-center justify-center border-2 border-zinc-900"><Check size={11} /></div>}
+                                      </div>
+                                      <span className="text-[9px] text-zinc-400 truncate w-full text-center">{a.name.split(' ')[0]}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+
                             {/* Solo se muestra cuando HAY gente unida (el aviso genérico no aportaba) */}
                             {plan.acceptedCount > 0 && (
                               <button
@@ -5101,10 +5131,17 @@ export default function App() {
                           <button
                             onClick={() => {
                               const plan = selectedPlanForDetails;
-                              confirmSel.forEach(uid => sendNotification({ type:'accepted', to: uid, fromName: plan.userName, title: `${plan.userName.split(' ')[0]} te aceptó en su plan`, message: `¡Estás dentro! ${buildInviteMessage(plan)}`, planId: plan.id }));
-                              const n = confirmSel.length;
-                              setConfirmSel([]);
-                              triggerBeta('¡Listo!', n > 0 ? `Avisamos en iogga a ${n} ${n === 1 ? 'persona' : 'personas'} que las aceptaste en tu plan.` : 'Selecciona a quién aceptas.');
+                              // Avisar solo a los NUEVOS aceptados (no a los que ya lo estaban)
+                              const already = plan.confirmedUids || [];
+                              confirmSel.filter(uid => !already.includes(uid)).forEach(uid => sendNotification({ type:'accepted', to: uid, fromName: plan.userName, title: `${plan.userName.split(' ')[0]} te aceptó en su plan`, message: `¡Estás dentro! ${buildInviteMessage(plan)}`, planId: plan.id }));
+                              // Guardar la selección para que quede con palomita al volver
+                              const updated = { ...plan, confirmedUids: confirmSel };
+                              void saveDocIn('plans', plan.id, updated);
+                              setPlans(prev => prev.map(p => p.id === plan.id ? updated : p));
+                              setSelectedPlanForDetails(updated);
+                              setSelectedPlanForDetails(null);
+                              // Ofrecer cerrar o dejar abierto
+                              setPendingClose(updated);
                             }}
                             disabled={confirmSel.length === 0}
                             className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
@@ -6288,6 +6325,36 @@ export default function App() {
                   </div>
                 </>
               )}
+            </div>
+          </Modal>
+        )}
+
+        {/* Cerrar el plan o dejarlo abierto (tras aceptar a las personas) */}
+        {pendingClose && (
+          <Modal onClose={() => setPendingClose(null)} title="¿Ya está tu grupo?">
+            <div className="space-y-4 text-center">
+              <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+                <CheckCircle2 size={30} />
+              </div>
+              <p className="text-sm text-zinc-300 leading-relaxed px-2">Ya avisaste a las personas que aceptaste. ¿Cierras el plan o lo dejas abierto por si se suman más?</p>
+              <button
+                onClick={() => {
+                  const updated = { ...pendingClose, closed: true };
+                  void saveDocIn('plans', pendingClose.id, updated);
+                  setPlans(prev => prev.map(p => p.id === pendingClose.id ? updated : p));
+                  setPendingClose(null);
+                  triggerBeta('Plan cerrado', 'Tu grupo quedó listo. Ya no recibirás más. Cerrar no afecta tu calificación.');
+                }}
+                className="w-full py-4 bg-emerald-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-emerald-500/20"
+              >
+                Cerrar plan
+              </button>
+              <button
+                onClick={() => setPendingClose(null)}
+                className="w-full py-4 bg-white/10 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all"
+              >
+                Dejarlo abierto
+              </button>
             </div>
           </Modal>
         )}

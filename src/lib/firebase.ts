@@ -46,11 +46,11 @@ import {
 // Se pueden sobreescribir con variables VITE_FIREBASE_* en un archivo .env.
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyBbloSdceYuypqjrakX7c3pKJXu2aVr3Qc',
-  // authDomain de Firebase (su URL de redirección OAuth ya está registrada en
-  // Google, por eso Google funciona con este). Para mostrar "iogga.com" en el
-  // login habría que registrar https://iogga.com/__/auth/handler como URI de
-  // redirección en Google Cloud Console; mientras tanto usamos el de Firebase.
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'iogga-b932b.firebaseapp.com',
+  // Dominio limpio: Google muestra "iogga.com" en el login. Requiere tener
+  // registrado https://iogga.com/__/auth/handler como URI de redirección en el
+  // Web client de Google Cloud (ya hecho). Para volver atrás, poner de nuevo
+  // 'iogga-b932b.firebaseapp.com' en VITE_FIREBASE_AUTH_DOMAIN.
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'iogga.com',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'iogga-b932b',
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'iogga-b932b.firebasestorage.app',
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '371002889074',

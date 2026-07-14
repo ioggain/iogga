@@ -771,16 +771,26 @@ export default function App() {
   };
 
   const parseTime = (t: string): string | null => {
-    const s = t.toLowerCase();
-    let m = s.match(/(\d{1,2})[:\s]?(\d{2})?\s*(am|pm|a\.m|p\.m|de la (?:tarde|noche|mañana))?/);
+    const s = t.toLowerCase().replace(/y media/g, ':30').replace(/y cuarto/g, ':15');
+    const m = s.match(/(\d{1,2})[:\s]?(\d{2})?\s*(?:hrs?|horas?)?\s*(am|a\.?\s?m|pm|p\.?\s?m|de la (?:tarde|noche|madrugada|mañana))?/);
     if (!m) return null;
     let h = parseInt(m[1], 10);
     const min = m[2] ? parseInt(m[2], 10) : 0;
     const ap = m[3] || '';
-    if (/pm|tarde|noche/.test(ap) && h < 12) h += 12;
-    if (/am|mañana/.test(ap) && h === 12) h = 0;
-    if (h > 23) return null;
+    const hasPM = /pm|p\.?\s?m|tarde|noche/.test(ap);
+    const hasAM = /am|a\.?\s?m|mañana|madrugada/.test(ap);
+    if (hasPM && h < 12) h += 12;
+    else if (hasAM && h === 12) h = 0;
+    else if (!hasPM && !hasAM && h >= 1 && h <= 7) h += 12; // sin am/pm: 1–7 se asume tarde/noche
+    if (h > 23 || min > 59) return null;
     return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+  };
+  // "20:00" -> "8 de la noche" para que la app confirme por voz de forma natural
+  const spokenTime = (hhmm: string): string => {
+    const [H, M] = hhmm.split(':').map(Number);
+    const ampm = H < 12 ? 'de la mañana' : H < 19 ? 'de la tarde' : 'de la noche';
+    let h12 = H % 12; if (h12 === 0) h12 = 12;
+    return M ? `${h12} y ${M} ${ampm}` : `${h12} ${ampm}`;
   };
 
   // La plática avanza la pantalla visible paso a paso (para que el usuario vea
@@ -864,19 +874,34 @@ export default function App() {
       if (cancelled()) return finish();
     }
 
-    // Paso 1: día y hora
+    // Paso 1: día, hora de inicio y hora de fin (por separado, pokayoke)
     if (fromStep <= 1 && !cancelled()) {
       setCurrentPlanStep(1);
-      let dl = ''; let tm = '';
-      const dt = await ask('¿Qué día y a qué hora? Por ejemplo: hoy a las ocho de la noche.');
+      // Día
+      const dt = await ask('¿Qué día es el plan? Por ejemplo: hoy, mañana, o el sábado.');
       if (dt) {
         const low = dt.toLowerCase();
         const opt = dateOptions.find(o => low.includes(o.label.replace('el ', '')) || low.includes(o.chip.toLowerCase()));
-        if (opt) { setNewPlan(p => ({ ...p, date: opt.iso, dateLabel: opt.label })); dl = opt.label; }
-        const parsed = parseTime(dt);
-        if (parsed) { setNewPlan(p => ({ ...p, startTime: parsed })); tm = parsed; }
+        if (opt) { setNewPlan(p => ({ ...p, date: opt.iso, dateLabel: opt.label })); }
       }
-      if (dl || tm) { setPlaticaStatus(`Anoté: ${dl} ${tm}`); await speakEs(`Anoté ${dl} ${tm}. Puedes ajustarlo con los botones si quieres.`); }
+      if (cancelled()) return finish();
+      // Hora de inicio (interpreta tarde/noche y deduce am/pm)
+      const st = await ask('¿A qué hora empieza? Por ejemplo: a las ocho de la noche.');
+      const sp = st ? parseTime(st) : null;
+      if (sp) {
+        setNewPlan(p => ({ ...p, startTime: sp }));
+        setPlaticaStatus('Empieza a las ' + sp);
+        await speakEs('Empieza a las ' + spokenTime(sp) + '.');
+      }
+      if (cancelled()) return finish();
+      // Hora de fin
+      const et = await ask('¿Y a qué hora termina, más o menos?');
+      const ep = et ? parseTime(et) : null;
+      if (ep) {
+        setNewPlan(p => ({ ...p, endTime: ep }));
+        setPlaticaStatus('Termina a las ' + ep);
+        await speakEs('Termina a las ' + spokenTime(ep) + '. Puedes ajustarlo con los botones si quieres.');
+      }
       if (cancelled()) return finish();
     }
 

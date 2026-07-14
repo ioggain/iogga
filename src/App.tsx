@@ -310,28 +310,51 @@ function speakEs(text: string): Promise<void> {
 }
 
 let activeRecognition: any = null;
+let micDenied = false; // si el usuario negó el micrófono, dejamos de insistir
 // Cortar cualquier escucha activa (al salir de la pantalla, el micro se apaga).
 function abortListen() {
   try { activeRecognition?.abort?.(); } catch {}
   activeRecognition = null;
 }
+// Escucha robusta: reintenta si el reconocimiento termina espurio (el micro aún
+// no estaba listo tras hablar) y distingue permiso denegado de "no hablaste".
+// Devuelve el texto, '' si de verdad no se escuchó, o null si no hay micrófono.
 function listenEs(): Promise<string | null> {
   return new Promise((resolve) => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return resolve(null);
-    try {
-      const rec = new SR();
+    if (!SR || micDenied) return resolve(null);
+    let attempts = 0;
+    const tryOnce = () => {
+      let rec: any;
+      try { rec = new SR(); } catch { return resolve(null); }
       activeRecognition = rec;
       rec.lang = 'es-MX';
       rec.interimResults = false;
       rec.maxAlternatives = 1;
       let done = false;
-      const finish = (v: string | null) => { if (!done) { done = true; if (activeRecognition === rec) activeRecognition = null; resolve(v); } };
-      rec.onresult = (e: any) => finish(e.results?.[0]?.[0]?.transcript || null);
-      rec.onerror = () => finish(null);
-      rec.onend = () => finish(null);
-      rec.start();
-    } catch { resolve(null); }
+      let gotSpeech = false;
+      const startedAt = Date.now();
+      const clear = () => { if (activeRecognition === rec) activeRecognition = null; };
+      const finish = (v: string | null) => { if (done) return; done = true; clear(); resolve(v); };
+      const retryOrFail = () => {
+        // Si terminó muy rápido y sin voz, el micro no estaba listo: reintenta.
+        if (!gotSpeech && attempts < 2 && Date.now() - startedAt < 1500) {
+          attempts++; clear(); setTimeout(tryOnce, 350); return;
+        }
+        finish(gotSpeech ? '' : ''); // '' = no se escuchó (pero el micro sí existe)
+      };
+      rec.onresult = (e: any) => finish(e.results?.[0]?.[0]?.transcript || '');
+      rec.onspeechstart = () => { gotSpeech = true; };
+      rec.onerror = (e: any) => {
+        const err = e?.error || '';
+        if (err === 'not-allowed' || err === 'service-not-allowed') { micDenied = true; finish(null); return; }
+        if (done) return;
+        retryOrFail();
+      };
+      rec.onend = () => { if (!done) retryOrFail(); };
+      try { rec.start(); } catch { retryOrFail(); }
+    };
+    tryOnce();
   });
 }
 
@@ -766,35 +789,64 @@ export default function App() {
     platicaCancel.current = false;
     const cancelled = () => platicaCancel.current;
     const finish = () => { setPlaticaOn(false); setPlaticaStatus(''); };
+    const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-    const ask = async (q: string): Promise<string | null> => {
-      if (cancelled()) return null;
+    // Error especial: el micrófono no está disponible o sin permiso. Corta la
+    // plática con calma en vez de repetir "no te escuché" sin parar.
+    class MicUnavailable extends Error {}
+
+    // Pregunta por voz y escucha. Deja un respiro tras hablar para que el
+    // micrófono tome el turno (si no, termina espurio). Devuelve el texto, o
+    // '' si no se escuchó. Si no hay micrófono/permiso, lanza MicUnavailable.
+    const ask = async (q: string): Promise<string> => {
+      if (cancelled()) return '';
       setPlaticaStatus(q);
       await speakEs(q);
-      if (cancelled()) return null;
+      if (cancelled()) return '';
       setPlaticaStatus('Escuchando…');
-      return await listenEs();
+      await wait(350);
+      if (cancelled()) return '';
+      const r = await listenEs();
+      if (r === null) throw new MicUnavailable();
+      return r || '';
     };
+    // Sí/No pokayoke: un reintento; si no dice "sí" claro, se toma como "no".
     const yesNo = async (q: string): Promise<boolean> => {
-      const r = await ask(q);
-      return !!r && /\bs[ií]\b|claro|va|dale|por supuesto|ok/i.test(r);
+      let r = await ask(q);
+      if (!r && !cancelled()) r = await ask('Dime sí o no. ' + q);
+      return /\bs[ií]\b|claro|va|dale|sale|por supuesto|\bok\b|simón|obvio|híjole sí|s[ií]p/i.test(r);
     };
-    // Capturar texto libre con confirmación "¿así lo dejamos o lo cambiamos?"
+    // Capturar texto libre paso a paso, con confirmación y SIN bucle infinito:
+    // máximo 2 intentos; si no se escucha, invita a escribir y sigue.
     const capture = async (q: string, apply: (t: string) => void): Promise<void> => {
+      let tries = 0;
       let val = await ask(q);
       while (!cancelled()) {
-        if (!val) { val = await ask('No te escuché bien. ' + q); continue; }
+        if (!val) {
+          tries++;
+          if (tries >= 2) {
+            setPlaticaStatus('Puedes escribirlo con el teclado.');
+            await speakEs('No te escuché. Escríbelo con el teclado o seguimos con lo siguiente.');
+            return;
+          }
+          val = await ask('No te escuché. ' + q);
+          continue;
+        }
         apply(val);
         setPlaticaStatus('Entendí: "' + val + '"');
-        await speakEs('Entendí: ' + val + '. ¿Así lo dejamos, o lo cambiamos?');
+        await speakEs('Entendí: ' + val + '. ¿Así está bien, o lo cambias?');
         if (cancelled()) return;
         setPlaticaStatus('Escuchando…');
+        await wait(350);
         const c = await listenEs();
-        if (c && /cambia|otra|no|corrige|de nuevo/i.test(c)) { val = await ask('Ok. Dímelo otra vez.'); continue; }
+        if (c && /cambia|otra|corrige|de nuevo|no,|no\b|nel|mal/i.test(c)) {
+          val = await ask('Va. Dímelo otra vez.'); tries = 0; continue;
+        }
         return;
       }
     };
 
+    try {
     // Paso 0: actividad (+ nombre y clave privada si no hay sesión)
     if (fromStep <= 0) {
       setCurrentPlanStep(0);
@@ -885,7 +937,14 @@ export default function App() {
     setCurrentPlanStep(5);
     setPlaticaStatus('¡Listo!');
     await speakEs('En quién puede verlo tendrás que elegir a mano por ahora; pronto también será por voz.');
-    finish();
+    } catch (e) {
+      if (e instanceof MicUnavailable) {
+        setPlaticaStatus('Micrófono no disponible');
+        try { await speakEs('No pude usar el micrófono. Revisa el permiso del micrófono, o escribe con el teclado.'); } catch {}
+      }
+    } finally {
+      finish();
+    }
   };
 
   const [platicaFromStep, setPlaticaFromStep] = useState(0);

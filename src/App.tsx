@@ -1629,6 +1629,14 @@ export default function App() {
   const myPromos = promos.filter(p => (p.uid ? p.uid === currentUser?.uid : !isFirebaseEnabled));
   // ¿Ya creó algo? (para mostrar pistas solo a quien aún no tiene plan ni oferta)
   const hasCreatedAnything = plans.some(p => isMyPlan(p)) || myPromos.length > 0;
+
+  // Ejemplos de DEMO para que las secciones "Mis Planes" y "Mis Ofertas" nunca se
+  // vean vacías: se muestran unos cuantos elementos de prueba (con etiqueta "Prueba")
+  // después de los reales del usuario, sin contar en las analíticas reales.
+  const DEMO_LIMIT = 3;
+  const myPlansReal = plans.filter(p => isMyPlan(p) && !p.deleted);
+  const myPlansDisplay = [...myPlansReal, ...SEED_PLANS.filter(sp => !myPlansReal.some(m => m.id === sp.id)).slice(0, DEMO_LIMIT)];
+  const myPromosDisplay = [...myPromos, ...SEED_PROMOS.filter(sp => !myPromos.some(m => m.id === sp.id)).slice(0, DEMO_LIMIT)];
   const bizTotals = {
     earnings: myPromos.reduce((s, p) => s + (p.totalEarnings || 0), 0),
     scans: myPromos.reduce((s, p) => s + (p.qrScans || 0), 0),
@@ -2910,12 +2918,13 @@ export default function App() {
 
                 {mode === 'person' ? (
                   <div className="space-y-4">
-                    {plans.filter(p => isMyPlan(p) && !p.deleted).map(plan => { const expired = isExpiredPlan(plan); return (
+                    {myPlansDisplay.map(plan => { const expired = isExpiredPlan(plan); return (
                       <div key={plan.id} className="space-y-2">
                         <div
                           onClick={() => setSelectedPlanForDetails(plan)}
                           className={`w-full text-left p-0 rounded-[32px] bg-zinc-900 border-2 text-white shadow-xl relative overflow-hidden transition-transform active:scale-[0.98] group cursor-pointer ${plan.closed ? 'border-emerald-500/70 shadow-emerald-500/10' : expired ? 'border-white/5 opacity-90' : 'border-white/10'}`}
                         >
+                          {plan.isSeed && <SeedTag />}
                           <div className="h-48 w-full relative">
                             <img
                               src={plan.image || `https://picsum.photos/seed/${plan.id}/800/400`}
@@ -3193,24 +3202,7 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {promos.filter(p => (p.uid ? p.uid === currentUser?.uid : !isFirebaseEnabled)).length === 0 && (
-                      <div className="py-16 flex flex-col items-center gap-4 text-center">
-                        <div className="p-5 rounded-full bg-iogga-accent/10 border border-iogga-accent/20">
-                          <PackagePlus size={28} className="text-iogga-accent" />
-                        </div>
-                        <div className="space-y-1">
-                          <p className="font-black text-white text-lg">Publica tu primera oferta</p>
-                          <p className="text-xs text-zinc-500 max-w-[260px] leading-relaxed">Las personas con planes cerca de ti la verán al instante. Sin registro: solo se pide al validar canjes.</p>
-                        </div>
-                        <button
-                          onClick={() => setShowCreatePromo(true)}
-                          className="px-6 py-3 bg-iogga-accent text-white rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
-                        >
-                          Crear oferta
-                        </button>
-                      </div>
-                    )}
-                    {promos.filter(p => (p.uid ? p.uid === currentUser?.uid : !isFirebaseEnabled)).map((promo, idx) => (
+                    {myPromosDisplay.map((promo, idx) => (
                       <motion.div
                         key={promo.id}
                         id={idx === 0 ? "tutorial-business-offer-card" : undefined}

@@ -216,7 +216,7 @@ const MOCK_SALES_DATA = [
   { name: 'Dom', sales: 550, trend: 800 },
 ];
 
-const renderPlanTechnicalDetails = (plan: Plan) => {
+const renderPlanTechnicalDetails = (plan: Plan, onEditSection?: (step: number) => void) => {
   const getBudgetLabel = (budget: string) => {
     switch (budget) {
       case 'invites': return 'Yo invito';
@@ -237,56 +237,39 @@ const renderPlanTechnicalDetails = (plan: Plan) => {
     }
   };
 
-  const DetailItem = ({ icon: Icon, label, value, colorClass }: { icon: any, label: string, value: string, colorClass: string }) => (
-    <div className="flex items-center gap-2.5 min-w-0">
-      <div className={`p-2 rounded-xl ${colorClass} shrink-0`}>
-        <Icon size={14} />
-      </div>
-      <div className="min-w-0">
-        <span className="text-[8px] text-zinc-500 block font-black uppercase tracking-widest leading-none mb-0.5">{label}</span>
-        <span className="text-[11px] font-bold text-white leading-none truncate block">{value}</span>
-      </div>
-    </div>
-  );
+  // Si es tu plan (onEditSection presente), cada dato es tocable y te lleva
+  // directo a editar esa sección. Si no, es solo lectura.
+  const DetailItem = ({ icon: Icon, label, value, colorClass, step }: { icon: any, label: string, value: string, colorClass: string, step: number }) => {
+    const inner = (
+      <>
+        <div className={`p-2 rounded-xl ${colorClass} shrink-0`}>
+          <Icon size={14} />
+        </div>
+        <div className="min-w-0 text-left">
+          <span className="text-[8px] text-zinc-500 block font-black uppercase tracking-widest leading-none mb-0.5">{label}</span>
+          <span className="text-[11px] font-bold text-white leading-none truncate block">{value}</span>
+        </div>
+      </>
+    );
+    if (onEditSection) {
+      return (
+        <button onClick={() => onEditSection(step)} className="flex items-center gap-2.5 min-w-0 rounded-xl -m-1 p-1 hover:bg-white/5 active:scale-95 transition-all">
+          {inner}
+          <Edit3 size={11} className="text-zinc-600 ml-auto shrink-0" />
+        </button>
+      );
+    }
+    return <div className="flex items-center gap-2.5 min-w-0">{inner}</div>;
+  };
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-2">
-      <DetailItem 
-        icon={Clock} 
-        label="Horario" 
-        value={`${plan.startTime} - ${plan.endTime}`} 
-        colorClass="bg-iogga-accent/10 text-iogga-accent" 
-      />
-      <DetailItem 
-        icon={MapPin} 
-        label="Lugar" 
-        value={plan.location} 
-        colorClass="bg-amber-500/10 text-amber-500" 
-      />
-      <DetailItem 
-        icon={DollarSign} 
-        label="Presupuesto" 
-        value={getBudgetLabel(plan.budget)} 
-        colorClass="bg-emerald-500/10 text-emerald-500" 
-      />
-      <DetailItem 
-        icon={Car} 
-        label="Transporte" 
-        value={getTransportLabel(plan.transport)} 
-        colorClass="bg-blue-500/10 text-blue-500" 
-      />
-      <DetailItem 
-        icon={Users} 
-        label="Visibilidad" 
-        value={plan.guests === 'public' ? 'Público' : 'Amigos'} 
-        colorClass="bg-purple-500/10 text-purple-500" 
-      />
-      <DetailItem 
-        icon={Sparkles} 
-        label="Actividad" 
-        value={plan.activity} 
-        colorClass="bg-iogga-primary/10 text-iogga-primary" 
-      />
+      <DetailItem icon={Clock} label="Horario" value={`${plan.startTime} - ${plan.endTime}`} colorClass="bg-iogga-accent/10 text-iogga-accent" step={1} />
+      <DetailItem icon={MapPin} label="Lugar" value={plan.location} colorClass="bg-amber-500/10 text-amber-500" step={4} />
+      <DetailItem icon={DollarSign} label="Presupuesto" value={getBudgetLabel(plan.budget)} colorClass="bg-emerald-500/10 text-emerald-500" step={2} />
+      <DetailItem icon={Car} label="Transporte" value={getTransportLabel(plan.transport)} colorClass="bg-blue-500/10 text-blue-500" step={3} />
+      <DetailItem icon={Users} label="Visibilidad" value={plan.guests === 'public' ? 'Público' : 'Amigos'} colorClass="bg-purple-500/10 text-purple-500" step={5} />
+      <DetailItem icon={Sparkles} label="Actividad" value={plan.activity} colorClass="bg-iogga-primary/10 text-iogga-primary" step={0} />
     </div>
   );
 };
@@ -5508,7 +5491,14 @@ export default function App() {
                     </div>
                   )}
 
-                  {renderPlanTechnicalDetails(selectedPlanForDetails)}
+                  {isMyPlan(selectedPlanForDetails)
+                    ? renderPlanTechnicalDetails(selectedPlanForDetails, (step) => {
+                        const p = selectedPlanForDetails;
+                        setSelectedPlanForDetails(null);
+                        handleEditPlan(p);
+                        setCurrentPlanStep(step);
+                      })
+                    : renderPlanTechnicalDetails(selectedPlanForDetails)}
 
                   {selectedPlanForDetails.transportNote && (
                     <div className="p-4 rounded-2xl bg-iogga-primary/5 border border-iogga-primary/10 italic text-sm text-zinc-400">

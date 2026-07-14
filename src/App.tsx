@@ -2473,6 +2473,7 @@ export default function App() {
                                                   }}
                                                   className={`group/promo relative flex items-center gap-4 p-3 rounded-[28px] border transition-all duration-500 cursor-pointer overflow-hidden ${isUserSelected ? 'bg-iogga-primary/10 border-iogga-primary shadow-[0_0_20px_rgba(20,184,166,0.15)] scale-[1.02]' : 'bg-white/5 border-white/10 hover:bg-white/[0.08] hover:border-white/20'}`}
                                                 >
+                                                  {promo.isSeed && <SeedTag />}
                                                   {/* Selection Indicator (Circular) */}
                                                   <div className="absolute top-3 right-3 z-20">
                                                     <button 
@@ -2608,7 +2609,8 @@ export default function App() {
                       </div>
                       <div className="space-y-3">
                         {myPromos.map(promo => (
-                          <div key={promo.id} className="p-4 rounded-[32px] bg-white/5 border border-white/10 flex items-center gap-4">
+                          <div key={promo.id} className="relative overflow-hidden p-4 rounded-[32px] bg-white/5 border border-white/10 flex items-center gap-4">
+                            {promo.isSeed && <SeedTag />}
                             <img src={promo.image} className="w-16 h-16 rounded-2xl object-cover" />
                             <div className="flex-1">
                               <h4 className="font-bold text-white text-sm">{promo.title}</h4>
@@ -3074,6 +3076,7 @@ export default function App() {
                                       }}
                                       className={`group/promo relative flex items-center gap-4 p-3 rounded-[28px] border transition-all duration-500 cursor-pointer overflow-hidden ${userSelectedOfferIds[plan.id] === promo.id ? 'bg-iogga-primary/10 border-iogga-primary shadow-[0_0_20px_rgba(20,184,166,0.15)] scale-[1.01]' : 'bg-white/5 border-white/10 hover:bg-white/[0.08] hover:border-white/20'}`}
                                     >
+                                      {promo.isSeed && <SeedTag />}
                                       {/* Selection Indicator (Circular) */}
                                       <div className="absolute top-3 right-3 z-20">
                                         <button 
@@ -3226,8 +3229,9 @@ export default function App() {
                           className={`p-0 rounded-[32px] bg-zinc-900 border border-white/10 flex flex-col group hover:bg-zinc-800 transition-all shadow-2xl overflow-hidden cursor-pointer ${isWiggleMode ? 'ring-2 ring-red-500/50' : ''}`}
                         >
                           <div className="relative w-full h-48 shrink-0">
+                            {promo.isSeed && <SeedTag />}
                             <img src={promo.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
-                            
+
                             {/* Top Left: View as Customer + Compartir */}
                             <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
                               <button
@@ -5328,9 +5332,10 @@ export default function App() {
             <Modal onClose={() => setSelectedPlanForDetails(null)} title="Detalles del Plan">
               <div className="space-y-6">
                 <div className="relative aspect-video rounded-3xl overflow-hidden shadow-2xl">
-                  <img 
-                    src={selectedPlanForDetails.image || `https://picsum.photos/seed/${selectedPlanForDetails.id}/800/400`} 
-                    className="w-full h-full object-cover" 
+                  {selectedPlanForDetails.isSeed && <SeedTag />}
+                  <img
+                    src={selectedPlanForDetails.image || `https://picsum.photos/seed/${selectedPlanForDetails.id}/800/400`}
+                    className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
@@ -5563,6 +5568,7 @@ export default function App() {
               <div className="space-y-6">
                 {/* Main Offer Card */}
                 <div className="relative rounded-[32px] overflow-hidden border border-white/10 shadow-2xl bg-zinc-900">
+                  {selectedPromo.isSeed && <SeedTag />}
                   <img src={selectedPromo.image} className="w-full h-56 object-cover" referrerPolicy="no-referrer" />
                   <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
                   
@@ -7525,6 +7531,7 @@ function GroupedPlanCard({ group, rank, locked, onUnlock }: { group: any, rank: 
       whileTap={{ scale: 0.99 }}
       className={`relative min-h-[380px] rounded-[48px] overflow-hidden group cursor-pointer shadow-2xl border ${isFirst ? 'border-iogga-primary/40 ring-1 ring-iogga-primary/20' : 'border-white/5'}`}
     >
+      <SeedTag />
       <img src={group.image} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" referrerPolicy="no-referrer" />
       
       {/* Editorial Gradient Overlay - Stronger at bottom */}
@@ -7794,6 +7801,7 @@ function UserProfileModal({ user, onClose, onComingSoon }: { user: Plan, onClose
       <div className="space-y-8">
         <div className="relative">
           <div className="aspect-[4/5] rounded-[48px] overflow-hidden shadow-2xl">
+            {user.isSeed && <SeedTag />}
             <img src={user.userAvatar.replace('100/100', '800/1000')} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
           </div>
@@ -7864,6 +7872,7 @@ function BusinessProfileModal({ business, offers = [], onOpenOffer, waLink, onCl
       <div className="space-y-8">
         <div className="relative">
           <div className="aspect-video rounded-[48px] overflow-hidden shadow-2xl">
+            {business.isSeed && <SeedTag />}
             <img src={business.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
           </div>

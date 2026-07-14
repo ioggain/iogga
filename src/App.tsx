@@ -1182,6 +1182,17 @@ export default function App() {
   const [, setExpiryTick] = useState(0);
   useEffect(() => { const t = setInterval(() => setExpiryTick(x => x + 1), 60000); return () => clearInterval(t); }, []);
 
+  // ---- Vigencia de ofertas: caducan al pasar validTo (fin del día) ----
+  const promoExpired = (pr: Promotion): boolean => {
+    if (pr.isSeed || !pr.validTo) return false; // sin vigencia = siempre disponible
+    const end = new Date(`${pr.validTo}T23:59:59`);
+    return Date.now() > end.getTime();
+  };
+  const promoLive = (pr: Promotion) => !promoExpired(pr);
+  // ¿Falta poco para caducar? (plan hoy o mañana / oferta a <= 1 día del fin)
+  const planExpiringSoon = (p: Plan) => { if (p.isSeed || isExpiredPlan(p)) return false; const ms = planEndMs(p) - Date.now(); return ms > 0 && ms < 3 * 60 * 60 * 1000; };
+  const promoExpiringSoon = (pr: Promotion) => { if (pr.isSeed || !pr.validTo || promoExpired(pr)) return false; const ms = new Date(`${pr.validTo}T23:59:59`).getTime() - Date.now(); return ms > 0 && ms < 24 * 60 * 60 * 1000; };
+
   const matchesPromoCategory = (pr: Promotion) => {
     if (personExploreCategory === 'Todos') return true;
     const hay = norm(`${pr.title} ${pr.description || ''} ${(pr.tags || []).join(' ')}`);
@@ -1596,6 +1607,7 @@ export default function App() {
     if (!targetPlan || !targetPlan.activity) return [];
     const q = tokenize(`${targetPlan.activity} ${(targetPlan.tags || []).join(' ')} ${targetPlan.comment || ''}`);
     return promos
+      .filter(promoLive)
       .map(pr => ({ pr, score: similarity(q, `${pr.title} ${pr.description || ''} ${(pr.tags || []).join(' ')}`) }))
       .filter(x => x.score >= 0.2)
       .sort((a, b) => b.score - a.score)
@@ -1838,6 +1850,8 @@ export default function App() {
           offer: newPromo.offer || edited.offer,
           location: newPromo.location || edited.location,
           image: promoImage || edited.image,
+          validFrom: newPromo.validFrom ?? edited.validFrom,
+          validTo: newPromo.validTo ?? edited.validTo,
           tags: (newPromo.title || '').toLowerCase().split(' ')
         });
       }
@@ -1849,6 +1863,8 @@ export default function App() {
         offer: newPromo.offer || p.offer,
         location: newPromo.location || p.location,
         image: promoImage || p.image,
+        validFrom: newPromo.validFrom ?? p.validFrom,
+        validTo: newPromo.validTo ?? p.validTo,
         tags: (newPromo.title || '').toLowerCase().split(' ')
       } : p));
       setEditingPromoId(null);
@@ -1864,7 +1880,9 @@ export default function App() {
         price: newPromo.price || '$0',
         offer: newPromo.offer || '',
         image: promoImage || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
-        location: businessProfile.location || 'Chihuahua, MX',
+        location: newPromo.location || businessProfile.location || 'Chihuahua, MX',
+        validFrom: newPromo.validFrom || undefined,
+        validTo: newPromo.validTo || undefined,
         // Estadísticas reales: inician en cero y crecen con el uso
         realTimeSearchers: 0,
         qrScans: 0,
@@ -1960,7 +1978,9 @@ export default function App() {
       description: promo.description,
       price: promo.price,
       offer: promo.offer,
-      location: promo.location
+      location: promo.location,
+      validFrom: promo.validFrom,
+      validTo: promo.validTo,
     });
     setPromoImage(promo.image);
     setEditingPromoId(promo.id);
@@ -2757,7 +2777,7 @@ export default function App() {
                             <span className="text-[10px] font-black text-iogga-accent uppercase tracking-widest">Ofertas de negocios cerca de ti</span>
                           </div>
                           <div className="grid grid-cols-2 gap-3 border-l-2 border-iogga-accent/30 pl-3">
-                          {promos.filter(matchesPromoCategory).map(promo => (
+                          {promos.filter(pr => promoLive(pr) && matchesPromoCategory(pr)).map(promo => (
                             <PromoCard
                               key={promo.id}
                               promo={promo}
@@ -2798,6 +2818,27 @@ export default function App() {
                     <LayoutGrid size={20} />
                   </div>
                 </div>
+
+                {/* Aviso de caducidad: planes/ofertas por vencer o vencidos, para editarlos */}
+                {(() => {
+                  const items = mode === 'person'
+                    ? plans.filter(p => isMyPlan(p) && !p.deleted && (isExpiredPlan(p) || planExpiringSoon(p)))
+                    : myPromos.filter(pr => promoExpired(pr) || promoExpiringSoon(pr));
+                  if (items.length === 0) return null;
+                  const anyExpired = mode === 'person'
+                    ? (items as Plan[]).some(p => isExpiredPlan(p))
+                    : (items as Promotion[]).some(pr => promoExpired(pr));
+                  return (
+                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-3">
+                      <Clock size={18} className="text-amber-400 shrink-0" />
+                      <p className="text-xs text-amber-200 leading-snug flex-1">
+                        {anyExpired
+                          ? `Tienes ${items.length} ${mode === 'person' ? (items.length === 1 ? 'plan caducado' : 'planes caducados') : (items.length === 1 ? 'oferta vencida' : 'ofertas vencidas')}. Edítalos para reactivarlos.`
+                          : `${items.length} ${mode === 'person' ? (items.length === 1 ? 'plan está' : 'planes están') : (items.length === 1 ? 'oferta está' : 'ofertas están')} por vencer. Actualiza la ${mode === 'person' ? 'hora' : 'vigencia'} para mantenerlos activos.`}
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 {/* Botón crear siempre visible: para empezar o sumar más */}
                 <button
@@ -3202,11 +3243,16 @@ export default function App() {
                               )}
                             </div>
 
-                          {/* Bottom Left: Offer Badge */}
-                          <div className="absolute bottom-4 left-4 z-10">
+                          {/* Bottom Left: Offer Badge + estado de vigencia */}
+                          <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2">
                             <div className="bg-iogga-accent text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl border border-white/10">
                               {promo.offer}
                             </div>
+                            {promoExpired(promo) ? (
+                              <div className="bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-1"><Clock size={11} /> Vencida</div>
+                            ) : promoExpiringSoon(promo) ? (
+                              <div className="bg-amber-500 text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-1"><Clock size={11} /> Por vencer</div>
+                            ) : null}
                           </div>
 
                           <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-transparent to-transparent"></div>
@@ -4887,15 +4933,40 @@ export default function App() {
                       />
                     </div>
                   </div>
-                  <input 
-                    type="text" 
-                    placeholder="Ubicación" 
-                    className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-accent outline-none text-base font-medium" 
-                    value={newPromo.location || ''} 
-                    onChange={e => setNewPromo({...newPromo, location: e.target.value})} 
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Ubicación"
+                      className="w-full h-16 pl-6 pr-28 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-accent outline-none text-base font-medium"
+                      value={newPromo.location || ''}
+                      onChange={e => setNewPromo({...newPromo, location: e.target.value})}
+                    />
+                    <a
+                      href={`https://www.google.com/maps/search/${encodeURIComponent(newPromo.location || '')}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 px-3 h-10 rounded-full bg-iogga-accent/15 text-iogga-accent text-[11px] font-black active:scale-95"
+                    >
+                      <MapPin size={13} /> Maps
+                    </a>
+                  </div>
+
+                  {/* Vigencia: la oferta queda no disponible al pasar la fecha fin */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Vigencia de la oferta</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest ml-1">Desde</span>
+                        <input type="date" className="w-full h-14 px-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm focus:ring-2 focus:ring-iogga-accent outline-none" value={newPromo.validFrom || ''} onChange={e => setNewPromo({...newPromo, validFrom: e.target.value})} />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest ml-1">Hasta</span>
+                        <input type="date" className="w-full h-14 px-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm focus:ring-2 focus:ring-iogga-accent outline-none" value={newPromo.validTo || ''} onChange={e => setNewPromo({...newPromo, validTo: e.target.value})} />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-zinc-600 ml-1">Al pasar la fecha "Hasta", la oferta se marca vencida hasta que la actualices.</p>
+                  </div>
                 </div>
-                <button 
+                <button
                   onClick={handlePublishPromo}
                   className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-bold text-lg shadow-lg shadow-iogga-accent/20 active:scale-95 transition-transform"
                 >

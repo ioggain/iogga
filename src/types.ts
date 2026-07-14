@@ -107,6 +107,9 @@ export interface Promotion {
   qrCode?: string;
   tags: string[];
   phone?: string; // teléfono/WhatsApp del negocio para contacto directo
+  validFrom?: string; // vigencia: fecha ISO de inicio (YYYY-MM-DD)
+  validTo?: string; // vigencia: fecha ISO de fin — después queda no disponible
+  photos?: string[]; // hasta 5 fotos del negocio
   isSeed?: boolean; // dato de prueba temporal (se distingue con etiqueta "Prueba")
 }
 

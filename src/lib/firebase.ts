@@ -272,6 +272,7 @@ export interface UserProfile {
   bio?: string;
   location?: string;
   photoURL?: string | null;
+  photos?: string[]; // hasta 3 fotos extra para conocerse mejor en planes públicos
   whatsapp?: string; // para el botón "Hablar por WhatsApp" al hacer match
   instagram?: string; // usuario de Instagram (sin @)
   website?: string;

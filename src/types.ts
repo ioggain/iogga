@@ -51,7 +51,7 @@ export interface Plan {
   endTime: string;
   location: string;
   budget: 'invites' | 'split' | 'no-money' | 'not-needed';
-  transport: 'has-transport' | 'each-arrives' | 'no-transport';
+  transport: 'has-transport' | 'each-arrives' | 'no-transport' | 'not-needed';
   transportType?: string;
   guests: 'public' | 'friends';
   acceptedCount: number;

@@ -106,7 +106,7 @@ import {
 } from './lib/firebase';
 import { RedeemQRModal, ValidateCodeModal } from './components/qr';
 import { pickImage } from './lib/images';
-import { playIntroChime } from './lib/sound';
+import { playIntroChime, playChime } from './lib/sound';
 
 interface AppNotification {
   id: string;
@@ -231,6 +231,7 @@ const renderPlanTechnicalDetails = (plan: Plan) => {
       case 'has-transport': return 'Tengo transporte';
       case 'each-arrives': return 'Cada quien llega';
       case 'no-transport': return 'Sin transporte';
+      case 'not-needed': return 'No se necesita';
       default: return transport;
     }
   };
@@ -656,6 +657,7 @@ export default function App() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [loginActionToResume, setLoginActionToResume] = useState<(() => void) | null>(null);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -849,10 +851,10 @@ export default function App() {
     // Paso 3: transporte (+ comentario)
     if (fromStep <= 3 && !cancelled()) {
       setCurrentPlanStep(3);
-      const tr = await ask('¿Cómo llegan? Tienes carro, cada quien llega, o no hay transporte.');
+      const tr = await ask('¿Cómo llegan? Tienes carro, cada quien llega, no hay transporte, o no se necesita.');
       if (tr) {
         const t = tr.toLowerCase();
-        const val = t.includes('carro') || t.includes('coche') ? 'has-transport' : (t.includes('cada') ? 'each-arrives' : (t.includes('no') ? 'no-transport' : null));
+        const val = t.includes('carro') || t.includes('coche') ? 'has-transport' : (t.includes('cada') ? 'each-arrives' : ((t.includes('no se') || t.includes('necesita')) ? 'not-needed' : (t.includes('no') ? 'no-transport' : null)));
         if (val) {
           setNewPlan(p => ({ ...p, transport: val as any }));
           const label = val === 'has-transport' ? 'tengo carro' : val === 'each-arrives' ? 'cada quien llega' : 'no tengo transporte';
@@ -941,7 +943,7 @@ export default function App() {
   };
   const applyTransport = (t: string) => {
     const s = t.toLowerCase();
-    const val = s.includes('carro') || s.includes('coche') ? 'has-transport' : (s.includes('cada') ? 'each-arrives' : (s.includes('no') ? 'no-transport' : null));
+    const val = s.includes('carro') || s.includes('coche') ? 'has-transport' : (s.includes('cada') ? 'each-arrives' : ((s.includes('no se') || s.includes('necesita')) ? 'not-needed' : (s.includes('no') ? 'no-transport' : null)));
     if (val) setNewPlan(p => ({ ...p, transport: val as any }));
   };
 
@@ -1176,7 +1178,8 @@ export default function App() {
     const transport =
       plan.transport === 'has-transport' ? 'Tiene transporte' :
       plan.transport === 'each-arrives' ? 'Cada quien llega' :
-      plan.transport === 'no-transport' ? 'Sin transporte' : '';
+      plan.transport === 'no-transport' ? 'Sin transporte' :
+      plan.transport === 'not-needed' ? 'No se necesita transporte' : '';
     if (transport) parts.push(`${transport}${plan.transportNote ? ` (${plan.transportNote})` : ''}.`);
 
     const budget =
@@ -1436,6 +1439,14 @@ export default function App() {
     ...SEED_USERS.slice(0, 4).map(u => ({ uid: u.uid, name: u.name, photo: u.photo })),
   ];
   const unreadNotifs = realNotifs.filter(n => !n.read).length;
+  // Sonido al llegar una notificación nueva (no en la carga inicial).
+  const prevNotifCount = useRef<number | null>(null);
+  useEffect(() => {
+    if (prevNotifCount.current !== null && realNotifs.length > prevNotifCount.current) {
+      try { playChime('campanitas'); } catch {}
+    }
+    prevNotifCount.current = realNotifs.length;
+  }, [realNotifs.length]);
 
   // Ventas REALES del negocio (canjes validados) para las gráficas
   const [myRedemptions, setMyRedemptions] = useState<Redemption[]>([]);
@@ -1582,7 +1593,7 @@ export default function App() {
 
   const getPlanDescription = (plan: Plan) => {
     const budgetText = plan.budget === 'invites' ? 'él invita' : plan.budget === 'split' ? 'cada quien paga' : plan.budget === 'not-needed' ? 'no se necesita dinero' : 'sin costo';
-    const transportText = plan.transport === 'has-transport' ? 'puede pasar por ti' : plan.transport === 'each-arrives' ? 'cada quien llega' : 'busca ride';
+    const transportText = plan.transport === 'has-transport' ? 'puede pasar por ti' : plan.transport === 'each-arrives' ? 'cada quien llega' : plan.transport === 'not-needed' ? 'no se necesita transporte' : 'busca ride';
     const budgetAmountText = plan.budgetAmount ? ` (${plan.budgetAmount})` : '';
     
     return `${plan.userName} quiere ${plan.activity} de ${plan.startTime} a ${plan.endTime}, en ${plan.location}, ${budgetText}${budgetAmountText} y ${transportText}.`;
@@ -4372,12 +4383,19 @@ export default function App() {
                           <p className="font-bold">Cada quien llega</p>
                           <p className="text-xs opacity-60">Nos vemos en el lugar</p>
                         </button>
-                        <button 
+                        <button
                           onClick={() => setNewPlan({...newPlan, transport: 'no-transport'})}
                           className={`p-4 rounded-2xl border text-left transition-all ${newPlan.transport === 'no-transport' ? 'bg-iogga-primary/20 border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
                         >
                           <p className="font-bold">No tengo transporte</p>
                           <p className="text-xs opacity-60">Busco quién me lleve</p>
+                        </button>
+                        <button
+                          onClick={() => setNewPlan({...newPlan, transport: 'not-needed'})}
+                          className={`p-4 rounded-2xl border text-left transition-all ${newPlan.transport === 'not-needed' ? 'bg-iogga-primary/20 border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
+                        >
+                          <p className="font-bold">No se necesita</p>
+                          <p className="text-xs opacity-60">El transporte no es tema en este plan</p>
                         </button>
                       </div>
 
@@ -5848,6 +5866,8 @@ export default function App() {
                       <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest block font-sans">Tu Nombre</label>
                       <input
                         type="text"
+                        name="name"
+                        autoComplete="name"
                         required
                         placeholder="¿Cómo te llamas?"
                         value={registerName}
@@ -5858,10 +5878,12 @@ export default function App() {
                   )}
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest block font-sans">Correo Electrónico</label>
-                    <input 
-                      type="email" 
+                    <input
+                      type="email"
+                      name="email"
+                      autoComplete="email"
                       required
-                      placeholder="tu@correo.com" 
+                      placeholder="tu@correo.com"
                       value={loginEmail || ''}
                       onChange={e => setLoginEmail(e.target.value)}
                       className="w-full h-14 px-5 rounded-[20px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
@@ -5870,14 +5892,26 @@ export default function App() {
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest block font-sans">Contraseña</label>
-                    <input 
-                      type="password" 
-                      required
-                      placeholder="••••••••" 
-                      value={loginPassword || ''}
-                      onChange={e => setLoginPassword(e.target.value)}
-                      className="w-full h-14 px-5 rounded-[20px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        name="password"
+                        autoComplete={isRegistering ? 'new-password' : 'current-password'}
+                        required
+                        placeholder="••••••••"
+                        value={loginPassword || ''}
+                        onChange={e => setLoginPassword(e.target.value)}
+                        className="w-full h-14 pl-5 pr-14 rounded-[20px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(v => !v)}
+                        title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+                      >
+                        <Eye size={18} />
+                      </button>
+                    </div>
                   </div>
 
                   {authError && (

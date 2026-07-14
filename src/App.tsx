@@ -390,18 +390,20 @@ function FireflyWords({ onPick }: { onPick: (w: string) => void }) {
 // Botón de micrófono para dictar dentro de cualquier campo de texto
 function MicButton({ onText, tone = 'primary', inline = false }: { onText: (t: string) => void; tone?: 'primary' | 'accent'; inline?: boolean }) {
   const [busy, setBusy] = React.useState(false);
+  const busyRef = React.useRef(false);
   const color = tone === 'accent' ? 'text-iogga-accent' : 'text-iogga-primary';
   const pos = inline ? '' : 'absolute right-3 top-1/2 -translate-y-1/2 ';
-  // Al desmontar (salir de la pantalla), apagar el micrófono.
-  React.useEffect(() => () => { abortListen(); }, []);
+  // Al desmontar SOLO abortar si ESTE micrófono estaba escuchando; así no
+  // interrumpimos la plática (que maneja su propia escucha) al redibujar.
+  React.useEffect(() => () => { if (busyRef.current) abortListen(); }, []);
   return (
     <button
       type="button"
       onClick={async () => {
-        if (busy) { abortListen(); setBusy(false); return; }
-        setBusy(true);
+        if (busy) { abortListen(); busyRef.current = false; setBusy(false); return; }
+        busyRef.current = true; setBusy(true);
         const t = await listenEs();
-        setBusy(false);
+        busyRef.current = false; setBusy(false);
         if (t) onText(t);
       }}
       title="Dictar por voz"
@@ -1580,9 +1582,11 @@ export default function App() {
       setVisibleIdeas(shuffled.slice(0, 12));
     };
     updateIdeas();
+    // Solo refrescar en la intro; durante crear plan evita redibujar y cortar el dictado.
+    if (!isIntro || showCreatePlan) return;
     const interval = setInterval(updateIdeas, 6000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isIntro, showCreatePlan]);
 
   // Form states
   const [newPlan, setNewPlan] = useState<Partial<Plan>>({

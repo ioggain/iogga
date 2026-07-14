@@ -1352,8 +1352,11 @@ export default function App() {
   const [confirmSel, setConfirmSel] = useState<string[]>([]); // unidos que el anfitrión acepta
 
   // Enviar la intención a los amigos de iogga seleccionados (notificación real)
-  const notifyPendingFriends = (plan: Plan) => {
-    const realIds = pendingFriendIds.filter(id => !id.startsWith('su_'));
+  // Enviar invitación de iogga a amigos reales: manda la notificación (campana)
+  // Y agrega sus uid a invitedUids del plan (para que aparezca en SU bandeja).
+  const sendIoggaInvites = (plan: Plan, uids: string[]) => {
+    const realIds = uids.filter(id => id && !id.startsWith('su_'));
+    if (realIds.length === 0) return;
     realIds.forEach(fid => {
       void sendNotification({
         type: 'invite',
@@ -1364,11 +1367,12 @@ export default function App() {
         planId: plan.id,
       });
     });
-    // Guardar en el plan la lista final de invitados: así les aparece en SU bandeja
-    if (realIds.length > 0) {
-      void saveDocIn('plans', plan.id, { ...plan, invitedUids: Array.from(new Set([...(plan.invitedUids || []), ...realIds])) });
-    }
+    const nextInvited = Array.from(new Set([...(plan.invitedUids || []), ...realIds]));
+    void saveDocIn('plans', plan.id, { ...plan, invitedUids: nextInvited });
+    // Reflejarlo también en memoria por si el snapshot tarda
+    setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, invitedUids: nextInvited } : p));
   };
+  const notifyPendingFriends = (plan: Plan) => sendIoggaInvites(plan, pendingFriendIds);
 
   useEffect(() => {
     if (!currentUser || currentUser.isAnonymous) {
@@ -6172,10 +6176,10 @@ export default function App() {
                 )}
                 <button
                   onClick={() => {
-                    inviteSel.forEach(fid => sendNotification({ type:'invite', to: fid, fromName: invitePlan.userName, title: `${invitePlan.userName.split(' ')[0]} tiene un plan`, message: buildInviteMessage(invitePlan), planId: invitePlan.id }));
+                    sendIoggaInvites(invitePlan, inviteSel);
                     const n = inviteSel.length;
                     setInvitePlan(null); setInviteSel([]);
-                    triggerBeta('¡Enviado en iogga!', n > 0 ? `Se envió la invitación a ${n} ${n === 1 ? 'amigo' : 'amigos'}. Les llegará a su campana.` : 'Selecciona amigos para invitarlos en iogga.');
+                    triggerBeta('¡Enviado en iogga!', n > 0 ? `Se envió la invitación a ${n} ${n === 1 ? 'amigo' : 'amigos'}. Les llegará a su campana y a sus invitaciones.` : 'Selecciona amigos para invitarlos en iogga.');
                   }}
                   disabled={inviteSel.length === 0}
                   className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
@@ -6192,7 +6196,7 @@ export default function App() {
               <button
                 onClick={() => {
                   // WhatsApp además envía la invitación por iogga a los seleccionados
-                  inviteSel.forEach(fid => sendNotification({ type:'invite', to: fid, fromName: invitePlan.userName, title: `${invitePlan.userName.split(' ')[0]} tiene un plan`, message: buildInviteMessage(invitePlan), planId: invitePlan.id }));
+                  sendIoggaInvites(invitePlan, inviteSel);
                   sharePlanWhatsApp(invitePlan);
                   setInvitePlan(null); setInviteSel([]);
                 }}

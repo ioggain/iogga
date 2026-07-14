@@ -4624,6 +4624,31 @@ export default function App() {
                           </button>
                         )}
                       </div>
+                      {/* Pegar una imagen copiada (sin descargarla): del portapapeles */}
+                      <button
+                        onClick={async () => {
+                          try {
+                            const items = await (navigator as any).clipboard?.read?.();
+                            if (items) {
+                              for (const it of items) {
+                                const t = it.types.find((x: string) => x.startsWith('image/'));
+                                if (t) {
+                                  const blob = await it.getType(t);
+                                  const url: string = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(blob); });
+                                  setNewPlan(p => ({ ...p, image: url }));
+                                  return;
+                                }
+                              }
+                            }
+                            triggerBeta('Copia una imagen primero', 'Mantén presionada una foto (por ejemplo de tu galería o del navegador), toca "Copiar", y luego "Pegar imagen".');
+                          } catch {
+                            triggerBeta('No se pudo pegar', 'Tu navegador no permitió leer el portapapeles. Usa "Subir foto".');
+                          }
+                        }}
+                        className="w-full py-3 bg-white/5 border border-white/10 text-zinc-300 rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+                      >
+                        <PlusCircle size={14} /> Pegar imagen copiada
+                      </button>
                       {newPlan.image && (
                         <button
                           onClick={() => setNewPlan({...newPlan, image: undefined})}
@@ -5661,12 +5686,22 @@ export default function App() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); maybeOfferInstall(); }}
-                  className="w-full py-3 text-zinc-500 hover:text-white text-[10px] uppercase tracking-widest font-bold transition-all"
-                >
-                  {ioggaSent ? 'Listo — ver mis planes' : 'Ver mis planes'}
-                </button>
+                {/* Tu plan YA está publicado; estos botones solo cierran esta pantalla */}
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={() => { const p = lastPublishedPlan; setShowMatchCelebration(false); handleEditPlan(p); }}
+                    className="flex-1 py-4 rounded-[24px] bg-white/10 text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
+                  >
+                    Regresar a modificar
+                  </button>
+                  <button
+                    onClick={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); maybeOfferInstall(); }}
+                    className="flex-1 py-4 rounded-[24px] bg-iogga-primary text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-iogga-primary/20"
+                  >
+                    Listo
+                  </button>
+                </div>
+                <p className="text-center text-[10px] text-zinc-600">Tu plan ya está publicado y guardado. Puedes cerrar sin perderlo.</p>
               </div>
             </Modal>
           )}

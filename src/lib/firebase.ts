@@ -563,6 +563,18 @@ export function watchMyRedemptions(businessUid: string, callback: (items: Redemp
   );
 }
 
+// Canjes de un usuario (cliente) en tiempo real: sirven para pedirle que evalúe
+// al negocio ~30 min después de que la promoción se hizo efectiva.
+export function watchUserRedemptions(uid: string, callback: (items: Redemption[]) => void): () => void {
+  if (!db) return () => {};
+  const q = query(collection(db, 'redemptions'), where('uid', '==', uid));
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => d.data() as Redemption)),
+    () => callback([])
+  );
+}
+
 export function authErrorMessage(err: unknown): string {
   const code = (err as { code?: string })?.code || '';
   if (code.includes('invalid-credential') || code.includes('wrong-password') || code.includes('user-not-found')) {

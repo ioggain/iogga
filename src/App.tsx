@@ -89,6 +89,7 @@ import {
   saveBusinessProfile,
   saveFeedback,
   watchMyRedemptions,
+  watchUserRedemptions,
   searchUsers,
   listUsers,
   followUser,
@@ -614,6 +615,7 @@ export default function App() {
     facebook: '',
     tiktok: '',
     linkedin: '',
+    photos: [] as string[], // hasta 5 fotos del negocio (galería)
   });
   const [mode, setMode] = useState<UserMode>('person');
   // Quien ya usa la app entra directo a Explorar; los nuevos empiezan en Inicio.
@@ -1567,6 +1569,42 @@ export default function App() {
     }
     return watchMyRedemptions(currentUser.uid, setMyRedemptions);
   }, [currentUser?.uid]);
+
+  // ---- Evaluación al negocio ~30 min después de que se hizo efectivo el canje ----
+  // Escuchamos los canjes DEL USUARIO (como cliente) y, pasados 30 min, le pedimos
+  // que califique al negocio. Los ya evaluados se guardan para no volver a preguntar.
+  const [myUserRedemptions, setMyUserRedemptions] = useState<Redemption[]>([]);
+  const [pendingEval, setPendingEval] = useState<Redemption | null>(null);
+  const EVAL_DELAY_MS = 30 * 60 * 1000;
+  useEffect(() => {
+    if (!currentUser || currentUser.isAnonymous) { setMyUserRedemptions([]); return; }
+    return watchUserRedemptions(currentUser.uid, setMyUserRedemptions);
+  }, [currentUser?.uid]);
+  useEffect(() => {
+    const check = () => {
+      if (pendingEval) return;
+      let rated: string[] = [];
+      try { rated = JSON.parse(localStorage.getItem('iogga_rated_redemptions') || '[]'); } catch { /* vacío */ }
+      const due = myUserRedemptions.find(r =>
+        r.status === 'redeemed' && r.businessUid && r.redeemedAtMs &&
+        Date.now() - r.redeemedAtMs >= EVAL_DELAY_MS && !rated.includes(r.code)
+      );
+      if (due) setPendingEval(due);
+    };
+    check();
+    const t = setInterval(check, 60 * 1000); // revisa cada minuto
+    return () => clearInterval(t);
+  }, [myUserRedemptions, pendingEval]);
+  const finishEval = (stars?: number) => {
+    if (!pendingEval) return;
+    if (stars && pendingEval.businessUid) void rateUser(pendingEval.businessUid, stars);
+    try {
+      const rated: string[] = JSON.parse(localStorage.getItem('iogga_rated_redemptions') || '[]');
+      rated.push(pendingEval.code);
+      localStorage.setItem('iogga_rated_redemptions', JSON.stringify(rated));
+    } catch { /* ignora */ }
+    setPendingEval(null);
+  };
 
   // Serie de ventas por día (últimos 7 días) a partir de canjes reales
   const salesSeries = (promoId?: string) => {
@@ -3828,10 +3866,10 @@ export default function App() {
                     {/* Mismo formato que el perfil de persona: números en fila */}
                     <div className="pt-12 px-6 space-y-5">
                       <div className="flex items-center justify-around">
-                        <div className="flex flex-col items-center">
+                        <button onClick={() => setActiveTab('active')} className="flex flex-col items-center active:scale-95 transition-transform">
                           <span className="text-lg font-black text-white">{myPromos.length}</span>
                           <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Ofertas</span>
-                        </div>
+                        </button>
                         <button onClick={() => setShowFriends('followers')} className="flex flex-col items-center active:scale-95 transition-transform">
                           <span className="text-lg font-black text-white">{followersAll.length}</span>
                           <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Seguidores</span>
@@ -3874,6 +3912,15 @@ export default function App() {
                           Compartir
                         </button>
                       </div>
+
+                      {/* Galería del negocio: las fotos que subió (hasta 5), estilo Instagram */}
+                      {(businessProfile.photos?.length || 0) > 0 && (
+                        <div className="grid grid-cols-3 gap-1 pt-1">
+                          {businessProfile.photos!.slice(0, 5).map((ph, i) => (
+                            <img key={i} src={ph} className="aspect-square w-full object-cover rounded-lg border border-white/5" referrerPolicy="no-referrer" />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -4612,6 +4659,13 @@ export default function App() {
                         />
                         <FieldVoice step={4} onDicta={t => setNewPlan(p => ({ ...p, location: t }))} />
                       </div>
+                      <a
+                        href={`https://www.google.com/maps/search/${encodeURIComponent(newPlan.location || '')}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-iogga-primary/15 text-iogga-primary text-[12px] font-black active:scale-95 transition-all"
+                      >
+                        <MapPin size={14} /> Buscar en Maps
+                      </a>
                       {(newPlan.locations || []).map((loc, i) => (
                         <div key={i} className="flex gap-2">
                           <input
@@ -5173,6 +5227,34 @@ export default function App() {
                       <span className="text-[7px] font-bold text-white uppercase tracking-widest text-center">{businessProfile.logo ? 'Cambiar' : 'Logo'}</span>
                     </div>
                   </button>
+                  {/* Galería del negocio: hasta 5 fotos (mismo patrón que las fotos de perfil) */}
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 block">Fotos del negocio (máx. 5)</label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[0, 1, 2, 3, 4].map(i => {
+                      const bizPhotos = (businessProfile.photos || []);
+                      const url = bizPhotos[i];
+                      return (
+                        <button
+                          key={i}
+                          onClick={async () => {
+                            if (url) { setBusinessProfile({ ...businessProfile, photos: bizPhotos.filter((_, j) => j !== i) }); return; }
+                            const img = await pickImage(800);
+                            if (img) setBusinessProfile({ ...businessProfile, photos: [...bizPhotos, img].slice(0, 5) });
+                          }}
+                          className="aspect-square rounded-xl bg-white/5 border-2 border-dashed border-white/15 overflow-hidden relative flex items-center justify-center text-zinc-500"
+                        >
+                          {url ? (
+                            <>
+                              <img src={url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              <span className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-500/90 text-white flex items-center justify-center"><X size={11} /></span>
+                            </>
+                          ) : (
+                            <PlusCircle size={16} />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -5723,7 +5805,7 @@ export default function App() {
                       setIsLoggedIn(false);
                       setCurrentUser(null);
                       setUserProfile({});
-                      setBusinessProfile({ name: '', bio: '', logo: '', cover: '', location: '', phone: '', email: '', website: '', instagram: '', facebook: '', tiktok: '', linkedin: '' });
+                      setBusinessProfile({ name: '', bio: '', logo: '', cover: '', location: '', phone: '', email: '', website: '', instagram: '', facebook: '', tiktok: '', linkedin: '', photos: [] });
                       setHasBusiness(false);
                       setMode('person');
                       setFollowing([]);
@@ -6911,6 +6993,11 @@ export default function App() {
       />
     )}
 
+    {/* Evaluación al negocio 30 min después del canje (una estrella basta) */}
+    {pendingEval && (
+      <BusinessEvalOverlay redemption={pendingEval} onRate={finishEval} onSkip={() => finishEval()} />
+    )}
+
     {/* Mini tutorial ilustrado: cómo subir la imagen al estado (pokayoke) */}
     {showStatusHelp && (
       <StatusHelpOverlay
@@ -6927,6 +7014,46 @@ export default function App() {
   </div>
 </div>
 );
+}
+
+// Popup de evaluación al negocio: aparece ~30 min después de canjear. Una sola
+// acción (tocar una estrella) califica y cierra. Pokayoke: no hay forma de fallar.
+function BusinessEvalOverlay({ redemption, onRate, onSkip }: { redemption: Redemption, onRate: (stars: number) => void, onSkip: () => void }) {
+  const [hover, setHover] = useState(0);
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      className="fixed inset-0 z-[600] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6"
+      onClick={onSkip}
+    >
+      <motion.div
+        initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-t-[32px] sm:rounded-[32px] overflow-hidden shadow-2xl p-6 text-center space-y-4"
+      >
+        <div className="w-14 h-14 rounded-2xl bg-iogga-accent/15 flex items-center justify-center mx-auto"><Store size={26} className="text-iogga-accent" /></div>
+        <div>
+          <p className="text-xl font-black text-white tracking-tight leading-tight">¿Cómo estuvo {redemption.businessName}?</p>
+          <p className="text-[12px] text-zinc-400 mt-1">Tu opinión sobre "{redemption.promoTitle}" ayuda a otros en iogga.</p>
+        </div>
+        <div className="flex items-center justify-center gap-2 py-2">
+          {[1, 2, 3, 4, 5].map(n => (
+            <button
+              key={n}
+              onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)}
+              onClick={() => onRate(n)}
+              className="active:scale-90 transition-transform"
+            >
+              <Star size={38} className={n <= hover ? 'text-amber-400 fill-amber-400' : 'text-zinc-600'} />
+            </button>
+          ))}
+        </div>
+        <button onClick={onSkip} className="w-full py-3 text-zinc-500 font-bold text-xs uppercase tracking-widest active:scale-95 transition-all">
+          Ahora no
+        </button>
+      </motion.div>
+    </motion.div>
+  );
 }
 
 // Tutorial ilustrado, paso a paso y a prueba de errores, para publicar la imagen

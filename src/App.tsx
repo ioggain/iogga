@@ -3998,21 +3998,30 @@ export default function App() {
                 label="Inicio" 
                 color="text-iogga-primary" 
               />
-              <NavButton 
+              <NavButton
                 id="nav-search"
-                active={activeTab === 'search'} 
-                onClick={() => setActiveTab('search')} 
-                icon={<Globe size={26} />} 
-                label="Explora" 
-                color="text-iogga-primary" 
+                active={activeTab === 'search'}
+                onClick={() => setActiveTab('search')}
+                icon={<Globe size={26} />}
+                label="Explora"
+                color="text-iogga-primary"
               />
-              <NavButton 
+              {/* Crear plan: siempre al centro (misma estructura que Escanear en negocios) */}
+              <button
+                id="nav-create"
+                onClick={() => setShowCreatePlan(true)}
+                className="relative -mt-8 w-16 h-16 rounded-full bg-iogga-primary text-white flex flex-col items-center justify-center shadow-2xl shadow-iogga-primary/40 border-4 border-zinc-950 active:scale-90 transition-transform"
+              >
+                <Plus size={28} />
+                <span className="absolute -bottom-5 text-[9px] font-black uppercase tracking-widest text-iogga-primary">Crear</span>
+              </button>
+              <NavButton
                 id="nav-active"
-                active={activeTab === 'active'} 
-                onClick={() => setActiveTab('active')} 
-                icon={<LayoutGrid size={26} />} 
-                label="Mis Planes" 
-                color="text-iogga-primary" 
+                active={activeTab === 'active'}
+                onClick={() => setActiveTab('active')}
+                icon={<LayoutGrid size={26} />}
+                label="Mis Planes"
+                color="text-iogga-primary"
               />
               <NavButton 
                 id="nav-profile"

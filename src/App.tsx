@@ -11,9 +11,10 @@ import {
   MapPin, 
   Clock, 
   DollarSign, 
-  Car, 
-  Users, 
+  Car,
+  Users,
   QrCode,
+  RefreshCw,
   Edit3,
   BarChart3,
   PackagePlus,
@@ -1181,7 +1182,7 @@ export default function App() {
     // De los planes a los que me uní, ¿alguno ya cerró y aún no califico al anfitrión?
     const toRate = plans.find(p =>
       acceptedPlanIds.includes(p.id) && p.uid && p.uid !== currentUser.uid &&
-      isExpiredPlan(p) && !ratedPlanIds.includes(p.id)
+      (p.closed || isExpiredPlan(p)) && !ratedPlanIds.includes(p.id)
     );
     if (toRate) setPendingRating(toRate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1192,6 +1193,30 @@ export default function App() {
     setRatedPlanIds(next);
     try { localStorage.setItem('iogga_rated', JSON.stringify(next)); } catch {}
     setPendingRating(null);
+  };
+
+  // El ANFITRIÓN evalúa a cada persona que aceptó, al cerrar o caducar su plan
+  // (recíproco al de arriba). Se guarda por par plan:uid para no repetir.
+  const [hostRatedKeys, setHostRatedKeys] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('iogga_host_rated') || '[]'); } catch { return []; }
+  });
+  const [pendingHostRating, setPendingHostRating] = useState<{ plan: Plan; person: { uid: string; name: string; photo?: string } } | null>(null);
+  useEffect(() => {
+    if (!currentUser || pendingHostRating) return;
+    for (const p of plans) {
+      if (!isMyPlan(p) || (!p.closed && !isExpiredPlan(p))) continue;
+      const accepted = (p.acceptedBy || []).filter(a => (p.confirmedUids || []).includes(a.uid) && a.uid !== currentUser.uid);
+      const person = accepted.find(a => !hostRatedKeys.includes(`${p.id}:${a.uid}`));
+      if (person) { setPendingHostRating({ plan: p, person: { uid: person.uid, name: person.name, photo: person.photo } }); break; }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plans, currentUser?.uid, hostRatedKeys, pendingHostRating]);
+  const finishHostRating = (plan: Plan, person: { uid: string }, stars?: number) => {
+    if (stars && person.uid) void rateUser(person.uid, stars);
+    const next = [...hostRatedKeys, `${plan.id}:${person.uid}`];
+    setHostRatedKeys(next);
+    try { localStorage.setItem('iogga_host_rated', JSON.stringify(next)); } catch {}
+    setPendingHostRating(null);
   };
 
   // ¿Este plan es una invitación PARA MÍ? (de prueba, o me agregaron como invitado)
@@ -1642,6 +1667,56 @@ export default function App() {
     scans: myPromos.reduce((s, p) => s + (p.qrScans || 0), 0),
     sales: myPromos.reduce((s, p) => s + (p.salesCount || 0), 0),
   };
+
+  // ---- Notificaciones DERIVADAS (sin backend): caducidad y evaluaciones ----
+  // Se calculan del estado actual y se muestran en la campana. Al deslizarlas se
+  // guardan como descartadas; si el motivo desaparece (editas el plan) ya no vuelven.
+  const [dismissedDerived, setDismissedDerived] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('iogga_dismissed_derived') || '[]'); } catch { return []; }
+  });
+  const dismissDerived = (key: string) => {
+    setDismissedDerived(prev => { const n = [...prev, key]; try { localStorage.setItem('iogga_dismissed_derived', JSON.stringify(n)); } catch {} return n; });
+  };
+  type DerivedNotif = { key: string; title: string; message: string; icon: any; tone: 'warning' | 'ai' | 'success'; onClick: () => void };
+  const derivedNotifs: DerivedNotif[] = (() => {
+    const out: DerivedNotif[] = [];
+    if (mode === 'person') {
+      // Planes míos caducados o por vencer
+      myPlansReal.forEach(p => {
+        if (isExpiredPlan(p)) {
+          out.push({ key: `plan-exp-${p.id}`, title: 'Tu plan ya terminó', message: `"${p.activity}" pasó su hora. Ciérralo o crea uno nuevo.`, icon: Clock, tone: 'warning', onClick: () => { setActiveTab('active'); setSelectedPlanForDetails(p); } });
+        } else if (planExpiringSoon(p)) {
+          out.push({ key: `plan-soon-${p.id}`, title: 'Tu plan está por terminar', message: `"${p.activity}" termina pronto. Actualiza la hora si lo quieres mantener activo.`, icon: Clock, tone: 'warning', onClick: () => { setActiveTab('active'); handleEditPlan(p); } });
+        }
+      });
+      // Evaluar al anfitrión de un plan al que me uní y ya terminó
+      plans.forEach(p => {
+        if (acceptedPlanIds.includes(p.id) && p.uid && p.uid !== currentUser?.uid && (p.closed || isExpiredPlan(p)) && !ratedPlanIds.includes(p.id)) {
+          out.push({ key: `rate-host-${p.id}`, title: `Califica a ${p.userName.split(' ')[0]}`, message: `¿Cómo estuvo "${p.activity}"? Tu opinión ayuda a la comunidad.`, icon: Star, tone: 'ai', onClick: () => setPendingRating(p) });
+        }
+      });
+      // Evaluar a quienes aceptaron mis planes cerrados/caducados
+      myPlansReal.forEach(p => {
+        if (!p.closed && !isExpiredPlan(p)) return;
+        (p.acceptedBy || []).filter(a => (p.confirmedUids || []).includes(a.uid) && a.uid !== currentUser?.uid).forEach(a => {
+          if (!hostRatedKeys.includes(`${p.id}:${a.uid}`)) {
+            out.push({ key: `rate-guest-${p.id}-${a.uid}`, title: `Califica a ${a.name.split(' ')[0]}`, message: `Se unió a "${p.activity}". ¿Cómo estuvo?`, icon: Star, tone: 'ai', onClick: () => setPendingHostRating({ plan: p, person: { uid: a.uid, name: a.name, photo: a.photo } }) });
+          }
+        });
+      });
+    } else {
+      // Ofertas mías vencidas o por vencer
+      myPromos.forEach(pr => {
+        if (promoExpired(pr)) {
+          out.push({ key: `promo-exp-${pr.id}`, title: 'Tu oferta venció', message: `"${pr.title}" ya no está disponible. Actualiza su vigencia para reactivarla.`, icon: Clock, tone: 'warning', onClick: () => { setActiveTab('active'); handleEditPromo(pr); } });
+        } else if (promoExpiringSoon(pr)) {
+          out.push({ key: `promo-soon-${pr.id}`, title: 'Tu oferta está por vencer', message: `"${pr.title}" vence pronto. Amplía su vigencia para que siga visible.`, icon: Clock, tone: 'warning', onClick: () => { setActiveTab('active'); handleEditPromo(pr); } });
+        }
+      });
+    }
+    return out.filter(n => !dismissedDerived.includes(n.key));
+  })();
+
   const [selectedChannel, setSelectedChannel] = useState<'both' | 'whatsapp' | 'iogga'>('both');
   const [dismissedMatchIds, setDismissedMatchIds] = useState<string[]>([]);
 
@@ -2100,6 +2175,32 @@ export default function App() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
+  // Deslizar hacia abajo (estando arriba del todo) para ACTUALIZAR la app: recarga
+  // la página, con lo que también trae la última versión publicada. Estilo nativo.
+  const mainScrollRef = useRef<HTMLElement | null>(null);
+  const pullRef = useRef<{ startY: number; pulling: boolean }>({ startY: 0, pulling: false });
+  const [pullDist, setPullDist] = useState(0);
+  const PULL_THRESHOLD = 75;
+  const onPullStart = (e: React.TouchEvent) => {
+    const el = mainScrollRef.current;
+    pullRef.current = { startY: e.touches[0].clientY, pulling: !!el && el.scrollTop <= 0 };
+  };
+  const onPullMove = (e: React.TouchEvent) => {
+    if (!pullRef.current.pulling) return;
+    const el = mainScrollRef.current;
+    if (el && el.scrollTop > 0) { pullRef.current.pulling = false; setPullDist(0); return; }
+    const d = e.touches[0].clientY - pullRef.current.startY;
+    if (d > 0) setPullDist(Math.min(d * 0.5, 90)); // resistencia
+  };
+  const onPullEnd = () => {
+    if (pullRef.current.pulling && pullDist >= PULL_THRESHOLD) {
+      setIsRefreshing(true);
+      setTimeout(() => window.location.reload(), 350);
+    }
+    pullRef.current.pulling = false;
+    setPullDist(0);
+  };
+
   useEffect(() => {
     const handleOpenProfile = (e: any) => setSelectedUserProfile(e.detail);
     window.addEventListener('open-user-profile', handleOpenProfile);
@@ -2327,8 +2428,8 @@ export default function App() {
               className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors relative active:scale-90 ${activeTab === 'notifications' ? (mode === 'person' ? 'bg-iogga-primary/20 text-iogga-primary' : 'bg-iogga-accent/20 text-iogga-accent') : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
             >
               <Bell size={20} />
-              {unreadNotifs > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full border border-zinc-900 flex items-center justify-center text-[10px] font-black text-white">{unreadNotifs}</span>
+              {(unreadNotifs + derivedNotifs.length) > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full border border-zinc-900 flex items-center justify-center text-[10px] font-black text-white">{unreadNotifs + derivedNotifs.length}</span>
               )}
             </button>
             <button 
@@ -2341,7 +2442,26 @@ export default function App() {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto no-scrollbar pb-32 relative">
+        <main
+          ref={mainScrollRef}
+          onTouchStart={onPullStart}
+          onTouchMove={onPullMove}
+          onTouchEnd={onPullEnd}
+          className="flex-1 overflow-y-auto no-scrollbar pb-32 relative"
+        >
+          {/* Indicador de "desliza para actualizar" (aparece al jalar hacia abajo) */}
+          {(pullDist > 0 || isRefreshing) && (
+            <div
+              className="absolute top-0 left-0 right-0 flex items-center justify-center pointer-events-none z-[90]"
+              style={{ height: isRefreshing ? 44 : pullDist, opacity: isRefreshing ? 1 : Math.min(pullDist / PULL_THRESHOLD, 1) }}
+            >
+              <RefreshCw
+                size={22}
+                className={`text-iogga-primary ${isRefreshing || pullDist >= PULL_THRESHOLD ? 'animate-spin' : ''}`}
+                style={{ transform: isRefreshing ? undefined : `rotate(${pullDist * 3}deg)` }}
+              />
+            </div>
+          )}
           <AnimatePresence>
             {isRefreshing && (
               <motion.div
@@ -2922,7 +3042,7 @@ export default function App() {
                       <div key={plan.id} className="space-y-2">
                         <div
                           onClick={() => setSelectedPlanForDetails(plan)}
-                          className={`w-full text-left p-0 rounded-[32px] bg-zinc-900 border-2 text-white shadow-xl relative overflow-hidden transition-transform active:scale-[0.98] group cursor-pointer ${plan.closed ? 'border-emerald-500/70 shadow-emerald-500/10' : expired ? 'border-white/5 opacity-90' : 'border-white/10'}`}
+                          className={`w-full text-left p-0 rounded-[32px] bg-zinc-900 border-2 text-white shadow-xl relative overflow-hidden transition-transform active:scale-[0.98] group cursor-pointer ${expired ? 'border-white/5 opacity-80 grayscale-[0.3]' : plan.closed ? 'border-emerald-500/70 shadow-emerald-500/10' : 'border-white/10'}`}
                         >
                           {plan.isSeed && <SeedTag />}
                           <div className="h-48 w-full relative">
@@ -2933,10 +3053,12 @@ export default function App() {
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent"></div>
                             <div className="absolute top-4 left-4 flex items-center gap-2">
-                              {plan.closed ? (
+                              {expired ? (
+                                // Ya pasó la hora: gris/inactivo, aunque se haya cerrado (concretado),
+                                // para que no se confunda con un plan activo.
+                                <span className="px-3 py-1 bg-zinc-700 text-zinc-300 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg flex items-center gap-1">{plan.closed ? <><CheckCircle2 size={11} /> Finalizado</> : 'Caducado'}</span>
+                              ) : plan.closed ? (
                                 <span className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg flex items-center gap-1"><CheckCircle2 size={11} /> Cerrado</span>
-                              ) : expired ? (
-                                <span className="px-3 py-1 bg-zinc-700 text-zinc-300 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">Caducado</span>
                               ) : (
                                 <span className="px-3 py-1 bg-iogga-primary text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">Tu Plan Activo</span>
                               )}
@@ -3429,6 +3551,38 @@ export default function App() {
                     </AnimatePresence>
                   </div>
                 </div>
+
+                {/* Notificaciones DERIVADAS: caducidad de planes/ofertas y evaluaciones */}
+                {derivedNotifs.length > 0 && (
+                  <div className="space-y-3">
+                    {derivedNotifs.map((n) => {
+                      const toneCls = n.tone === 'warning' ? 'bg-amber-500/20 text-amber-400' : n.tone === 'success' ? 'bg-iogga-accent/20 text-iogga-accent' : 'bg-iogga-primary/20 text-iogga-primary';
+                      const barCls = n.tone === 'warning' ? 'bg-amber-500' : n.tone === 'success' ? 'bg-iogga-accent' : 'bg-iogga-primary';
+                      const Icon = n.icon;
+                      return (
+                        <div key={n.key} className="relative group">
+                          <motion.div
+                            drag="x"
+                            dragConstraints={{ left: -100, right: 0 }}
+                            onDragEnd={(_, info) => { if (info.offset.x < -60) dismissDerived(n.key); }}
+                            onClick={() => { n.onClick(); setShowNotificationsMenu(false); }}
+                            className="p-5 rounded-[32px] border flex gap-4 transition-all relative overflow-hidden bg-zinc-900 border-white/10 shadow-xl cursor-pointer active:scale-[0.99]"
+                          >
+                            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${barCls}`} />
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg ${toneCls}`}>
+                              <Icon size={22} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-black text-sm text-white truncate">{n.title}</h3>
+                              <p className="text-xs leading-relaxed text-zinc-300 line-clamp-2 mt-0.5">{n.message}</p>
+                            </div>
+                          </motion.div>
+                        </div>
+                      );
+                    })}
+                    <div className="h-px bg-white/5 my-2" />
+                  </div>
+                )}
 
                 {/* Notificaciones REALES de iogga (invitaciones de amigos, en vivo) */}
                 {realNotifs.length > 0 && (
@@ -3991,14 +4145,25 @@ export default function App() {
 
                     {/* Cuadrícula de mis planes (como el feed de tu perfil) */}
                     {plans.filter(p => isMyPlan(p)).length > 0 && (
-                      <div className="grid grid-cols-3 gap-1 pt-2">
-                        {plans.filter(p => isMyPlan(p)).map(pl => (
-                          <button key={pl.id} onClick={() => setSelectedPlanForDetails(pl)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
-                            <img src={pl.image || `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=300&q=80`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                            <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{pl.activity}</span>
-                          </button>
-                        ))}
+                      <div className="pt-3 space-y-2">
+                        <div className="flex items-center gap-2 px-1">
+                          <LayoutGrid size={14} className="text-iogga-primary" />
+                          <h3 className="text-xs font-black text-white uppercase tracking-widest">Mis planes</h3>
+                          <span className="text-[10px] font-black text-zinc-500">({plans.filter(p => isMyPlan(p)).length})</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1">
+                          {plans.filter(p => isMyPlan(p)).map(pl => {
+                            const inactive = pl.closed || isExpiredPlan(pl);
+                            return (
+                              <button key={pl.id} onClick={() => setSelectedPlanForDetails(pl)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
+                                <img src={pl.image || `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=300&q=80`} className={`w-full h-full object-cover ${inactive ? 'grayscale opacity-60' : ''}`} referrerPolicy="no-referrer" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                                {inactive && <span className="absolute top-1 right-1 text-[7px] font-black text-zinc-300 bg-zinc-800/90 px-1.5 py-0.5 rounded-full uppercase tracking-widest">{pl.closed ? 'Cerrado' : 'Inactivo'}</span>}
+                                <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{pl.activity}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -6775,6 +6940,31 @@ export default function App() {
               </div>
               <p className="text-[11px] text-zinc-500">Toca una estrella. Tu opinión ayuda a que iogga sea confiable.</p>
               <button onClick={() => setPendingRating(null)} className="w-full py-2.5 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Ahora no</button>
+            </div>
+          </Modal>
+        )}
+
+        {/* El anfitrión califica a cada persona que aceptó su plan (recíproco) */}
+        {pendingHostRating && (
+          <Modal onClose={() => finishHostRating(pendingHostRating.plan, pendingHostRating.person)} title="¿Cómo estuvo tu invitado?">
+            <div className="space-y-5 text-center">
+              {pendingHostRating.person.photo
+                ? <img src={pendingHostRating.person.photo} className="w-20 h-20 rounded-full object-cover mx-auto border-2 border-white/10" referrerPolicy="no-referrer" />
+                : <div className="w-20 h-20 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center text-3xl font-black mx-auto">{pendingHostRating.person.name.charAt(0).toUpperCase()}</div>}
+              <div>
+                <p className="text-sm text-zinc-400">Califica a</p>
+                <h3 className="text-xl font-black text-white">{pendingHostRating.person.name}</h3>
+                <p className="text-xs text-zinc-500 mt-1">que se unió a "{pendingHostRating.plan.activity}"</p>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                {[1, 2, 3, 4, 5].map(s => (
+                  <button key={s} onClick={() => finishHostRating(pendingHostRating.plan, pendingHostRating.person, s)} className="p-1 active:scale-90 transition-transform text-yellow-500 hover:scale-110" title={`${s} estrellas`}>
+                    <Star size={38} fill="currentColor" />
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-zinc-500">Tu opinión ayuda a que iogga sea confiable para todos.</p>
+              <button onClick={() => finishHostRating(pendingHostRating.plan, pendingHostRating.person)} className="w-full py-2.5 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Ahora no</button>
             </div>
           </Modal>
         )}

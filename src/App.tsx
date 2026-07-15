@@ -429,6 +429,43 @@ function MicButton({ onText, tone = 'primary', inline = false }: { onText: (t: s
   );
 }
 
+// Selector de hora SIMPLE y claro (misma vista en Android/iPhone): hora, minutos
+// y dos botones grandes AM / PM. Guarda en formato 24h "HH:MM" para el resto de la app.
+function SimpleTimePicker({ value, onChange }: { value?: string; onChange: (hhmm: string) => void }) {
+  const has = !!value && /^\d{1,2}:\d{2}$/.test(value);
+  const H = has ? parseInt(value!.split(':')[0], 10) : NaN;
+  const M = has ? parseInt(value!.split(':')[1], 10) : NaN;
+  const pm = has ? H >= 12 : null;             // null = aún no elige
+  let h12 = has ? H % 12 : NaN; if (has && h12 === 0) h12 = 12;
+
+  const emit = (nh12: number, nmin: number, npm: boolean) => {
+    let hh = nh12 % 12; if (npm) hh += 12;
+    onChange(`${String(hh).padStart(2, '0')}:${String(nmin).padStart(2, '0')}`);
+  };
+  const setHour = (v: number) => emit(v, has && !Number.isNaN(M) ? M : 0, pm ?? false);
+  const setMin = (v: number) => emit(has && !Number.isNaN(h12) ? h12 : 12, v, pm ?? false);
+  const setPeriod = (isPm: boolean) => emit(has && !Number.isNaN(h12) ? h12 : 12, has && !Number.isNaN(M) ? M : 0, isPm);
+
+  const selCls = 'h-14 rounded-2xl bg-white/5 border border-white/10 text-white text-lg font-black text-center outline-none focus:ring-2 focus:ring-iogga-primary appearance-none px-3';
+  return (
+    <div className="flex items-stretch gap-2">
+      <select className={`${selCls} flex-1`} value={has ? h12 : ''} onChange={e => setHour(parseInt(e.target.value, 10))}>
+        <option value="" disabled>Hora</option>
+        {Array.from({ length: 12 }, (_, i) => i + 1).map(h => <option key={h} value={h} className="bg-zinc-900">{h}</option>)}
+      </select>
+      <span className="flex items-center text-2xl font-black text-zinc-500">:</span>
+      <select className={`${selCls} flex-1`} value={has ? M : ''} onChange={e => setMin(parseInt(e.target.value, 10))}>
+        <option value="" disabled>Min</option>
+        {Array.from({ length: 12 }, (_, i) => i * 5).map(m => <option key={m} value={m} className="bg-zinc-900">{String(m).padStart(2, '0')}</option>)}
+      </select>
+      <div className="flex gap-1.5">
+        <button type="button" onClick={() => setPeriod(false)} className={`w-14 rounded-2xl text-sm font-black transition-all active:scale-95 ${pm === false ? 'bg-iogga-primary text-white' : 'bg-white/5 text-zinc-400 border border-white/10'}`}>AM</button>
+        <button type="button" onClick={() => setPeriod(true)} className={`w-14 rounded-2xl text-sm font-black transition-all active:scale-95 ${pm === true ? 'bg-iogga-primary text-white' : 'bg-white/5 text-zinc-400 border border-white/10'}`}>PM</button>
+      </div>
+    </div>
+  );
+}
+
 // ---- Imagen de ESTADO (WhatsApp/Instagram): 9:16, el TEXTO es el protagonista ----
 // message = la invitación generada por iogga (sin clave privada). Sin emojis.
 async function buildStatusImage(message: string, image?: string): Promise<string> {
@@ -1716,6 +1753,14 @@ export default function App() {
     }
     return out.filter(n => !dismissedDerived.includes(n.key));
   })();
+  // Campanita también cuando aparece una notificación derivada nueva (caducidad/evaluación)
+  const prevDerivedCount = useRef<number | null>(null);
+  useEffect(() => {
+    if (prevDerivedCount.current !== null && derivedNotifs.length > prevDerivedCount.current) {
+      try { playChime('campanitas'); } catch { /* silencio si el navegador aún no permite audio */ }
+    }
+    prevDerivedCount.current = derivedNotifs.length;
+  }, [derivedNotifs.length]);
 
   const [selectedChannel, setSelectedChannel] = useState<'both' | 'whatsapp' | 'iogga'>('both');
   const [dismissedMatchIds, setDismissedMatchIds] = useState<string[]>([]);
@@ -4642,16 +4687,16 @@ export default function App() {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1 tracking-wider"><Clock size={12}/> Inicio</label>
-                          <div className="relative">
-                            <input type="time" className="time-clean w-full h-16 pl-6 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white text-base font-medium" value={newPlan.startTime || ''} onChange={e => setNewPlan({...newPlan, startTime: e.target.value})} />
-                            <FieldVoice step={1} onDicta={t => { const p = parseTime(t); if (p) setNewPlan(np => ({ ...np, startTime: p })); }} />
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1"><SimpleTimePicker value={newPlan.startTime} onChange={t => setNewPlan(np => ({ ...np, startTime: t }))} /></div>
+                            <MicButton inline onText={t => { const p = parseTime(t); if (p) setNewPlan(np => ({ ...np, startTime: p })); }} />
                           </div>
                         </div>
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1 tracking-wider"><Clock size={12}/> Fin</label>
-                          <div className="relative">
-                            <input type="time" className="time-clean w-full h-16 pl-6 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white text-base font-medium" value={newPlan.endTime || ''} onChange={e => setNewPlan({...newPlan, endTime: e.target.value})} />
-                            <FieldVoice step={1} onDicta={t => { const p = parseTime(t); if (p) setNewPlan(np => ({ ...np, endTime: p })); }} />
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1"><SimpleTimePicker value={newPlan.endTime} onChange={t => setNewPlan(np => ({ ...np, endTime: t }))} /></div>
+                            <MicButton inline onText={t => { const p = parseTime(t); if (p) setNewPlan(np => ({ ...np, endTime: p })); }} />
                           </div>
                         </div>
                       </div>
@@ -6686,29 +6731,38 @@ export default function App() {
                   <Download size={22} /> Instalar ahora
                 </button>
               ) : isIOS ? (
-                // iPhone (Safari): Apple no permite instalar solo; guía visual de 2 pasos
+                // iPhone (Safari): Apple no permite instalar solo; guía visual de 3 pasos claros
                 <div className="space-y-3 text-left">
                   <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
                     <span className="w-9 h-9 rounded-full bg-iogga-primary text-white text-base font-black flex items-center justify-center shrink-0">1</span>
                     <p className="text-sm text-zinc-200 leading-snug">
-                      Toca el botón <span className="font-black text-white">Compartir</span>
-                      <span className="inline-flex items-center justify-center w-8 h-8 mx-1 rounded-lg bg-[#0a84ff] text-white align-middle" aria-label="compartir">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>
+                      Abajo en <span className="font-black text-white">Safari</span>, toca el botón
+                      <span className="font-black text-white"> Compartir</span>
+                      <span className="inline-flex items-center justify-center w-9 h-9 mx-1 rounded-xl bg-[#0a84ff] text-white align-middle shadow-lg" aria-label="compartir">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>
                       </span>
-                      abajo en la barra de <span className="font-black text-white">Safari</span>.
+                      (un cuadro con una flecha hacia arriba).
                     </p>
                   </div>
                   <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
                     <span className="w-9 h-9 rounded-full bg-iogga-primary text-white text-base font-black flex items-center justify-center shrink-0">2</span>
                     <p className="text-sm text-zinc-200 leading-snug">
-                      Baja y elige
+                      En ese menú, <span className="font-black text-white">desliza hacia abajo</span> hasta ver las opciones de la lista.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
+                    <span className="w-9 h-9 rounded-full bg-iogga-primary text-white text-base font-black flex items-center justify-center shrink-0">3</span>
+                    <p className="text-sm text-zinc-200 leading-snug">
+                      Toca
                       <span className="inline-flex items-center gap-1 mx-1 px-2 py-1 rounded-lg bg-white/10 text-white font-black align-middle text-xs">
                         Agregar a inicio
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
                       </span>
+                      y luego <span className="font-black text-white">Agregar</span> arriba a la derecha.
                     </p>
                   </div>
-                  <p className="text-xs text-zinc-500 text-center pt-1">✨ Listo. iogga aparecerá en tu pantalla de inicio.</p>
+                  <p className="text-xs text-zinc-500 text-center pt-1">✨ Listo. iogga aparecerá en tu pantalla de inicio, con su ícono.</p>
+                  <p className="text-[11px] text-amber-300/80 text-center">Debe ser en <span className="font-black">Safari</span> (no en Chrome ni desde Instagram/Facebook).</p>
                 </div>
               ) : (
                 // Android u otros: instrucciones según el navegador detectado

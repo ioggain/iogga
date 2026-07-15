@@ -159,13 +159,21 @@ export async function resetPassword(email: string): Promise<void> {
   await sendPasswordResetEmail(auth, email);
 }
 
-// En móvil los popups suelen bloquearse; ahí conviene redirigir.
+// ¿Es un navegador embebido (Instagram, Facebook, etc.)? Ahí los popups fallan.
+function isInAppWebview(ua: string): boolean {
+  return /FBAN|FBAV|Instagram|Line\/|Twitter|MicroMessenger|; wv\)/i.test(ua);
+}
+
+// Cuándo usar redirección en vez de popup para Google.
+// iOS (Safari bloquea popups), app instalada y navegadores embebidos -> redirección.
+// Android Chrome normal -> popup: es más confiable y evita la pantalla blanca con
+// error del flujo de redirección con dominio propio.
 function preferRedirect(): boolean {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent;
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
   const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (navigator as any).standalone === true;
-  return isMobile || isStandalone;
+  return isIOS || isStandalone || isInAppWebview(ua);
 }
 
 // Al volver de un login por redirección de Google, terminar de crear el perfil.

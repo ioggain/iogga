@@ -307,7 +307,36 @@ export interface UserProfile {
   facebook?: string;
   tiktok?: string;
   linkedin?: string;
+  blocked?: string[]; // uids de usuarios/negocios bloqueados por este usuario
   business?: BusinessProfile; // perfil de negocio del usuario (mismo modelo que Facebook: una cuenta, dos caras)
+}
+
+// Perfil PÚBLICO de otra persona (para ver su tarjeta). La info sensible
+// (whatsapp, redes, fotos extra) solo se muestra en la app si hay confianza
+// (te sigue o aceptó tu solicitud) — esa regla vive en la interfaz.
+export async function fetchUserProfile(uid: string): Promise<UserProfile | null> {
+  if (!db || !uid) return null;
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    return (snap.data() as UserProfile) || null;
+  } catch { return null; }
+}
+
+// ---------- Bloquear usuarios o negocios ----------
+export async function blockUser(myUid: string, targetUid: string): Promise<void> {
+  if (!db || !myUid || !targetUid) return;
+  await setDoc(doc(db, 'users', myUid), { blocked: arrayUnion(targetUid) }, { merge: true }).catch(() => {});
+  // Al bloquear se corta la relación en ambos sentidos
+  await deleteDoc(doc(db, 'follows', followId(myUid, targetUid))).catch(() => {});
+  await deleteDoc(doc(db, 'follows', followId(targetUid, myUid))).catch(() => {});
+}
+export async function unblockUser(myUid: string, targetUid: string): Promise<void> {
+  if (!db || !myUid || !targetUid) return;
+  try {
+    const snap = await getDoc(doc(db, 'users', myUid));
+    const blocked: string[] = ((snap.data() as any)?.blocked || []).filter((u: string) => u !== targetUid);
+    await updateDoc(doc(db, 'users', myUid), { blocked });
+  } catch { /* sin cambios */ }
 }
 
 export function watchProfile(uid: string, callback: (profile: UserProfile) => void): () => void {
@@ -335,6 +364,7 @@ export interface Friend {
   uid: string;
   name: string;
   photo?: string | null;
+  status?: 'pending' | 'accepted'; // solicitud enviada vs. amistad confirmada (como Instagram)
 }
 
 // TODOS los usuarios registrados (para la lista "Agregar amigos").
@@ -379,21 +409,59 @@ function followId(a: string, b: string) {
   return `${a}_${b}`;
 }
 
-export async function followUser(me: AuthUser, target: Friend): Promise<void> {
+// Seguir = enviar SOLICITUD (como Instagram en privado). La otra persona la
+// acepta y hasta entonces quedan como amigos confirmados. Los follows viejos
+// (sin campo status) se tratan como aceptados para no romper nada.
+export async function followUser(me: AuthUser, target: Friend, mePhoto?: string | null): Promise<void> {
   if (!db) return;
   await setDoc(doc(db, 'follows', followId(me.uid, target.uid)), {
     follower: me.uid,
     followerName: me.name,
+    followerPhoto: mePhoto || null,
     following: target.uid,
     followingName: target.name,
     followingPhoto: target.photo || null,
+    status: 'pending',
     createdAt: serverTimestamp(),
   });
+  // Avisar a la persona: tiene una solicitud nueva
+  await setDoc(doc(collection(db, 'notifications')), {
+    type: 'system',
+    to: target.uid,
+    fromName: me.name,
+    title: `${me.name.split(' ')[0]} quiere seguirte`,
+    message: 'Acepta su solicitud en Amigos → Seguidores para que puedan invitarse a planes.',
+    read: false,
+    createdAt: serverTimestamp(),
+    createdAtMs: Date.now(),
+  }).catch(() => {});
 }
 
 export async function unfollowUser(myUid: string, targetUid: string): Promise<void> {
   if (!db) return;
   await deleteDoc(doc(db, 'follows', followId(myUid, targetUid))).catch(() => {});
+}
+
+// Aceptar la solicitud de alguien que quiere seguirme
+export async function acceptFollower(me: AuthUser, followerUid: string): Promise<void> {
+  if (!db) return;
+  await updateDoc(doc(db, 'follows', followId(followerUid, me.uid)), { status: 'accepted' }).catch(() => {});
+  await setDoc(doc(collection(db, 'notifications')), {
+    type: 'system',
+    to: followerUid,
+    fromName: me.name,
+    title: `${me.name.split(' ')[0]} aceptó tu solicitud`,
+    message: 'Ya son amigos en iogga: pueden verse el perfil completo e invitarse a planes.',
+    read: false,
+    createdAt: serverTimestamp(),
+    createdAtMs: Date.now(),
+  }).catch(() => {});
+}
+
+// Rechazar solicitud o quitar a un seguidor (borra la relación)
+export async function removeFollower(myUid: string, followerUid: string): Promise<void> {
+  if (!db) return;
+  await deleteDoc(doc(db, 'follows', followId(followerUid, myUid))).catch(() => {});
 }
 
 // A quién sigo (mis "amigos" para invitar), en tiempo real
@@ -404,13 +472,13 @@ export function watchFollowing(uid: string, callback: (friends: Friend[]) => voi
     q,
     (snap) => callback(snap.docs.map((d) => {
       const x = d.data() as any;
-      return { uid: x.following, name: x.followingName || 'Usuario', photo: x.followingPhoto || null };
+      return { uid: x.following, name: x.followingName || 'Usuario', photo: x.followingPhoto || null, status: x.status || 'accepted' };
     })),
     () => callback([])
   );
 }
 
-// Quién me sigue (mis seguidores)
+// Quién me sigue (mis seguidores), con foto y estado de la solicitud
 export function watchFollowers(uid: string, callback: (friends: Friend[]) => void): () => void {
   if (!db) return () => {};
   const q = query(collection(db, 'follows'), where('following', '==', uid));
@@ -418,7 +486,7 @@ export function watchFollowers(uid: string, callback: (friends: Friend[]) => voi
     q,
     (snap) => callback(snap.docs.map((d) => {
       const x = d.data() as any;
-      return { uid: x.follower, name: x.followerName || 'Usuario', photo: null };
+      return { uid: x.follower, name: x.followerName || 'Usuario', photo: x.followerPhoto || null, status: x.status || 'accepted' };
     })),
     () => callback([])
   );

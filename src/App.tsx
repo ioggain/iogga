@@ -97,6 +97,11 @@ import {
   listUsers,
   followUser,
   unfollowUser,
+  acceptFollower,
+  removeFollower,
+  blockUser,
+  unblockUser,
+  fetchUserProfile,
   watchFollowing,
   watchFollowers,
   sendNotification,
@@ -1355,8 +1360,9 @@ export default function App() {
 
   // ¿Este plan es una invitación PARA MÍ? (de prueba, o me agregaron como invitado)
   const isInviteForMe = (p: Plan) => !isMyPlan(p) && (!!p.isInvitation || (!!currentUser && !!p.invitedUids?.includes(currentUser.uid)));
-  // Vivo = no borrado, no cerrado y no caducado. Filtro de TODAS las vistas públicas.
-  const isLivePlan = (p: Plan) => !p.deleted && !p.closed && !isExpiredPlan(p);
+  // Vivo = no borrado, no cerrado, no caducado y NO de alguien bloqueado.
+  // Es el filtro de TODAS las vistas públicas.
+  const isLivePlan = (p: Plan) => !p.deleted && !p.closed && !isExpiredPlan(p) && !(((userProfile.blocked as string[]) || []).includes(p.uid || ''));
   // Refrescar cada minuto para que los planes se apaguen solos en pantalla
   const [, setExpiryTick] = useState(0);
   useEffect(() => { const t = setInterval(() => setExpiryTick(x => x + 1), 60000); return () => clearInterval(t); }, []);
@@ -1374,7 +1380,7 @@ export default function App() {
     if (end === null) return false; // sin vigencia = siempre disponible
     return Date.now() > end;
   };
-  const promoLive = (pr: Promotion) => !promoExpired(pr);
+  const promoLive = (pr: Promotion) => !promoExpired(pr) && !(((userProfile.blocked as string[]) || []).includes(pr.uid || ''));
   // ¿Falta poco para caducar? (plan hoy o mañana / oferta a <= 1 día del fin)
   const planExpiringSoon = (p: Plan) => { if (p.isSeed || isExpiredPlan(p)) return false; const ms = planEndMs(p) - Date.now(); return ms > 0 && ms < 3 * 60 * 60 * 1000; };
   const promoExpiringSoon = (pr: Promotion) => { if (pr.isSeed || promoExpired(pr)) return false; const end = promoEndMs(pr); if (end === null) return false; const ms = end - Date.now(); return ms > 0 && ms < 24 * 60 * 60 * 1000; };
@@ -1621,6 +1627,14 @@ export default function App() {
   const [friendResults, setFriendResults] = useState<Friend[]>([]);
   const [allUsers, setAllUsers] = useState<Friend[]>([]); // universo real de iogga
   const [selectedFriend, setSelectedFriend] = useState<(Friend & { rating?: number }) | null>(null); // perfil de una persona
+  // Perfil completo de esa persona (bio, redes, fotos extra): solo se muestra si hay confianza
+  const [friendProfile, setFriendProfile] = useState<UserProfile | null>(null);
+  useEffect(() => {
+    setFriendProfile(null);
+    if (selectedFriend && !selectedFriend.uid.startsWith('su_')) {
+      void fetchUserProfile(selectedFriend.uid).then(setFriendProfile);
+    }
+  }, [selectedFriend?.uid]);
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
   const [pendingFriendIds, setPendingFriendIds] = useState<string[]>([]);
   const [ioggaSent, setIoggaSent] = useState(false); // palomita "Enviado" en la pantalla final
@@ -1710,26 +1724,57 @@ export default function App() {
   });
   const persistSeedFollows = (ids: string[]) => { setSeedFollowIds(ids); try { localStorage.setItem('iogga_seed_follows', JSON.stringify(ids)); } catch {} };
   const isSeedUid = (uid: string) => uid.startsWith('su_');
-  const isFollowing = (uid: string) => following.some(f => f.uid === uid) || seedFollowIds.includes(uid);
+  // Estados de la relación (como Instagram): sigo (aceptado) / solicitado / nada
+  const isFollowing = (uid: string) => following.some(f => f.uid === uid && f.status !== 'pending') || seedFollowIds.includes(uid);
+  const isRequested = (uid: string) => following.some(f => f.uid === uid && f.status === 'pending');
+  const followState = (uid: string): 'friends' | 'requested' | 'none' => isFollowing(uid) ? 'friends' : isRequested(uid) ? 'requested' : 'none';
   const toggleFollow = async (f: Friend) => {
     if (isSeedUid(f.uid)) {
       persistSeedFollows(seedFollowIds.includes(f.uid) ? seedFollowIds.filter(id => id !== f.uid) : [...seedFollowIds, f.uid]);
       return;
     }
     if (!currentUser) { setShowLoginModal(true); return; }
-    if (isFollowing(f.uid)) await unfollowUser(currentUser.uid, f.uid);
-    else await followUser(currentUser, f);
+    // Seguir = enviar solicitud; tocar de nuevo (solicitado o amigos) = quitar
+    if (isFollowing(f.uid) || isRequested(f.uid)) await unfollowUser(currentUser.uid, f.uid);
+    else await followUser(currentUser, f, userProfile.photoURL || null);
   };
-  // Amigos que sigo, incluyendo los de prueba (para que las listas se vean llenas).
+  // Amigos que sigo (solo confirmados), incluyendo los de prueba.
   const followingAll: Friend[] = [
-    ...following,
-    ...SEED_USERS.filter(u => seedFollowIds.includes(u.uid)).map(u => ({ uid: u.uid, name: u.name, photo: u.photo })),
+    ...following.filter(f => f.status !== 'pending'),
+    ...SEED_USERS.filter(u => seedFollowIds.includes(u.uid)).map(u => ({ uid: u.uid, name: u.name, photo: u.photo, status: 'accepted' as const })),
   ];
-  // Seguidores (reales + algunos de prueba, para simular la experiencia).
+  // Solicitudes que YO envié y siguen pendientes
+  const requestedAll: Friend[] = following.filter(f => f.status === 'pending');
+  // Seguidores confirmados (reales + de prueba para la demo)
   const followersAll: Friend[] = [
-    ...followers,
-    ...SEED_USERS.slice(0, 4).map(u => ({ uid: u.uid, name: u.name, photo: u.photo })),
+    ...followers.filter(f => f.status !== 'pending'),
+    ...SEED_USERS.slice(0, 4).map(u => ({ uid: u.uid, name: u.name, photo: u.photo, status: 'accepted' as const })),
   ];
+  // Solicitudes RECIBIDAS pendientes de aceptar (como Instagram)
+  const followRequests: Friend[] = followers.filter(f => f.status === 'pending');
+
+  // CONFIANZA: puedo ver la info sensible de X (teléfono, redes, fotos extra)
+  // solo si X me sigue (confirmado) o X aceptó mi solicitud. Los perfiles de
+  // prueba siempre se ven completos (demo).
+  const isTrustedWith = (uid: string) =>
+    isSeedUid(uid) ||
+    followersAll.some(f => f.uid === uid) ||
+    following.some(f => f.uid === uid && f.status !== 'pending');
+
+  // ---- Bloqueo de usuarios y negocios ----
+  const blockedUids: string[] = (userProfile.blocked as string[]) || [];
+  const isBlocked = (uid?: string | null) => !!uid && blockedUids.includes(uid);
+  const doBlock = async (uid: string, name: string) => {
+    if (!currentUser) { setShowLoginModal(true); return; }
+    setUserProfile(prev => ({ ...prev, blocked: [...((prev.blocked as string[]) || []), uid] }));
+    await blockUser(currentUser.uid, uid);
+    triggerBeta('Bloqueado', `Ya no verás los planes ni ofertas de ${name}, ni podrá interactuar contigo.`);
+  };
+  const doUnblock = async (uid: string) => {
+    if (!currentUser) return;
+    setUserProfile(prev => ({ ...prev, blocked: ((prev.blocked as string[]) || []).filter(u => u !== uid) }));
+    await unblockUser(currentUser.uid, uid);
+  };
   // Notifs reales que el usuario borró (swipe/tachita): se ocultan y no vuelven.
   const [hiddenNotifIds, setHiddenNotifIds] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('iogga_hidden_notifs') || '[]'); } catch { return []; }
@@ -6240,6 +6285,10 @@ export default function App() {
               user={selectedUserProfile}
               onClose={() => setSelectedUserProfile(null)}
               onComingSoon={comingSoon}
+              trusted={!selectedUserProfile.uid || isTrustedWith(selectedUserProfile.uid)}
+              followLabel={selectedUserProfile.uid ? (followState(selectedUserProfile.uid) === 'friends' ? 'Amigos' : followState(selectedUserProfile.uid) === 'requested' ? 'Solicitado' : 'Seguir') : 'Seguir'}
+              onFollow={() => { if (selectedUserProfile.uid) void toggleFollow({ uid: selectedUserProfile.uid, name: selectedUserProfile.userName, photo: selectedUserProfile.userAvatar }); }}
+              onBlock={selectedUserProfile.uid && !isSeedUid(selectedUserProfile.uid) ? () => { void doBlock(selectedUserProfile.uid!, selectedUserProfile.userName); setSelectedUserProfile(null); } : undefined}
             />
           )}
 
@@ -6257,6 +6306,7 @@ export default function App() {
                 setActiveTab('active');
                 setShowCreatePromo(true);
               }}
+              onBlock={selectedBusinessProfile.uid && !selectedBusinessProfile.isSeed ? () => { void doBlock(selectedBusinessProfile.uid!, selectedBusinessProfile.businessName); setSelectedBusinessProfile(null); } : undefined}
             />
           )}
 
@@ -7206,36 +7256,92 @@ export default function App() {
                               )}
                             </div>
                           </button>
-                          <button onClick={() => toggleFollow(f as Friend)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all ${isFollowing(f.uid) ? 'bg-white/10 text-zinc-300' : 'bg-iogga-primary text-white'}`}>
-                            {isFollowing(f.uid) ? 'Siguiendo' : 'Agregar'}
+                          <button onClick={() => toggleFollow(f as Friend)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all ${followState(f.uid) === 'friends' ? 'bg-white/10 text-zinc-300' : followState(f.uid) === 'requested' ? 'bg-white/5 text-zinc-500 border border-white/15' : 'bg-iogga-primary text-white'}`}>
+                            {followState(f.uid) === 'friends' ? 'Amigos' : followState(f.uid) === 'requested' ? 'Solicitado' : 'Agregar'}
                           </button>
                         </div>
                       ));
                     })()}
                   </div>
 
+                  {/* Solicitudes recibidas (como Instagram): confirmar o eliminar */}
+                  {followRequests.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest px-1">Solicitudes ({followRequests.length})</p>
+                      {followRequests.map(f => (
+                        <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/25">
+                          {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-bold text-white block truncate">{f.name}</span>
+                            <span className="text-[10px] text-zinc-400">quiere seguirte</span>
+                          </div>
+                          <button
+                            onClick={() => { if (currentUser) void acceptFollower(currentUser, f.uid); }}
+                            className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-iogga-primary text-white active:scale-95"
+                          >
+                            Confirmar
+                          </button>
+                          <button
+                            onClick={() => { if (currentUser) void removeFollower(currentUser.uid, f.uid); }}
+                            className="w-9 h-9 rounded-full bg-white/10 text-zinc-400 flex items-center justify-center active:scale-95"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Pestañas */}
                   <div className="flex gap-2">
-                    <button onClick={() => setShowFriends('following')} className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${showFriends === 'following' ? 'bg-iogga-primary text-white' : 'bg-white/5 text-zinc-400'}`}>Amigos ({followingAll.length})</button>
+                    <button onClick={() => setShowFriends('following')} className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${showFriends === 'following' ? 'bg-iogga-primary text-white' : 'bg-white/5 text-zinc-400'}`}>Sigues ({followingAll.length})</button>
                     <button onClick={() => setShowFriends('followers')} className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${showFriends === 'followers' ? 'bg-iogga-primary text-white' : 'bg-white/5 text-zinc-400'}`}>Seguidores ({followersAll.length})</button>
                   </div>
 
-                  {/* Lista */}
+                  {/* Lista: sigues (con Solicitado) o seguidores (con Seguir también) */}
                   <div className="space-y-2">
-                    {(showFriends === 'following' ? followingAll : followersAll).map(f => (
-                      <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
+                    {showFriends === 'following' && requestedAll.map(f => (
+                      <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 opacity-80">
                         {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
-                        <span className="text-sm font-bold text-white flex-1">{f.name}</span>
-                        {showFriends === 'following' ? (
-                          <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/10 text-zinc-300 active:scale-95">Quitar</button>
-                        ) : !isFollowing(f.uid) ? (
-                          <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-iogga-primary text-white active:scale-95">Seguir</button>
-                        ) : null}
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-bold text-white block truncate">{f.name}</span>
+                          <span className="text-[10px] text-zinc-500">esperando que acepte</span>
+                        </div>
+                        <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/5 text-zinc-500 border border-white/15 active:scale-95">Solicitado</button>
                       </div>
                     ))}
-                    {(showFriends === 'following' ? followingAll : followersAll).length === 0 && (
+                    {(showFriends === 'following' ? followingAll : followersAll).map(f => (
+                      <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
+                        <button onClick={() => setSelectedFriend(f)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                          {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
+                          <span className="text-sm font-bold text-white flex-1 truncate">{f.name}</span>
+                        </button>
+                        {showFriends === 'following' ? (
+                          <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/10 text-zinc-300 active:scale-95">Quitar</button>
+                        ) : (
+                          <>
+                            {followState(f.uid) === 'none' && (
+                              <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-iogga-primary text-white active:scale-95">Seguir también</button>
+                            )}
+                            {followState(f.uid) === 'requested' && (
+                              <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/5 text-zinc-500 border border-white/15 active:scale-95">Solicitado</button>
+                            )}
+                            {!isSeedUid(f.uid) && (
+                              <button
+                                onClick={() => { if (currentUser) void removeFollower(currentUser.uid, f.uid); }}
+                                title="Quitar seguidor"
+                                className="w-9 h-9 rounded-full bg-white/10 text-zinc-400 flex items-center justify-center active:scale-95"
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    ))}
+                    {(showFriends === 'following' ? followingAll.length + requestedAll.length : followersAll.length) === 0 && (
                       <p className="text-xs text-zinc-500 text-center py-6">
-                        {showFriends === 'following' ? 'Aún no tienes amigos. Búscalos arriba o invítalos por WhatsApp.' : 'Aún no tienes seguidores.'}
+                        {showFriends === 'following' ? 'Aún no sigues a nadie. Búscalos arriba o invítalos por WhatsApp.' : 'Aún no tienes seguidores.'}
                       </p>
                     )}
                   </div>
@@ -7339,6 +7445,32 @@ export default function App() {
                   <p className="text-xs text-yellow-500 font-bold flex items-center justify-center gap-1 mt-1"><Star size={12} fill="currentColor" /> {selectedFriend.rating.toFixed(1)}</p>
                 )}
               </div>
+              {/* Info SENSIBLE (bio, redes, WhatsApp, fotos extra): solo con confianza
+                  — te sigue o aceptó tu solicitud. Si no, candado explicando. */}
+              {isTrustedWith(selectedFriend.uid) ? (
+                <>
+                  {friendProfile?.bio && <p className="text-sm text-white/80 leading-snug px-2">{friendProfile.bio}</p>}
+                  {friendProfile && socialChips(friendProfile, { includeWhatsapp: true }).length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+                      {socialChips(friendProfile, { includeWhatsapp: true }).map(c => (
+                        <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`text-[12px] font-black active:scale-95 transition-all ${c.color}`}>{c.label}</a>
+                      ))}
+                    </div>
+                  )}
+                  {(friendProfile?.photos?.length || 0) > 0 && (
+                    <div className="grid grid-cols-3 gap-1">
+                      {friendProfile!.photos!.slice(0, 3).map((ph, i) => (
+                        <img key={i} src={ph} className="aspect-square w-full object-cover rounded-lg border border-white/5" referrerPolicy="no-referrer" />
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-white/5 border border-white/10 text-left">
+                  <Lock size={16} className="text-zinc-500 shrink-0" />
+                  <p className="text-[11px] text-zinc-400 leading-snug">Sus fotos, redes y WhatsApp son privados. Se muestran cuando te acepte como amigo (como en Instagram).</p>
+                </div>
+              )}
               {/* Sus planes públicos activos (si los hay) */}
               {(() => { const theirPlans = plans.filter(p => p.uid === selectedFriend.uid && p.isPublic && isLivePlan(p)); return theirPlans.length > 0 ? (
                 <div className="grid grid-cols-3 gap-1">
@@ -7351,10 +7483,21 @@ export default function App() {
               ) : <p className="text-xs text-zinc-500 italic">Sin planes públicos por ahora.</p>; })()}
               <button
                 onClick={() => toggleFollow(selectedFriend)}
-                className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all ${isFollowing(selectedFriend.uid) ? 'bg-white/10 text-zinc-300' : 'bg-iogga-primary text-white shadow-lg shadow-iogga-primary/20'}`}
+                className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all ${followState(selectedFriend.uid) === 'friends' ? 'bg-white/10 text-zinc-300' : followState(selectedFriend.uid) === 'requested' ? 'bg-white/5 text-zinc-500 border border-white/15' : 'bg-iogga-primary text-white shadow-lg shadow-iogga-primary/20'}`}
               >
-                {isFollowing(selectedFriend.uid) ? 'Dejar de seguir' : 'Agregar amigo'}
+                {followState(selectedFriend.uid) === 'friends' ? 'Dejar de seguir' : followState(selectedFriend.uid) === 'requested' ? 'Solicitud enviada · Cancelar' : 'Seguir'}
               </button>
+              {!isSeedUid(selectedFriend.uid) && (
+                isBlocked(selectedFriend.uid) ? (
+                  <button onClick={() => void doUnblock(selectedFriend.uid)} className="w-full py-3 rounded-2xl bg-white/5 text-zinc-400 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                    Desbloquear
+                  </button>
+                ) : (
+                  <button onClick={() => { void doBlock(selectedFriend.uid, selectedFriend.name); setSelectedFriend(null); }} className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                    Bloquear a {selectedFriend.name.split(' ')[0]}
+                  </button>
+                )
+              )}
             </div>
           </Modal>
         )}
@@ -8334,7 +8477,7 @@ function Modal({ children, onClose, onBack, title }: { children: React.ReactNode
   );
 }
 
-function UserProfileModal({ user, onClose, onComingSoon }: { user: Plan, onClose: () => void, onComingSoon: (f: string) => void }) {
+function UserProfileModal({ user, onClose, onComingSoon, trusted = false, followLabel = 'Seguir', onFollow, onBlock }: { user: Plan, onClose: () => void, onComingSoon: (f: string) => void, trusted?: boolean, followLabel?: string, onFollow?: () => void, onBlock?: () => void }) {
   return (
     <Modal onClose={onClose} title="Perfil de Usuario">
       <div className="space-y-8">
@@ -8384,25 +8527,42 @@ function UserProfileModal({ user, onClose, onComingSoon }: { user: Plan, onClose
           </p>
         </div>
 
+        {/* WhatsApp: SOLO con confianza (te sigue o aceptó tu solicitud).
+            Si no, candado — así cuidamos los datos de la raza. */}
         <div className="flex gap-4">
-          <a 
-            href={`https://wa.me/526141234567?text=${encodeURIComponent(`¡Hola ${user.userName}! Vi tu perfil en iogga Chihuahua y me gustaría conectar contigo para armar planes juntos. 👋`)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 py-5 bg-emerald-500/10 text-emerald-400 rounded-[24px] font-black text-lg border border-emerald-500/20 hover:bg-emerald-500/20 transition-all text-center flex items-center justify-center gap-2"
-          >
-            <span>WhatsApp</span>
-          </a>
-          <button onClick={() => onComingSoon("Seguir usuarios")} className="flex-1 py-5 bg-iogga-primary text-white rounded-[24px] font-black text-lg shadow-xl shadow-iogga-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
-            Seguir
+          {trusted && user.whatsapp ? (
+            <a
+              href={`https://wa.me/52${user.whatsapp}?text=${encodeURIComponent(`¡Hola ${user.userName}! Vi tu perfil en iogga y me gustaría conectar contigo para armar planes juntos. 👋`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-5 bg-emerald-500/10 text-emerald-400 rounded-[24px] font-black text-lg border border-emerald-500/20 hover:bg-emerald-500/20 transition-all text-center flex items-center justify-center gap-2"
+            >
+              <span>WhatsApp</span>
+            </a>
+          ) : (
+            <div className="flex-1 py-5 bg-white/5 text-zinc-500 rounded-[24px] font-black text-sm border border-white/10 flex items-center justify-center gap-2">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              <span>Privado</span>
+            </div>
+          )}
+          <button onClick={onFollow || (() => onComingSoon("Seguir usuarios"))} className={`flex-1 py-5 rounded-[24px] font-black text-lg transition-all active:scale-95 ${followLabel === 'Seguir' ? 'bg-iogga-primary text-white shadow-xl shadow-iogga-primary/20 hover:scale-[1.02]' : 'bg-white/10 text-zinc-300'}`}>
+            {followLabel}
           </button>
         </div>
+        {!trusted && (
+          <p className="text-[11px] text-zinc-500 text-center">Su WhatsApp y redes se muestran cuando te acepte como amigo (como en Instagram).</p>
+        )}
+        {onBlock && (
+          <button onClick={onBlock} className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+            Bloquear a esta persona
+          </button>
+        )}
       </div>
     </Modal>
   );
 }
 
-function BusinessProfileModal({ business, offers = [], onOpenOffer, waLink, onClose, appMode, onStartBusinessFlow, onComingSoon }: { business: Promotion, offers?: Promotion[], onOpenOffer?: (p: Promotion) => void, waLink?: (phone: string, text: string) => string, onClose: () => void, appMode?: UserMode, onStartBusinessFlow?: () => void, onComingSoon: (f: string) => void }) {
+function BusinessProfileModal({ business, offers = [], onOpenOffer, waLink, onClose, appMode, onStartBusinessFlow, onComingSoon, onBlock }: { business: Promotion, offers?: Promotion[], onOpenOffer?: (p: Promotion) => void, waLink?: (phone: string, text: string) => string, onClose: () => void, appMode?: UserMode, onStartBusinessFlow?: () => void, onComingSoon: (f: string) => void, onBlock?: () => void }) {
   const [showOffers, setShowOffers] = React.useState(false);
   const [askCall, setAskCall] = React.useState(false);
   const phone = business.phone;
@@ -8537,6 +8697,11 @@ function BusinessProfileModal({ business, offers = [], onOpenOffer, waLink, onCl
             Ver ofertas
           </button>
         </div>
+        {onBlock && (
+          <button onClick={onBlock} className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+            Bloquear a este negocio
+          </button>
+        )}
       </div>
     </Modal>
   );

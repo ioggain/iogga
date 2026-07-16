@@ -50,6 +50,7 @@ export interface Plan {
   startTime: string;
   endTime: string;
   location: string;
+  locationHint?: string; // pista PÚBLICA del lugar (ej. "por el Centro"); el punto exacto solo se revela a quien el anfitrión acepta
   budget: 'invites' | 'split' | 'no-money' | 'not-needed';
   transport: 'has-transport' | 'each-arrives' | 'no-transport' | 'not-needed';
   transportType?: string;

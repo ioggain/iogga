@@ -15,6 +15,7 @@ import {
   Users,
   QrCode,
   RefreshCw,
+  Lock,
   Edit3,
   BarChart3,
   PackagePlus,
@@ -218,7 +219,7 @@ const MOCK_SALES_DATA = [
   { name: 'Dom', sales: 550, trend: 800 },
 ];
 
-const renderPlanTechnicalDetails = (plan: Plan, onEditSection?: (step: number) => void) => {
+const renderPlanTechnicalDetails = (plan: Plan, onEditSection?: (step: number) => void, placeText?: string) => {
   const getBudgetLabel = (budget: string) => {
     switch (budget) {
       case 'invites': return 'Yo invito';
@@ -267,7 +268,7 @@ const renderPlanTechnicalDetails = (plan: Plan, onEditSection?: (step: number) =
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-2">
       <DetailItem icon={Clock} label="Horario" value={`${plan.startTime} - ${plan.endTime}`} colorClass="bg-iogga-accent/10 text-iogga-accent" step={1} />
-      <DetailItem icon={MapPin} label="Lugar" value={plan.location} colorClass="bg-amber-500/10 text-amber-500" step={4} />
+      <DetailItem icon={MapPin} label="Lugar" value={placeText ?? plan.location} colorClass="bg-amber-500/10 text-amber-500" step={4} />
       <DetailItem icon={DollarSign} label="Presupuesto" value={getBudgetLabel(plan.budget)} colorClass="bg-emerald-500/10 text-emerald-500" step={2} />
       <DetailItem icon={Car} label="Transporte" value={getTransportLabel(plan.transport)} colorClass="bg-blue-500/10 text-blue-500" step={3} />
       <DetailItem icon={Users} label="Visibilidad" value={plan.guests === 'public' ? 'Público' : 'Amigos'} colorClass="bg-purple-500/10 text-purple-500" step={5} />
@@ -1308,7 +1309,7 @@ export default function App() {
   // ---- Fórmula universal del mensaje de invitación ----
   // Construye una frase natural con TODO lo que el usuario proporcionó,
   // saltándose con gramática correcta lo que no puso.
-  const buildInviteMessage = (plan: Plan) => {
+  const buildInviteMessage = (plan: Plan, revealExact = false) => {
     const parts: string[] = [];
     const rawName = (plan.userName || '').trim();
     // Sin nombre real (sin sesión): hablamos de "alguien que te conoce".
@@ -1321,14 +1322,24 @@ export default function App() {
     const hasStart = plan.startTime && plan.startTime !== '00:00';
     const timePart = hasStart && hasEnd ? `de ${plan.startTime} a ${plan.endTime}` : hasStart ? `a las ${plan.startTime}` : '';
     const when = [plan.dateLabel, timePart].filter(Boolean).join(' ');
-    // Ubicaciones: 2 → "aquí o acá"; 3+ → "a, b o c"
-    const allPlaces = [plan.location, ...(plan.locations || [])].filter(l => l && l.trim());
-    const place = allPlaces.length > 1
-      ? allPlaces.slice(0, -1).join(', ') + ' o ' + allPlaces[allPlaces.length - 1]
-      : allPlaces[0] || '';
-    if (place && when) parts.push(`Estará en ${place} ${when}.`);
-    else if (place) parts.push(`Estará en ${place}.`);
-    else if (when) parts.push(`Será ${when}.`);
+    // Privacidad de ubicación: el punto EXACTO solo se revela a quien el anfitrión
+    // acepta. En la invitación/estado público mostramos solo la zona (pista) y avisamos
+    // que el lugar exacto se comparte al confirmar.
+    const hint = (plan.locationHint || '').trim();
+    if (revealExact) {
+      const allPlaces = [plan.location, ...(plan.locations || [])].filter(l => l && l.trim());
+      const place = allPlaces.length > 1
+        ? allPlaces.slice(0, -1).join(', ') + ' o ' + allPlaces[allPlaces.length - 1]
+        : allPlaces[0] || '';
+      if (place && when) parts.push(`Estará en ${place} ${when}.`);
+      else if (place) parts.push(`Estará en ${place}.`);
+      else if (when) parts.push(`Será ${when}.`);
+    } else {
+      if (hint && when) parts.push(`Zona ${hint} ${when}. Te paso el punto exacto al confirmar.`);
+      else if (hint) parts.push(`Zona ${hint}. Te paso el punto exacto al confirmar.`);
+      else if (when) parts.push(`Será ${when}. Te digo el lugar exacto al confirmar.`);
+      else if (plan.location) parts.push('Te digo el lugar exacto al confirmar.');
+    }
 
     const transport =
       plan.transport === 'has-transport' ? 'Tiene transporte' :
@@ -1698,6 +1709,10 @@ export default function App() {
 
   // ¿Este plan es mío? (con Firebase: por dueño; en demo: el usuario de ejemplo)
   const isMyPlan = (p: Plan) => (p.uid ? p.uid === currentUser?.uid : p.userName === GUEST_NAME);
+  // Privacidad de ubicación: el punto exacto solo lo ve el anfitrión o quien ya fue aceptado.
+  const canSeeExactPlace = (p: Plan) => isMyPlan(p) || (!!currentUser && (p.confirmedUids || []).includes(currentUser.uid));
+  const publicPlaceHint = (p: Plan) => (p.locationHint && p.locationHint.trim()) || 'Zona por confirmar';
+  const shownPlace = (p: Plan) => canSeeExactPlace(p) ? p.location : publicPlaceHint(p);
 
   // Medidor "completa tu perfil": 5 pasos sencillos
   const profileSteps: { label: string; done: boolean }[] = [
@@ -1950,6 +1965,7 @@ export default function App() {
           startTime: newPlan.startTime || edited.startTime,
           endTime: newPlan.endTime || edited.endTime,
           location: newPlan.location || edited.location,
+          locationHint: newPlan.locationHint?.trim() || edited.locationHint,
           budget: newPlan.budget as any,
           budgetAmount: newPlan.budgetAmount,
           transport: newPlan.transport as any,
@@ -1967,6 +1983,7 @@ export default function App() {
         startTime: newPlan.startTime || p.startTime,
         endTime: newPlan.endTime || p.endTime,
         location: newPlan.location || p.location,
+        locationHint: newPlan.locationHint?.trim() || p.locationHint,
         budget: newPlan.budget as any,
         budgetAmount: newPlan.budgetAmount,
         transport: newPlan.transport as any,
@@ -1993,6 +2010,7 @@ export default function App() {
         startTime: newPlan.startTime || '00:00',
         endTime: newPlan.endTime || '00:00',
         location: newPlan.location || 'Ubicación',
+        locationHint: newPlan.locationHint?.trim() || undefined,
         budget: newPlan.budget as any,
         budgetAmount: newPlan.budgetAmount,
         transport: newPlan.transport as any,
@@ -2173,6 +2191,7 @@ export default function App() {
       startTime: plan.startTime,
       endTime: plan.endTime,
       location: plan.location,
+      locationHint: plan.locationHint,
       budget: plan.budget,
       transport: plan.transport,
       guests: plan.guests,
@@ -2665,7 +2684,7 @@ export default function App() {
                                       className="overflow-hidden"
                                     >
                                       <div className="pt-6 space-y-6">
-                                        {renderPlanTechnicalDetails(plan)}
+                                        {renderPlanTechnicalDetails(plan, undefined, shownPlace(plan))}
 
                                         <div className="space-y-3">
                                           <div className="flex items-center gap-2 px-1">
@@ -4876,11 +4895,15 @@ export default function App() {
                         <label className="text-lg font-bold text-white block">¿Dónde nos vemos?</label>
                         <VoicePair step={4} onDicta={t => setNewPlan(p => ({ ...p, location: t }))} />
                       </div>
+                      <div className="flex items-center gap-1.5 px-1">
+                        <Lock size={11} className="text-iogga-primary" />
+                        <p className="text-[11px] text-zinc-400">Punto exacto <span className="text-white font-bold">privado</span>: solo lo verá quien aceptes.</p>
+                      </div>
                       <div className="relative">
                         <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
                         <input
                           type="text"
-                          placeholder="Ej. Centro, Plaza, Starbucks..."
+                          placeholder="Punto exacto. Ej. Starbucks Plaza Galerías"
                           className="w-full h-16 pl-12 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium"
                           value={newPlan.location || ''}
                           onChange={e => setNewPlan({...newPlan, location: e.target.value})}
@@ -4895,6 +4918,23 @@ export default function App() {
                       >
                         <MapPin size={14} /> Buscar en Maps
                       </a>
+                      {/* Pista PÚBLICA: la zona que sí verán todos en la invitación y el estado */}
+                      <div className="space-y-1.5 pt-1">
+                        <div className="flex items-center gap-1.5 px-1">
+                          <Globe size={11} className="text-zinc-400" />
+                          <p className="text-[11px] text-zinc-400">Pista pública (la ve todos): la <span className="text-white font-bold">zona</span>, sin dar el punto exacto.</p>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Ej. por el Centro / zona Norte"
+                            className="w-full h-14 pl-6 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                            value={newPlan.locationHint || ''}
+                            onChange={e => setNewPlan({ ...newPlan, locationHint: e.target.value })}
+                          />
+                          <FieldVoice step={4} onDicta={t => setNewPlan(p => ({ ...p, locationHint: t }))} />
+                        </div>
+                      </div>
                       {(newPlan.locations || []).map((loc, i) => (
                         <div key={i} className="flex gap-2">
                           <input
@@ -5620,7 +5660,7 @@ export default function App() {
 
                 <div className="p-6 rounded-[32px] bg-white/5 border border-white/10 space-y-6">
                   <p className="text-lg font-black text-white leading-relaxed italic">
-                    "{isMyPlan(selectedPlanForDetails) ? buildInviteMessage(selectedPlanForDetails) : getPlanDescription(selectedPlanForDetails)}"
+                    "{isMyPlan(selectedPlanForDetails) ? buildInviteMessage(selectedPlanForDetails, true) : getPlanDescription(selectedPlanForDetails)}"
                   </p>
 
                   {isMyPlan(selectedPlanForDetails) && (
@@ -5718,7 +5758,7 @@ export default function App() {
                               const plan = selectedPlanForDetails;
                               // Avisar solo a los NUEVOS aceptados (no a los que ya lo estaban)
                               const already = plan.confirmedUids || [];
-                              confirmSel.filter(uid => !already.includes(uid)).forEach(uid => sendNotification({ type:'accepted', to: uid, fromName: plan.userName, title: `${plan.userName.split(' ')[0]} te aceptó en su plan`, message: `¡Estás dentro! ${buildInviteMessage(plan)}`, planId: plan.id }));
+                              confirmSel.filter(uid => !already.includes(uid)).forEach(uid => sendNotification({ type:'accepted', to: uid, fromName: plan.userName, title: `${plan.userName.split(' ')[0]} te aceptó en su plan`, message: `¡Estás dentro! Ya con el lugar exacto: ${buildInviteMessage(plan, true)}`, planId: plan.id }));
                               // Guardar la selección para que quede con palomita al volver
                               const updated = { ...plan, confirmedUids: confirmSel };
                               void saveDocIn('plans', plan.id, updated);
@@ -5744,8 +5784,16 @@ export default function App() {
                         setSelectedPlanForDetails(null);
                         handleEditPlan(p);
                         setCurrentPlanStep(step);
-                      })
-                    : renderPlanTechnicalDetails(selectedPlanForDetails)}
+                      }, shownPlace(selectedPlanForDetails))
+                    : renderPlanTechnicalDetails(selectedPlanForDetails, undefined, shownPlace(selectedPlanForDetails))}
+
+                  {/* Aviso de privacidad de ubicación: aún no eres aceptado */}
+                  {!canSeeExactPlace(selectedPlanForDetails) && (
+                    <div className="flex items-center gap-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                      <MapPin size={15} className="text-amber-400 shrink-0" />
+                      <p className="text-[11px] text-amber-200 leading-snug">Por seguridad, el punto exacto se revela cuando el anfitrión te acepta.</p>
+                    </div>
+                  )}
 
                   {selectedPlanForDetails.transportNote && (
                     <div className="p-4 rounded-2xl bg-iogga-primary/5 border border-iogga-primary/10 italic text-sm text-zinc-400">
@@ -7779,7 +7827,7 @@ function PlanCard({ plan, onAccept, onIgnore }: { plan: Plan, onAccept?: () => v
           <h4 className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em]">Propuesta de Plan</h4>
           <div className="px-2 py-0.5 rounded-md bg-white/10 text-[8px] font-bold text-white/60 uppercase tracking-widest">Verificado</div>
         </div>
-        {renderPlanTechnicalDetails(plan)}
+        {renderPlanTechnicalDetails(plan, undefined, (plan.locationHint && plan.locationHint.trim()) || 'Zona por confirmar')}
       </div>
 
       <div className="flex items-center gap-3 pt-2">

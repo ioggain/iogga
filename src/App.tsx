@@ -1740,6 +1740,15 @@ export default function App() {
   };
   const visibleRealNotifs = realNotifs.filter(n => !hiddenNotifIds.includes(n.id));
   const unreadNotifs = visibleRealNotifs.filter(n => !n.read).length;
+  // Contador rojo EN EL ÍCONO de la app instalada (Badging API: Android/Chrome
+  // y iPhone con la PWA instalada en iOS 16.4+). Se actualiza solo.
+  useEffect(() => {
+    const nav: any = navigator;
+    if (typeof nav?.setAppBadge !== 'function') return;
+    const total = unreadNotifs;
+    if (total > 0) nav.setAppBadge(total).catch(() => {});
+    else nav.clearAppBadge?.().catch(() => {});
+  }, [unreadNotifs]);
   // Sonido al llegar una notificación nueva (no en la carga inicial).
   const prevNotifCount = useRef<number | null>(null);
   useEffect(() => {

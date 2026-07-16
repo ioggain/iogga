@@ -109,6 +109,7 @@ import {
 import { RedeemQRModal, ValidateCodeModal } from './components/qr';
 import { pickImage } from './lib/images';
 import { playIntroChime, playChime } from './lib/sound';
+import { APP_VERSION } from './lib/version';
 
 interface AppNotification {
   id: string;
@@ -1433,6 +1434,20 @@ export default function App() {
     } catch {}
   }, []);
 
+  // Aviso de "actualización disponible": aparece cuando el service worker detecta
+  // una versión nueva. Al tocar "Actualizar" se activa y la app se recarga sola.
+  const [updateReady, setUpdateReady] = useState(false);
+  useEffect(() => {
+    const onUpd = () => setUpdateReady(true);
+    window.addEventListener('iogga-update-available', onUpd);
+    return () => window.removeEventListener('iogga-update-available', onUpd);
+  }, []);
+  const applyUpdate = () => {
+    const reg = (window as any).__ioggaSWReg;
+    if (reg?.waiting) reg.waiting.postMessage('skipWaiting');
+    else window.location.reload();
+  };
+
   // Si veníamos de iniciar sesión con Google por redirección, completarlo
   useEffect(() => {
     void completeGoogleRedirect().then(u => {
@@ -1448,13 +1463,20 @@ export default function App() {
   // Mantener la sesión iniciada (Firebase recuerda al usuario entre visitas)
   useEffect(() => {
     const unsubscribe = watchAuth(user => {
-      setCurrentUser(user);
-      // Los invitados anónimos pueden publicar, pero no cuentan como "registrados"
+      setCurrentUser(prev => {
+        // Nunca degradar una sesión REGISTRADA a invitado por un evento pasajero:
+        // si ya estábamos registrados y llega un anónimo, conservamos la cuenta real.
+        if (prev && !prev.isAnonymous && user?.isAnonymous) return prev;
+        return user;
+      });
       if (user && !user.isAnonymous) {
         setIsLoggedIn(true);
         // Usuario registrado: nada de recorrido ni popups de explicación
         setShowTutorial(false);
         try { localStorage.setItem('iogga_tutorial_completed', 'true'); } catch {}
+      } else if (!user) {
+        // Cierre de sesión real
+        setIsLoggedIn(false);
       }
     });
     return unsubscribe;
@@ -2288,6 +2310,19 @@ export default function App() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-zinc-900">
       <div className={`app-container transition-all duration-700 ${isIntro ? 'bg-zinc-950' : (mode === 'person' ? 'bg-indigo-950' : 'bg-teal-950')} flex flex-col relative`}>
+        {/* Aviso de actualización disponible (arriba, sobre todo) */}
+        {updateReady && (
+          <div className="absolute top-0 left-0 right-0 z-[400] p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-iogga-primary text-white shadow-2xl shadow-iogga-primary/30 border border-white/20">
+              <RefreshCw size={18} className="shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black leading-none">Actualización disponible</p>
+                <p className="text-[11px] text-white/80 mt-0.5">Toca para tener la última versión de iogga.</p>
+              </div>
+              <button onClick={applyUpdate} className="shrink-0 px-4 h-10 rounded-full bg-white text-iogga-primary text-xs font-black uppercase tracking-widest active:scale-95 transition-all">Actualizar</button>
+            </div>
+          </div>
+        )}
         {isIntro ? (
           <div onClickCapture={playWelcomeChime} className="flex flex-col items-center [justify-content:safe_center] p-8 pb-[max(3rem,env(safe-area-inset-bottom))] text-center relative overflow-y-auto no-scrollbar h-full">
             {/* Background Glow */}
@@ -6030,7 +6065,15 @@ export default function App() {
                   </button>
                 )}
                 
-                <p className="text-center text-[10px] text-zinc-600 font-medium">iogga v2.4.0 • Hecho con amor en Chihuahua</p>
+                {updateReady && (
+                  <button
+                    onClick={() => { setShowSettingsMenu(false); applyUpdate(); }}
+                    className="w-full p-4 rounded-2xl bg-iogga-primary/15 text-iogga-primary flex items-center justify-center gap-2 font-black border border-iogga-primary/30 active:scale-95 transition-transform"
+                  >
+                    <RefreshCw size={16} /> Actualizar a la última versión
+                  </button>
+                )}
+                <p className="text-center text-[10px] text-zinc-600 font-medium">iogga v{APP_VERSION} • Hecho con amor en Chihuahua{updateReady ? ' • hay una versión nueva' : ''}</p>
               </div>
             </Modal>
           )}

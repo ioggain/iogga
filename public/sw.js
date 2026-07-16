@@ -1,10 +1,16 @@
 // Service worker de IOGGA: permite instalar la app y abrirla aunque falle la red.
-const CACHE = 'iogga-v9';
+const CACHE = 'iogga-v10';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png'];
 
 self.addEventListener('install', (event) => {
+  // NO usamos skipWaiting aquí: la nueva versión espera a que el usuario acepte
+  // "Actualizar" en la app (o al reabrirla), para no recargar de golpe en medio del uso.
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)));
-  self.skipWaiting();
+});
+
+// La app pide activar la nueva versión cuando el usuario toca "Actualizar".
+self.addEventListener('message', (event) => {
+  if (event.data === 'skipWaiting') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

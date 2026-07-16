@@ -9,11 +9,15 @@ import {
   sendPasswordResetEmail,
   signInWithPopup,
   signInWithRedirect,
+  signInWithCredential,
   getRedirectResult,
   signInAnonymously,
   linkWithCredential,
   linkWithPopup,
   linkWithRedirect,
+  setPersistence,
+  browserLocalPersistence,
+  indexedDBLocalPersistence,
   EmailAuthProvider,
   GoogleAuthProvider,
   signOut,
@@ -67,6 +71,11 @@ if (isFirebaseEnabled) {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
+  // Mantener la sesión SIEMPRE, aunque el usuario cierre y reabra o navegue mucho.
+  // IndexedDB primero (sobrevive mejor en móvil/PWA) y localStorage de respaldo.
+  void setPersistence(auth, indexedDBLocalPersistence).catch(() => {
+    if (auth) void setPersistence(auth, browserLocalPersistence).catch(() => {});
+  });
 }
 
 export interface AuthUser {
@@ -216,10 +225,17 @@ export async function loginWithGoogle(): Promise<AuthUser> {
     try {
       cred = await linkWithPopup(auth.currentUser, provider);
     } catch (err) {
-      // Ese Google ya tiene cuenta en IOGGA: iniciar sesión normal con ella
+      // Ese Google ya tiene cuenta en IOGGA: entrar con ella SIN abrir un segundo
+      // popup (en móvil el segundo popup se bloquea y "regresa a invitado").
+      // Usamos la credencial que viene en el error para iniciar sesión directo.
       const code = (err as { code?: string })?.code || '';
       if (code.includes('credential-already-in-use') || code.includes('email-already-in-use')) {
-        cred = await signInWithPopup(auth, provider);
+        const pending = GoogleAuthProvider.credentialFromError(err as any);
+        if (pending) {
+          cred = await signInWithCredential(auth, pending);
+        } else {
+          cred = await signInWithPopup(auth, provider);
+        }
       } else if (code.includes('popup-blocked') || code.includes('operation-not-supported') || code.includes('cancelled-popup')) {
         await signInWithRedirect(auth, provider);
         return new Promise(() => {});

@@ -1730,7 +1730,16 @@ export default function App() {
     ...followers,
     ...SEED_USERS.slice(0, 4).map(u => ({ uid: u.uid, name: u.name, photo: u.photo })),
   ];
-  const unreadNotifs = realNotifs.filter(n => !n.read).length;
+  // Notifs reales que el usuario borró (swipe/tachita): se ocultan y no vuelven.
+  const [hiddenNotifIds, setHiddenNotifIds] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('iogga_hidden_notifs') || '[]'); } catch { return []; }
+  });
+  const hideRealNotif = (id: string) => {
+    void markNotificationRead(id);
+    setHiddenNotifIds(prev => { const n = [...prev, id]; try { localStorage.setItem('iogga_hidden_notifs', JSON.stringify(n)); } catch {} return n; });
+  };
+  const visibleRealNotifs = realNotifs.filter(n => !hiddenNotifIds.includes(n.id));
+  const unreadNotifs = visibleRealNotifs.filter(n => !n.read).length;
   // Sonido al llegar una notificación nueva (no en la carga inicial).
   const prevNotifCount = useRef<number | null>(null);
   useEffect(() => {
@@ -3272,7 +3281,13 @@ export default function App() {
                     {myPlansDisplay.map(plan => { const expired = isExpiredPlan(plan); return (
                       <div key={plan.id} className="space-y-2">
                         <div
-                          onClick={() => setSelectedPlanForDetails(plan)}
+                          onClick={() => {
+                            // TU plan (vivo): abre la pantalla final "Revisa y publica"
+                            // (invitar en iogga/WhatsApp y compartir el estado). Los demás
+                            // (demo o caducado) abren el detalle normal.
+                            if (isMyPlan(plan) && !expired) { setLastPublishedPlan(plan); setShowMatchCelebration(true); }
+                            else setSelectedPlanForDetails(plan);
+                          }}
                           className={`w-full text-left p-0 rounded-[32px] bg-zinc-900 border-2 text-white shadow-xl relative overflow-hidden transition-transform active:scale-[0.98] group cursor-pointer ${expired ? 'border-white/5 opacity-80 grayscale-[0.3]' : plan.closed ? 'border-emerald-500/70 shadow-emerald-500/10' : 'border-white/10'}`}
                         >
                           {plan.isSeed && <SeedTag />}
@@ -3763,9 +3778,11 @@ export default function App() {
                           exit={{ opacity: 0, scale: 0.95, y: 10 }}
                           className="absolute right-0 mt-2 w-48 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
                         >
-                          <button 
+                          <button
                             onClick={() => {
-                              // In a real app, this would update state
+                              visibleRealNotifs.forEach(n => { if (!n.read) void markNotificationRead(n.id); });
+                              setNotificationsPerson(prev => prev.map(n => ({ ...n, isRead: true })));
+                              setNotificationsBusiness(prev => prev.map(n => ({ ...n, isRead: true })));
                               setShowNotificationsMenu(false);
                             }}
                             className="w-full px-4 py-3 text-left text-xs font-bold text-white hover:bg-white/5 flex items-center gap-2"
@@ -3773,9 +3790,12 @@ export default function App() {
                             <CheckCircle2 size={14} className="text-iogga-primary" />
                             Marcar todas como leídas
                           </button>
-                          <button 
+                          <button
                             onClick={() => {
-                              // In a real app, this would update state
+                              visibleRealNotifs.forEach(n => hideRealNotif(n.id));
+                              derivedNotifs.forEach(n => dismissDerived(n.key));
+                              setNotificationsPerson([]);
+                              setNotificationsBusiness([]);
                               setShowNotificationsMenu(false);
                             }}
                             className="w-full px-4 py-3 text-left text-xs font-bold text-red-400 hover:bg-red-400/5 flex items-center gap-2 border-t border-white/5"
@@ -3789,151 +3809,114 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Notificaciones DERIVADAS: caducidad de planes/ofertas y evaluaciones */}
-                {derivedNotifs.length > 0 && (
-                  <div className="space-y-3">
-                    {derivedNotifs.map((n) => {
-                      const toneCls = n.tone === 'warning' ? 'bg-amber-500/20 text-amber-400' : n.tone === 'success' ? 'bg-iogga-accent/20 text-iogga-accent' : 'bg-iogga-primary/20 text-iogga-primary';
-                      const barCls = n.tone === 'warning' ? 'bg-amber-500' : n.tone === 'success' ? 'bg-iogga-accent' : 'bg-iogga-primary';
-                      const Icon = n.icon;
-                      return (
-                        <div key={n.key} className="relative group">
-                          <motion.div
-                            drag="x"
-                            dragConstraints={{ left: -100, right: 0 }}
-                            onDragEnd={(_, info) => { if (info.offset.x < -60) dismissDerived(n.key); }}
-                            onClick={() => { n.onClick(); setShowNotificationsMenu(false); }}
-                            className="p-5 rounded-[32px] border flex gap-4 transition-all relative overflow-hidden bg-zinc-900 border-white/10 shadow-xl cursor-pointer active:scale-[0.99]"
-                          >
-                            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${barCls}`} />
-                            <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg ${toneCls}`}>
-                              <Icon size={22} />
+                {/* FEED ÚNICO de notificaciones (estilo Instagram/WhatsApp):
+                    importantes arriba, luego por actualidad. TODAS navegan al
+                    tocarlas y TODAS se borran con swipe o con la tachita. */}
+                {(() => {
+                  type FeedNotif = { id: string; ts: number; urgent?: boolean; read?: boolean; timeLabel?: string; title: string; message: string; icon: any; tone: 'warning' | 'ai' | 'success' | 'info'; onOpen: () => void; onDismiss: () => void };
+                  const feed: FeedNotif[] = [];
+                  // 1) Derivadas (caducidad/evaluación): urgentes, siempre arriba
+                  derivedNotifs.forEach(n => feed.push({
+                    id: n.key, ts: Date.now(), urgent: true, timeLabel: 'Ahora',
+                    title: n.title, message: n.message, icon: n.icon, tone: n.tone,
+                    onOpen: () => { n.onClick(); setShowNotificationsMenu(false); },
+                    onDismiss: () => dismissDerived(n.key),
+                  }));
+                  // 2) Reales (invitaciones/aceptados, en vivo)
+                  visibleRealNotifs.forEach(n => feed.push({
+                    id: n.id, ts: n.createdAtMs || 0, read: n.read,
+                    title: n.title, message: n.message, icon: Sparkles, tone: 'ai',
+                    onOpen: () => {
+                      void markNotificationRead(n.id);
+                      if (n.planId) {
+                        const p = plans.find(pl => pl.id === n.planId);
+                        if (p) { setActiveTab('search'); setSelectedPlanForDetails(p); }
+                        else fetchDocIn<Plan>('plans', n.planId).then(pl => { if (pl) { setActiveTab('search'); setSelectedPlanForDetails(pl); } });
+                      }
+                    },
+                    onDismiss: () => hideRealNotif(n.id),
+                  }));
+                  // 3) De muestra (para ver cómo funcionan)
+                  (mode === 'person' ? notificationsPerson : notificationsBusiness).forEach((notif, i) => feed.push({
+                    id: `mock-${notif.id}`, ts: Date.now() - (i + 1) * 45 * 60 * 1000, read: notif.isRead, timeLabel: notif.time,
+                    title: notif.title, message: notif.message, icon: notif.icon,
+                    tone: notif.type === 'warning' ? 'warning' : notif.type === 'success' ? 'success' : notif.type === 'ai' ? 'ai' : 'info',
+                    onOpen: () => {
+                      if (notif.category === 'profile') setActiveTab('profile');
+                      else if (notif.category === 'match') setActiveTab('search');
+                      else setActiveTab(mode === 'business' ? 'analytics' : 'active');
+                    },
+                    onDismiss: () => {
+                      if (mode === 'person') setNotificationsPerson(prev => prev.filter(x => x.id !== notif.id));
+                      else setNotificationsBusiness(prev => prev.filter(x => x.id !== notif.id));
+                    },
+                  }));
+                  // Orden: urgentes primero; luego no leídas; luego por fecha (recientes arriba)
+                  feed.sort((a, b) => {
+                    if (!!a.urgent !== !!b.urgent) return a.urgent ? -1 : 1;
+                    if (!!a.read !== !!b.read) return a.read ? 1 : -1;
+                    return b.ts - a.ts;
+                  });
+                  const timeAgo = (ts: number) => {
+                    const min = Math.max(0, Math.round((Date.now() - ts) / 60000));
+                    if (min < 1) return 'Ahora';
+                    if (min < 60) return `Hace ${min} min`;
+                    const h = Math.round(min / 60);
+                    if (h < 24) return `Hace ${h} h`;
+                    return `Hace ${Math.round(h / 24)} d`;
+                  };
+                  return (
+                    <div className="space-y-3">
+                      {feed.map(n => {
+                        const toneIcon = n.tone === 'warning' ? 'bg-amber-500/20 text-amber-400' : n.tone === 'success' ? 'bg-iogga-accent/20 text-iogga-accent' : n.tone === 'ai' ? 'bg-iogga-primary/20 text-iogga-primary' : 'bg-blue-500/20 text-blue-400';
+                        const barCls = n.tone === 'warning' ? 'bg-amber-500' : n.tone === 'success' ? 'bg-iogga-accent' : n.tone === 'ai' ? 'bg-iogga-primary' : 'bg-blue-500';
+                        const Icon = n.icon;
+                        return (
+                          <motion.div key={n.id} layout className="relative group">
+                            {/* Fondo rojo del swipe */}
+                            <div className="absolute inset-0 rounded-[32px] bg-red-500/80 flex items-center justify-end px-8 text-white">
+                              <Trash2 size={22} />
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-black text-sm text-white truncate">{n.title}</h3>
-                              <p className="text-xs leading-relaxed text-zinc-300 line-clamp-2 mt-0.5">{n.message}</p>
-                            </div>
-                          </motion.div>
-                        </div>
-                      );
-                    })}
-                    <div className="h-px bg-white/5 my-2" />
-                  </div>
-                )}
-
-                {/* Notificaciones REALES de iogga (invitaciones de amigos, en vivo) */}
-                {realNotifs.length > 0 && (
-                  <div className="space-y-3">
-                    {realNotifs.map((n) => (
-                      <button
-                        key={n.id}
-                        onClick={() => {
-                          void markNotificationRead(n.id);
-                          if (n.planId) {
-                            const p = plans.find(pl => pl.id === n.planId);
-                            if (p) { setActiveTab('search'); setSelectedPlanForDetails(p); }
-                            else fetchDocIn<Plan>('plans', n.planId).then(pl => { if (pl) { setActiveTab('search'); setSelectedPlanForDetails(pl); } });
-                          }
-                        }}
-                        className={`w-full text-left p-5 rounded-[32px] border flex gap-4 transition-all ${n.read ? 'bg-white/5 border-white/5' : 'bg-zinc-900 border-iogga-primary/30 shadow-xl'}`}
-                      >
-                        <div className="w-12 h-12 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center shrink-0">
-                          <Sparkles size={22} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <h3 className={`font-black text-sm truncate ${n.read ? 'text-zinc-400' : 'text-white'}`}>{n.title}</h3>
-                            {!n.read && <span className="w-2.5 h-2.5 bg-iogga-primary rounded-full shrink-0" />}
-                          </div>
-                          <p className={`text-xs leading-relaxed line-clamp-2 ${n.read ? 'text-zinc-500' : 'text-zinc-300'}`}>{n.message}</p>
-                          {n.planId && <span className="text-[10px] font-black text-iogga-primary uppercase tracking-widest mt-1 inline-block">Ver plan →</span>}
-                        </div>
-                      </button>
-                    ))}
-                    <div className="h-px bg-white/5 my-2" />
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  {(mode === 'person' ? notificationsPerson : notificationsBusiness).map((notif) => (
-                    <motion.div
-                      key={notif.id}
-                      layout
-                      className="relative group"
-                    >
-                      <motion.div 
-                        drag="x"
-                        dragConstraints={{ left: -100, right: 0 }}
-                        onDragEnd={(_, info) => {
-                          if (info.offset.x < -60) {
-                            if (mode === 'person') {
-                              setNotificationsPerson(prev => prev.filter(n => n.id !== notif.id));
-                            } else {
-                              setNotificationsBusiness(prev => prev.filter(n => n.id !== notif.id));
-                            }
-                          }
-                        }}
-                        className={`p-5 rounded-[32px] border flex gap-4 transition-all relative overflow-hidden group ${notif.isRead ? 'bg-white/5 border-white/5' : 'bg-zinc-900 border-white/10 shadow-xl'}`}
-                      >
-                        {/* Swipe Action Background (Visible when dragging) */}
-                        <div className="absolute inset-0 bg-red-500 opacity-0 group-active:opacity-100 transition-opacity flex items-center justify-end px-8 text-white -z-10">
-                          <Trash2 size={24} />
-                        </div>
-                        {!notif.isRead && (
-                          <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${notif.type === 'ai' ? 'bg-iogga-primary' : notif.type === 'success' ? 'bg-iogga-accent' : notif.type === 'warning' ? 'bg-amber-500' : 'bg-blue-500'}`}></div>
-                        )}
-                        
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg ${
-                          notif.type === 'ai' ? 'bg-iogga-primary/20 text-iogga-primary' :
-                          notif.type === 'success' ? 'bg-iogga-accent/20 text-iogga-accent' :
-                          notif.type === 'warning' ? 'bg-amber-500/20 text-amber-500' :
-                          'bg-blue-500/20 text-blue-500'
-                        }`}>
-                          <notif.icon size={24} className="shrink-0" />
-                        </div>
-
-                        <div className="flex-1 min-w-0 pr-8">
-                          <div className="flex items-center justify-between mb-1 gap-2">
-                            <h3 className={`font-black text-sm truncate ${notif.isRead ? 'text-zinc-400' : 'text-white'}`}>
-                              {notif.title}
-                            </h3>
-                            <span className="text-[10px] text-zinc-500 font-bold shrink-0">{notif.time}</span>
-                          </div>
-                          <p className={`text-xs leading-relaxed ${notif.isRead ? 'text-zinc-500' : 'text-zinc-300'}`}>
-                            {notif.message}
-                          </p>
-                          
-                          <div className="mt-3 flex gap-2">
-                            <button
-                              onClick={() => { setActiveTab(mode === 'business' ? 'analytics' : 'active'); }}
-                              className="px-3 py-1.5 bg-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white/20 transition-all"
+                            <motion.div
+                              drag="x"
+                              dragConstraints={{ left: -110, right: 0 }}
+                              dragElastic={0.12}
+                              onDragEnd={(_, info) => { if (info.offset.x < -70) n.onDismiss(); }}
+                              onClick={() => n.onOpen()}
+                              className={`p-5 rounded-[32px] border flex gap-4 relative overflow-hidden cursor-pointer active:scale-[0.99] transition-transform ${n.read ? 'bg-zinc-950 border-white/5' : 'bg-zinc-900 border-white/10 shadow-xl'}`}
                             >
-                              Ver detalle
-                            </button>
-                            {notif.category === 'plan' && (
+                              {!n.read && <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${barCls}`} />}
+                              <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg ${toneIcon}`}>
+                                <Icon size={22} />
+                              </div>
+                              <div className="flex-1 min-w-0 pr-7">
+                                <div className="flex items-center justify-between mb-1 gap-2">
+                                  <h3 className={`font-black text-sm truncate ${n.read ? 'text-zinc-400' : 'text-white'}`}>{n.title}</h3>
+                                  <span className="text-[10px] text-zinc-500 font-bold shrink-0">{n.timeLabel || timeAgo(n.ts)}</span>
+                                </div>
+                                <p className={`text-xs leading-relaxed line-clamp-2 ${n.read ? 'text-zinc-500' : 'text-zinc-300'}`}>{n.message}</p>
+                                <span className={`text-[10px] font-black uppercase tracking-widest mt-1.5 inline-block ${n.tone === 'warning' ? 'text-amber-400' : n.tone === 'success' ? 'text-iogga-accent' : 'text-iogga-primary'}`}>Ver →</span>
+                              </div>
+                              {/* Tachita siempre visible, además del swipe */}
                               <button
-                                onClick={() => { setActiveTab(mode === 'business' ? 'analytics' : 'active'); }}
-                                className="px-3 py-1.5 bg-iogga-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-iogga-primary/20"
+                                onClick={(e) => { e.stopPropagation(); n.onDismiss(); }}
+                                className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/10 text-zinc-300 hover:bg-white/20 hover:text-white transition-colors flex items-center justify-center border border-white/10"
                               >
-                                Abrir
+                                <X size={14} />
                               </button>
-                            )}
-                          </div>
+                            </motion.div>
+                          </motion.div>
+                        );
+                      })}
+                      {feed.length === 0 && (
+                        <div className="p-10 rounded-[32px] bg-white/5 border border-dashed border-white/10 text-center">
+                          <Bell size={26} className="text-zinc-600 mx-auto mb-2" />
+                          <p className="text-xs text-zinc-500">Sin notificaciones por ahora. Aquí te avisaremos de invitaciones, caducidades y evaluaciones.</p>
                         </div>
-                        {/* Cerrar con tachita SIEMPRE visible (pokayoke, además del deslizar) */}
-                        <button
-                          onClick={() => {
-                            if (mode === 'person') setNotificationsPerson(prev => prev.filter(n => n.id !== notif.id));
-                            else setNotificationsBusiness(prev => prev.filter(n => n.id !== notif.id));
-                          }}
-                          className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/10 text-zinc-300 hover:bg-white/20 hover:text-white transition-colors flex items-center justify-center border border-white/10"
-                        >
-                          <X size={14} />
-                        </button>
-                      </motion.div>
-                    </motion.div>
-                  ))}
-                </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div className="p-8 rounded-[40px] bg-gradient-to-br from-iogga-primary/10 to-iogga-accent/10 border border-white/10 text-center space-y-4">
                   <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto">

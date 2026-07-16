@@ -660,6 +660,7 @@ export default function App() {
   }, []);
   const [showCreatePlan, setShowCreatePlan] = useState(false);
   const [showCreatePromo, setShowCreatePromo] = useState(false);
+  const [glowPromoId, setGlowPromoId] = useState<string | null>(null); // brillo en la oferta recién creada
   const [selectedPromo, setSelectedPromo] = useState<Promotion | null>(null);
   const [selectedProductAnalytics, setSelectedProductAnalytics] = useState<Promotion | null>(null);
   const [searchFilter, setSearchFilter] = useState<'plans' | 'promos'>('plans');
@@ -2046,6 +2047,7 @@ export default function App() {
       publisher = await ensureAnonSession();
       if (publisher) setCurrentUser(publisher);
     }
+    const wasEditing = !!editingPromoId;
     if (editingPromoId) {
       const edited = promos.find(p => p.id === editingPromoId);
       if (edited) {
@@ -2099,6 +2101,9 @@ export default function App() {
       };
       void saveDocIn('promos', promo.id, promo);
       setPromos([promo, ...promos]);
+      // Efecto: llevar a Mis Ofertas y hacer brillar la recién creada (solo un momento)
+      setGlowPromoId(promo.id);
+      setTimeout(() => setGlowPromoId(id => (id === promo.id ? null : id)), 5000);
     }
     setShowCreatePromo(false);
     setPromoImage(null);
@@ -2109,7 +2114,7 @@ export default function App() {
       offer: '',
       location: ''
     });
-    setActiveTab('profile'); // al publicar, llevar al perfil del negocio
+    setActiveTab(wasEditing ? 'profile' : 'active'); // nueva: a Mis Ofertas para verla brillar
   };
 
   const handleStart = () => {
@@ -3420,7 +3425,7 @@ export default function App() {
                       >
                         <div 
                           onClick={() => isWiggleMode ? null : handleEditPromo(promo)}
-                          className={`p-0 rounded-[32px] bg-zinc-900 border border-white/10 flex flex-col group hover:bg-zinc-800 transition-all shadow-2xl overflow-hidden cursor-pointer ${isWiggleMode ? 'ring-2 ring-red-500/50' : ''}`}
+                          className={`p-0 rounded-[32px] bg-zinc-900 border flex flex-col group hover:bg-zinc-800 transition-all shadow-2xl overflow-hidden cursor-pointer ${isWiggleMode ? 'ring-2 ring-red-500/50 border-white/10' : glowPromoId === promo.id ? 'border-iogga-accent ring-4 ring-iogga-accent/40 shadow-iogga-accent/40 animate-pulse' : 'border-white/10'}`}
                         >
                           <div className="relative w-full h-48 shrink-0">
                             {promo.isSeed && <SeedTag />}
@@ -7337,19 +7342,22 @@ function BusinessEvalOverlay({ redemption, onRate, onSkip }: { redemption: Redem
 function StatusHelpOverlay({ preview, onClose, onShare }: { preview: string | null, onClose: () => void, onShare: () => void }) {
   const steps = [
     {
-      icon: <Camera size={30} className="text-fuchsia-400" />,
-      title: 'Toca "Compartir ahora"',
-      body: 'Se guarda la imagen y se abre el menú para compartir de tu celular.',
+      // WhatsApp
+      icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="#25D366"><path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.3-1.38a9.9 9.9 0 004.73 1.2h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.05 2zm5.8 14.06c-.24.68-1.42 1.32-1.95 1.36-.5.05-.96.24-3.23-.67-2.72-1.07-4.44-3.85-4.57-4.03-.13-.18-1.1-1.46-1.1-2.79 0-1.32.7-1.97.94-2.24.25-.27.54-.34.72-.34.18 0 .36 0 .52.01.17.01.4-.06.62.48.24.55.8 1.9.87 2.04.07.14.12.3.02.48-.09.18-.14.29-.27.45-.14.16-.29.36-.41.48-.14.14-.28.29-.12.56.16.27.71 1.17 1.53 1.9 1.05.94 1.94 1.23 2.21 1.37.27.14.43.12.59-.07.16-.18.68-.79.86-1.06.18-.27.36-.23.61-.14.25.09 1.6.76 1.87.9.27.14.45.2.52.32.07.11.07.66-.17 1.34z"/></svg>,
+      title: 'Selecciona WhatsApp',
+      body: 'Al abrir el menú de compartir, elige WhatsApp.',
     },
     {
-      icon: <UserPlus size={30} className="text-green-400" />,
-      title: 'Elige "Estado" o "Historia"',
-      body: 'En WhatsApp toca Estado; en Instagram toca tu Historia. Ahí la publicas.',
+      // Estado / historia (círculo)
+      icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2"><circle cx="12" cy="12" r="9" strokeDasharray="3 3"/><path d="M12 8v8M8 12h8" strokeLinecap="round"/></svg>,
+      title: 'Toca "Mi estado"',
+      body: 'Elige publicarla en tu estado (tu historia).',
     },
     {
-      icon: <Users size={30} className="text-violet-400" />,
-      title: 'Elige quién la ve',
-      body: 'Antes de publicar puedes escoger a qué personas mostrarles tu plan. Listo: quien toque tu estado entra a iogga.',
+      // Tres puntos
+      icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="#f472b6"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>,
+      title: 'Elige quién puede verla',
+      body: 'Con los 3 puntos toca "Privacidad del estado" y selecciona quién puede ver tu historia.',
     },
   ];
   return (

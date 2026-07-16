@@ -468,6 +468,59 @@ function SimpleTimePicker({ value, onChange }: { value?: string; onChange: (hhmm
   );
 }
 
+// Selector de rango fecha+hora UNIFICADO (mismo para plan y oferta), estilo calendario
+// de Google/iPhone: Inicia (día + hora) · Termina (día + hora) · opción "Todo el día".
+type DTRValue = { startDate?: string; startTime?: string; endDate?: string; endTime?: string; allDay?: boolean };
+function DateTimeRange({ value, onChange, dateOptions, customDateLabel, accent = 'primary' }: {
+  value: DTRValue;
+  onChange: (patch: DTRValue) => void;
+  dateOptions: { iso: string; label: string; chip: string }[];
+  customDateLabel: (iso: string) => string;
+  accent?: 'primary' | 'accent';
+}) {
+  const selOn = accent === 'accent' ? 'bg-iogga-accent border-iogga-accent text-white' : 'bg-iogga-primary border-iogga-primary text-white';
+  const togOn = accent === 'accent' ? 'bg-iogga-accent/15 border-iogga-accent/40' : 'bg-iogga-primary/15 border-iogga-primary/40';
+  const knob = accent === 'accent' ? 'bg-iogga-accent' : 'bg-iogga-primary';
+  const DaySelector = ({ selected, onPick }: { selected?: string; onPick: (iso: string) => void }) => (
+    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      {dateOptions.map(opt => (
+        <button key={opt.iso} type="button" onClick={() => onPick(opt.iso)}
+          className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap border transition-all ${selected === opt.iso ? selOn : 'bg-white/5 border-white/10 text-zinc-400'}`}>
+          {opt.chip}
+        </button>
+      ))}
+      <label className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap border cursor-pointer relative ${selected && !dateOptions.some(o => o.iso === selected) ? selOn : 'bg-white/5 border-white/10 text-zinc-400'}`}>
+        📅 Otra
+        <input type="date" className="absolute inset-0 opacity-0 cursor-pointer" min={dateOptions[0]?.iso} value={selected || ''} onChange={e => e.target.value && onPick(e.target.value)} />
+      </label>
+    </div>
+  );
+  const endSel = value.endDate || value.startDate;
+  return (
+    <div className="space-y-4">
+      <button type="button" onClick={() => onChange({ allDay: !value.allDay })}
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border transition-all ${value.allDay ? togOn : 'bg-white/5 border-white/10'}`}>
+        <span className="text-sm font-bold text-white">Todo el día</span>
+        <span className={`w-11 h-6 rounded-full relative transition-all shrink-0 ${value.allDay ? knob : 'bg-white/15'}`}>
+          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${value.allDay ? 'left-[22px]' : 'left-0.5'}`} />
+        </span>
+      </button>
+
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Inicia</label>
+        <DaySelector selected={value.startDate} onPick={iso => onChange({ startDate: iso, startDateLabel: customDateLabel(iso) } as any)} />
+        {!value.allDay && <SimpleTimePicker value={value.startTime} onChange={t => onChange({ startTime: t })} />}
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Termina</label>
+        <DaySelector selected={endSel} onPick={iso => onChange({ endDate: iso } as any)} />
+        {!value.allDay && <SimpleTimePicker value={value.endTime} onChange={t => onChange({ endTime: t })} />}
+      </div>
+    </div>
+  );
+}
+
 // ---- Imagen de ESTADO (WhatsApp/Instagram): 9:16, el TEXTO es el protagonista ----
 // message = la invitación generada por iogga (sin clave privada). Sin emojis.
 async function buildStatusImage(message: string, image?: string): Promise<string> {
@@ -1200,14 +1253,21 @@ export default function App() {
   // ---- Caducidad: un plan se "apaga" al pasar su hora de fin ----
   // Sin fecha elegida, se asume el día en que se publicó.
   const planEndMs = (p: Plan): number => {
-    const day = p.date || (() => { const d = new Date(p.timestamp || Date.now()); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+    const startDay = p.date || (() => { const d = new Date(p.timestamp || Date.now()); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+    const endDay = p.endDate || startDay; // fin puede ser otro día
+    // "Todo el día": termina al final del día de fin (23:59).
+    if (p.allDay) {
+      const d = new Date(`${endDay}T00:00:00`);
+      d.setHours(23, 59, 59, 0);
+      return d.getTime();
+    }
     const hasEnd = !!p.endTime && p.endTime !== '00:00';
     const hasStart = !!p.startTime && p.startTime !== '00:00';
     const hm = hasEnd ? p.endTime : hasStart ? p.startTime : '23:59';
     const [h, m] = hm.split(':').map(Number);
-    const d = new Date(`${day}T00:00:00`);
+    const d = new Date(`${endDay}T00:00:00`);
     d.setHours(isNaN(h) ? 23 : h, isNaN(m) ? 59 : m, 59, 0);
-    if (!hasEnd && hasStart) d.setHours(d.getHours() + 2); // sin hora fin: 2h de vida tras el inicio
+    if (!hasEnd && hasStart && endDay === startDay) d.setHours(d.getHours() + 2); // sin hora fin el mismo día: 2h de vida tras el inicio
     return d.getTime();
   };
   const isExpiredPlan = (p: Plan) => !p.isSeed && Date.now() > planEndMs(p);
@@ -1267,16 +1327,23 @@ export default function App() {
   const [, setExpiryTick] = useState(0);
   useEffect(() => { const t = setInterval(() => setExpiryTick(x => x + 1), 60000); return () => clearInterval(t); }, []);
 
-  // ---- Vigencia de ofertas: caducan al pasar validTo (fin del día) ----
+  // ---- Vigencia de ofertas: caducan al pasar el fin (día + hora, o fin del día) ----
+  const promoEndMs = (pr: Promotion): number | null => {
+    if (!pr.validTo) return null;
+    const hasTime = !pr.allDay && pr.validToTime && /^\d{1,2}:\d{2}$/.test(pr.validToTime);
+    const end = new Date(`${pr.validTo}T${hasTime ? pr.validToTime + ':59' : '23:59:59'}`);
+    return end.getTime();
+  };
   const promoExpired = (pr: Promotion): boolean => {
-    if (pr.isSeed || !pr.validTo) return false; // sin vigencia = siempre disponible
-    const end = new Date(`${pr.validTo}T23:59:59`);
-    return Date.now() > end.getTime();
+    if (pr.isSeed) return false;
+    const end = promoEndMs(pr);
+    if (end === null) return false; // sin vigencia = siempre disponible
+    return Date.now() > end;
   };
   const promoLive = (pr: Promotion) => !promoExpired(pr);
   // ¿Falta poco para caducar? (plan hoy o mañana / oferta a <= 1 día del fin)
   const planExpiringSoon = (p: Plan) => { if (p.isSeed || isExpiredPlan(p)) return false; const ms = planEndMs(p) - Date.now(); return ms > 0 && ms < 3 * 60 * 60 * 1000; };
-  const promoExpiringSoon = (pr: Promotion) => { if (pr.isSeed || !pr.validTo || promoExpired(pr)) return false; const ms = new Date(`${pr.validTo}T23:59:59`).getTime() - Date.now(); return ms > 0 && ms < 24 * 60 * 60 * 1000; };
+  const promoExpiringSoon = (pr: Promotion) => { if (pr.isSeed || promoExpired(pr)) return false; const end = promoEndMs(pr); if (end === null) return false; const ms = end - Date.now(); return ms > 0 && ms < 24 * 60 * 60 * 1000; };
 
   const matchesPromoCategory = (pr: Promotion) => {
     if (personExploreCategory === 'Todos') return true;
@@ -1964,6 +2031,10 @@ export default function App() {
           activity: newPlan.activity || edited.activity,
           startTime: newPlan.startTime || edited.startTime,
           endTime: newPlan.endTime || edited.endTime,
+          endDate: newPlan.endDate ?? edited.endDate,
+          allDay: newPlan.allDay ?? edited.allDay,
+          date: newPlan.date ?? edited.date,
+          dateLabel: newPlan.dateLabel ?? edited.dateLabel,
           location: newPlan.location || edited.location,
           locationHint: newPlan.locationHint?.trim() || edited.locationHint,
           budget: newPlan.budget as any,
@@ -1982,6 +2053,10 @@ export default function App() {
         activity: newPlan.activity || p.activity,
         startTime: newPlan.startTime || p.startTime,
         endTime: newPlan.endTime || p.endTime,
+        endDate: newPlan.endDate ?? p.endDate,
+        allDay: newPlan.allDay ?? p.allDay,
+        date: newPlan.date ?? p.date,
+        dateLabel: newPlan.dateLabel ?? p.dateLabel,
         location: newPlan.location || p.location,
         locationHint: newPlan.locationHint?.trim() || p.locationHint,
         budget: newPlan.budget as any,
@@ -2006,6 +2081,8 @@ export default function App() {
         privateKey: newPlan.privateKey?.trim() || undefined,
         date: newPlan.date,
         dateLabel: newPlan.dateLabel,
+        endDate: newPlan.endDate,
+        allDay: newPlan.allDay,
         locations: (newPlan.locations || []).filter(l => l.trim()),
         startTime: newPlan.startTime || '00:00',
         endTime: newPlan.endTime || '00:00',
@@ -2079,6 +2156,9 @@ export default function App() {
           image: promoImage || edited.image,
           validFrom: newPromo.validFrom ?? edited.validFrom,
           validTo: newPromo.validTo ?? edited.validTo,
+          validFromTime: newPromo.validFromTime ?? edited.validFromTime,
+          validToTime: newPromo.validToTime ?? edited.validToTime,
+          allDay: newPromo.allDay ?? edited.allDay,
           tags: (newPromo.title || '').toLowerCase().split(' ')
         });
       }
@@ -2092,6 +2172,9 @@ export default function App() {
         image: promoImage || p.image,
         validFrom: newPromo.validFrom ?? p.validFrom,
         validTo: newPromo.validTo ?? p.validTo,
+        validFromTime: newPromo.validFromTime ?? p.validFromTime,
+        validToTime: newPromo.validToTime ?? p.validToTime,
+        allDay: newPromo.allDay ?? p.allDay,
         tags: (newPromo.title || '').toLowerCase().split(' ')
       } : p));
       setEditingPromoId(null);
@@ -2110,6 +2193,9 @@ export default function App() {
         location: newPromo.location || businessProfile.location || 'Chihuahua, MX',
         validFrom: newPromo.validFrom || undefined,
         validTo: newPromo.validTo || undefined,
+        validFromTime: newPromo.validFromTime || undefined,
+        validToTime: newPromo.validToTime || undefined,
+        allDay: newPromo.allDay || undefined,
         // Estadísticas reales: inician en cero y crecen con el uso
         realTimeSearchers: 0,
         qrScans: 0,
@@ -2190,6 +2276,10 @@ export default function App() {
       activity: plan.activity,
       startTime: plan.startTime,
       endTime: plan.endTime,
+      date: plan.date,
+      dateLabel: plan.dateLabel,
+      endDate: plan.endDate,
+      allDay: plan.allDay,
       location: plan.location,
       locationHint: plan.locationHint,
       budget: plan.budget,
@@ -2212,6 +2302,9 @@ export default function App() {
       location: promo.location,
       validFrom: promo.validFrom,
       validTo: promo.validTo,
+      validFromTime: promo.validFromTime,
+      validToTime: promo.validToTime,
+      allDay: promo.allDay,
     });
     setPromoImage(promo.image);
     setEditingPromoId(promo.id);
@@ -4715,50 +4808,24 @@ export default function App() {
                       className="space-y-6"
                     >
                       <div className="flex items-center justify-between">
-                        <label className="text-lg font-bold text-white block">¿Qué día y a qué hora?</label>
+                        <label className="text-lg font-bold text-white block">¿Cuándo es tu plan?</label>
                         <VoicePair step={1} onDicta={applyDateTime} />
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">¿Qué día?</label>
-                        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                          {dateOptions.map(opt => (
-                            <button
-                              key={opt.iso}
-                              onClick={() => setNewPlan({...newPlan, date: opt.iso, dateLabel: opt.label})}
-                              className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap border transition-all ${newPlan.date === opt.iso ? 'bg-iogga-primary border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
-                            >
-                              {opt.chip}
-                            </button>
-                          ))}
-                          <label className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap border transition-all cursor-pointer relative ${newPlan.date && !dateOptions.some(o => o.iso === newPlan.date) ? 'bg-iogga-primary border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}>
-                            📅 Otra
-                            <input
-                              type="date"
-                              className="absolute inset-0 opacity-0 cursor-pointer"
-                              min={dateOptions[0].iso}
-                              value={newPlan.date || ''}
-                              onChange={e => e.target.value && setNewPlan({...newPlan, date: e.target.value, dateLabel: customDateLabel(e.target.value)})}
-                            />
-                          </label>
-                        </div>
-                      </div>
-                      {/* Inicio arriba, fin abajo (apiladas para que no se empalmen) */}
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1 tracking-wider"><Clock size={12}/> Inicio</label>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1"><SimpleTimePicker value={newPlan.startTime} onChange={t => setNewPlan(np => ({ ...np, startTime: t }))} /></div>
-                            <MicButton inline onText={t => { const p = parseTime(t); if (p) setNewPlan(np => ({ ...np, startTime: p })); }} />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1 tracking-wider"><Clock size={12}/> Fin</label>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1"><SimpleTimePicker value={newPlan.endTime} onChange={t => setNewPlan(np => ({ ...np, endTime: t }))} /></div>
-                            <MicButton inline onText={t => { const p = parseTime(t); if (p) setNewPlan(np => ({ ...np, endTime: p })); }} />
-                          </div>
-                        </div>
-                      </div>
+                      <DateTimeRange
+                        accent="primary"
+                        dateOptions={dateOptions}
+                        customDateLabel={customDateLabel}
+                        value={{ startDate: newPlan.date, startTime: newPlan.startTime, endDate: newPlan.endDate, endTime: newPlan.endTime, allDay: newPlan.allDay }}
+                        onChange={(patch: any) => setNewPlan(np => {
+                          const next: any = { ...np };
+                          if (patch.startDate !== undefined) { next.date = patch.startDate; next.dateLabel = patch.startDateLabel; }
+                          if (patch.endDate !== undefined) next.endDate = patch.endDate;
+                          if (patch.startTime !== undefined) next.startTime = patch.startTime;
+                          if (patch.endTime !== undefined) next.endTime = patch.endTime;
+                          if (patch.allDay !== undefined) next.allDay = patch.allDay;
+                          return next;
+                        })}
+                      />
                     </motion.div>
                   )}
 
@@ -5309,20 +5376,25 @@ export default function App() {
                     </a>
                   </div>
 
-                  {/* Vigencia: la oferta queda no disponible al pasar la fecha fin */}
+                  {/* Vigencia con el MISMO selector que los planes: día+hora inicio y fin, o todo el día */}
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Vigencia de la oferta</label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest ml-1">Desde</span>
-                        <input type="date" className="w-full h-14 px-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm focus:ring-2 focus:ring-iogga-accent outline-none" value={newPromo.validFrom || ''} onChange={e => setNewPromo({...newPromo, validFrom: e.target.value})} />
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest ml-1">Hasta</span>
-                        <input type="date" className="w-full h-14 px-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm focus:ring-2 focus:ring-iogga-accent outline-none" value={newPromo.validTo || ''} onChange={e => setNewPromo({...newPromo, validTo: e.target.value})} />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-zinc-600 ml-1">Al pasar la fecha "Hasta", la oferta se marca vencida hasta que la actualices.</p>
+                    <DateTimeRange
+                      accent="accent"
+                      dateOptions={dateOptions}
+                      customDateLabel={customDateLabel}
+                      value={{ startDate: newPromo.validFrom, startTime: newPromo.validFromTime, endDate: newPromo.validTo, endTime: newPromo.validToTime, allDay: newPromo.allDay }}
+                      onChange={(patch: any) => setNewPromo(pr => {
+                        const next: any = { ...pr };
+                        if (patch.startDate !== undefined) next.validFrom = patch.startDate;
+                        if (patch.endDate !== undefined) next.validTo = patch.endDate;
+                        if (patch.startTime !== undefined) next.validFromTime = patch.startTime;
+                        if (patch.endTime !== undefined) next.validToTime = patch.endTime;
+                        if (patch.allDay !== undefined) next.allDay = patch.allDay;
+                        return next;
+                      })}
+                    />
+                    <p className="text-[10px] text-zinc-600 ml-1">Al pasar el fin, la oferta se marca vencida hasta que la actualices.</p>
                   </div>
                 </div>
                 <button

@@ -45,8 +45,10 @@ export interface Plan {
   };
   activity: string;
   comment?: string; // comentario opcional del creador
-  date?: string; // fecha ISO (YYYY-MM-DD)
+  date?: string; // fecha ISO de INICIO (YYYY-MM-DD)
   dateLabel?: string; // "hoy", "mañana", "el lunes", "el 15 de julio"
+  endDate?: string; // fecha ISO de FIN (YYYY-MM-DD); si falta, es el mismo día
+  allDay?: boolean; // "todo el día": sin hora, solo día(s)
   startTime: string;
   endTime: string;
   location: string;
@@ -110,6 +112,9 @@ export interface Promotion {
   phone?: string; // teléfono/WhatsApp del negocio para contacto directo
   validFrom?: string; // vigencia: fecha ISO de inicio (YYYY-MM-DD)
   validTo?: string; // vigencia: fecha ISO de fin — después queda no disponible
+  validFromTime?: string; // hora de inicio de la vigencia (HH:MM)
+  validToTime?: string; // hora de fin de la vigencia (HH:MM)
+  allDay?: boolean; // vigencia por día completo (sin hora)
   photos?: string[]; // hasta 5 fotos del negocio
   isSeed?: boolean; // dato de prueba temporal (se distingue con etiqueta "Prueba")
 }

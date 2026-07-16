@@ -87,6 +87,7 @@ import {
   deleteDocIn,
   fetchDocIn,
   incrementPlanAccepted,
+  incrementPromoSelected,
   acceptPlanAs,
   saveBusinessProfile,
   saveFeedback,
@@ -721,7 +722,38 @@ export default function App() {
   const [searchSubFilter, setSearchSubFilter] = useState<'for-you' | 'public'>('public');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInvitationId, setSelectedInvitationId] = useState<string | null>(null);
-  const [userSelectedOfferIds, setUserSelectedOfferIds] = useState<Record<string, string>>({});
+  // Oferta elegida por plan: PERSISTE (localStorage) para que no se borre al salir
+  // y volver a entrar. Al seleccionar, también suma al contador de la oferta.
+  const [userSelectedOfferIds, setUserSelectedOfferIds] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('iogga_sel_offers') || '{}'); } catch { return {}; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('iogga_sel_offers', JSON.stringify(userSelectedOfferIds)); } catch { /* lleno */ }
+  }, [userSelectedOfferIds]);
+  // Elegir una oferta para un plan: guarda la selección, suma UNA vez al contador
+  // "Seleccionados" de la oferta, y si el plan es mío la fija también en el plan.
+  const selectOfferForPlan = (planId: string, promoId: string) => {
+    setUserSelectedOfferIds(prev => {
+      if (prev[planId] === promoId) return prev; // ya estaba: no duplicar contador
+      try {
+        const counted: string[] = JSON.parse(localStorage.getItem('iogga_sel_counted') || '[]');
+        const key = `${planId}:${promoId}`;
+        if (!counted.includes(key)) {
+          counted.push(key);
+          localStorage.setItem('iogga_sel_counted', JSON.stringify(counted));
+          void incrementPromoSelected(promoId);
+          setPromos(ps => ps.map(pp => pp.id === promoId ? { ...pp, qrScans: (pp.qrScans || 0) + 1 } : pp));
+        }
+      } catch { /* sin storage */ }
+      const plan = plans.find(pl => pl.id === planId);
+      if (plan && isMyPlan(plan)) {
+        const updated = { ...plan, inviterSelectedOfferId: promoId };
+        void saveDocIn('plans', planId, updated);
+        setPlans(ps => ps.map(pl => pl.id === planId ? updated : pl));
+      }
+      return { ...prev, [planId]: promoId };
+    });
+  };
   const [businessExploreCategory, setBusinessExploreCategory] = useState('Todos');
   const [showTrends, setShowTrends] = useState(false);
   const [acceptedPlanIds, setAcceptedPlanIds] = useState<string[]>([]);
@@ -742,6 +774,8 @@ export default function App() {
 
   // Match / Coincidence Engine States
   const [selectedPromoForMatches, setSelectedPromoForMatches] = useState<Promotion | null>(null);
+  // Editor de cupón personalizado: se abre al "Ofrecer cupón" en Demandas Coincidentes
+  const [couponDraft, setCouponDraft] = useState<null | { target: Plan; promo: Promotion; title: string; offer: string; description: string; image: string }>(null);
   const [showMatchCelebration, setShowMatchCelebration] = useState(false);
   const [lastPublishedPlan, setLastPublishedPlan] = useState<Plan | null>(null);
   const [showBetaModal, setShowBetaModal] = useState(false);
@@ -2804,7 +2838,7 @@ export default function App() {
                                                     <button 
                                                       onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setUserSelectedOfferIds(prev => ({ ...prev, [plan.id]: promo.id }));
+                                                        selectOfferForPlan(plan.id, promo.id);
                                                       }}
                                                       className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-500 shadow-xl ${isUserSelected ? 'bg-iogga-primary border-iogga-primary scale-110 rotate-0' : 'bg-black/40 border-white/30 hover:border-white/60 -rotate-90'}`}
                                                     >
@@ -3410,7 +3444,7 @@ export default function App() {
                                         <button 
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            setUserSelectedOfferIds(prev => ({ ...prev, [plan.id]: promo.id }));
+                                            selectOfferForPlan(plan.id, promo.id);
                                           }}
                                           className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-500 shadow-xl ${userSelectedOfferIds[plan.id] === promo.id ? 'bg-iogga-primary border-iogga-primary scale-110' : 'bg-black/40 border-white/30 hover:border-white/60'}`}
                                         >
@@ -3645,16 +3679,22 @@ export default function App() {
                               <span className="text-lg font-black text-white leading-none">{getMatchingPlansForPromo(promo).length}</span>
                               <span className="text-[9px] font-bold text-iogga-primary/80 uppercase tracking-wider mt-1 text-center leading-tight">En su plan</span>
                             </button>
-                            <div className="flex flex-col items-center p-2 rounded-2xl bg-white/5">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedProductAnalytics(promo); }}
+                              className="flex flex-col items-center p-2 rounded-2xl bg-white/5 active:scale-95 transition-all"
+                            >
                               <QrCode size={14} className="text-iogga-accent mb-1" />
                               <span className="text-lg font-black text-white leading-none">{promo.qrScans}</span>
-                              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1 text-center leading-tight">QR bajados</span>
-                            </div>
-                            <div className="flex flex-col items-center p-2 rounded-2xl bg-emerald-500/10">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1 text-center leading-tight">Seleccionados</span>
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedProductAnalytics(promo); }}
+                              className="flex flex-col items-center p-2 rounded-2xl bg-emerald-500/10 active:scale-95 transition-all"
+                            >
                               <CheckCircle2 size={14} className="text-emerald-400 mb-1" />
                               <span className="text-lg font-black text-emerald-400 leading-none">{promo.salesCount}</span>
                               <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1 text-center leading-tight">Canjeados</span>
-                            </div>
+                            </button>
                           </div>
 
                           {/* Sin sesión: la oferta existe pero aún no es pública */}
@@ -3969,7 +4009,7 @@ export default function App() {
                         <p className="text-2xl font-black text-white mt-1">{selectedProductAnalytics.qrScans > 0 ? Math.round((selectedProductAnalytics.salesCount / selectedProductAnalytics.qrScans) * 100) : 0}%</p>
                       </div>
                       <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">QR bajados</p>
+                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Seleccionados</p>
                         <p className="text-2xl font-black text-iogga-accent mt-1">{selectedProductAnalytics.qrScans || 0}</p>
                       </div>
                       <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
@@ -6024,7 +6064,7 @@ export default function App() {
                   {expandedPlanId && (
                     <button
                       onClick={() => {
-                        setUserSelectedOfferIds({ ...userSelectedOfferIds, [expandedPlanId]: selectedPromo.id });
+                        selectOfferForPlan(expandedPlanId, selectedPromo.id);
                         setSelectedPromo(null);
                       }}
                       className={`w-full py-5 rounded-[24px] font-black text-lg transition-all active:scale-95 shadow-2xl ${userSelectedOfferIds[expandedPlanId] === selectedPromo.id ? 'bg-zinc-800 text-zinc-500 cursor-default' : 'bg-iogga-accent text-white shadow-iogga-accent/30'}`}
@@ -6421,73 +6461,173 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 px-1">
-                    <Users size={14} className="text-zinc-500" />
-                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest font-sans">Usuarios Buscando hoy ({getMatchingPlansForPromo(selectedPromoForMatches).length})</span>
-                  </div>
-
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto no-scrollbar">
-                    {getMatchingPlansForPromo(selectedPromoForMatches).map(mPlan => {
-                      const idSeed = `${mPlan.id}-${selectedPromoForMatches.id}`;
-                      const alreadyNotified = acceptedPlanIds.includes(idSeed);
-                      return (
-                        <div key={mPlan.id} className="p-4 rounded-[28px] bg-white/5 border border-white/10 flex flex-col gap-3 justify-between">
-                          <div className="flex gap-3 items-center">
-                            <img src={mPlan.userAvatar} className="w-10 h-10 rounded-xl object-cover" />
-                            <div className="flex-1 min-w-0">
-                              <span className="font-bold text-xs text-white block">{mPlan.userName}</span>
-                              <p className="text-[10px] text-zinc-400 truncate font-semibold italic mt-0.5">"Planea: {mPlan.activity}"</p>
-                            </div>
+                {(() => {
+                  // Arriba: quienes YA seleccionaron esta oferta para su plan.
+                  // Abajo: todos los planes que coinciden por palabras con la oferta.
+                  const matches = getMatchingPlansForPromo(selectedPromoForMatches);
+                  const chosen = plans.filter(p => isLivePlan(p) && p.inviterSelectedOfferId === selectedPromoForMatches.id);
+                  const chosenIds = new Set(chosen.map(p => p.id));
+                  const rest = matches.filter(p => !chosenIds.has(p.id));
+                  const MatchRow = ({ mPlan, picked }: { mPlan: Plan; picked?: boolean; key?: string }) => {
+                    const idSeed = `${mPlan.id}-${selectedPromoForMatches.id}`;
+                    const alreadyNotified = acceptedPlanIds.includes(idSeed);
+                    return (
+                      <div className={`p-4 rounded-[28px] border flex flex-col gap-3 justify-between ${picked ? 'bg-iogga-accent/10 border-iogga-accent/40' : 'bg-white/5 border-white/10'}`}>
+                        <button
+                          onClick={() => {
+                            // Plan público: se puede ver completo (la ubicación exacta ya
+                            // va protegida: el negocio solo ve la zona). Privado: no se abre.
+                            if (mPlan.isPublic) { setSelectedPromoForMatches(null); setSelectedPlanForDetails(mPlan); }
+                          }}
+                          className="flex gap-3 items-center text-left w-full"
+                        >
+                          <img src={mPlan.userAvatar} className="w-10 h-10 rounded-xl object-cover" referrerPolicy="no-referrer" />
+                          <div className="flex-1 min-w-0">
+                            <span className="font-bold text-xs text-white block">{mPlan.userName}</span>
+                            <p className="text-[10px] text-zinc-400 truncate font-semibold italic mt-0.5">"Planea: {mPlan.activity}"</p>
+                            <p className="text-[9px] text-zinc-500 mt-0.5">{mPlan.isPublic ? 'Toca para ver el plan completo →' : '🔒 Plan privado entre amigos: solo ves la actividad.'}</p>
                           </div>
-                          
-                          <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest font-sans">Medio: Cupón por Match</span>
-                            <button
-                              disabled={alreadyNotified}
-                              onClick={() => {
-                                setAcceptedPlanIds([...acceptedPlanIds, idSeed]);
-                                // Put a customized invitation for this user
-                                const newInv: Plan = {
-                                  id: Math.random().toString(),
-                                  userName: selectedPromoForMatches.businessName || 'La Cabalita',
-                                  userAvatar: selectedPromoForMatches.businessLogo || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=150&q=80',
-                                  activity: `¡Te regalamos un cupón especial: ${selectedPromoForMatches.offer} para probar ${selectedPromoForMatches.title}!`,
-                                  startTime: mPlan.startTime,
-                                  endTime: mPlan.endTime,
-                                  location: selectedPromoForMatches.location,
-                                  acceptedCount: 1,
-                                  timestamp: Date.now(),
-                                  isPublic: false,
-                                  image: selectedPromoForMatches.image,
-                                  tags: [],
-                                  budget: 'no-money',
-                                  transport: 'each-arrives',
-                                  guests: 'public'
-                                };
-                                setPlans([newInv, ...plans]);
-                              }}
-                              className={`px-4 py-2.5 text-[9px] font-black uppercase rounded-xl transition-all min-h-[32px] ${alreadyNotified ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-iogga-accent text-zinc-950 font-black hover:scale-105 active:scale-95'}`}
-                            >
-                              {alreadyNotified ? '¡Cupón Enviado!' : 'Ofrecer Cupón'}
-                            </button>
-                          </div>
+                          {picked && <span className="shrink-0 px-2 py-1 rounded-full bg-iogga-accent text-zinc-950 text-[8px] font-black uppercase tracking-widest">Te eligió</span>}
+                        </button>
+                        <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                          <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest font-sans">{picked ? 'Ya tiene tu oferta en su plan' : 'Medio: Cupón por Match'}</span>
+                          <button
+                            disabled={alreadyNotified}
+                            onClick={() => setCouponDraft({
+                              target: mPlan,
+                              promo: selectedPromoForMatches,
+                              title: selectedPromoForMatches.title,
+                              offer: selectedPromoForMatches.offer || '',
+                              description: `Cupón especial para tu plan "${mPlan.activity}"`,
+                              image: selectedPromoForMatches.image,
+                            })}
+                            className={`px-4 py-2.5 text-[9px] font-black uppercase rounded-xl transition-all min-h-[32px] ${alreadyNotified ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-iogga-accent text-zinc-950 font-black hover:scale-105 active:scale-95'}`}
+                          >
+                            {alreadyNotified ? '¡Cupón Enviado!' : picked ? 'Enviar cupón especial' : 'Ofrecer Cupón'}
+                          </button>
                         </div>
-                      );
-                    })}
-                    {getMatchingPlansForPromo(selectedPromoForMatches).length === 0 && (
-                      <div className="p-8 rounded-[28px] bg-white/5 border border-dashed border-white/10 text-center">
-                        <p className="text-xs text-zinc-500 italic font-sans animate-pulse">Buscando usuarios planificando actividades similares hoy en Chihuahua...</p>
                       </div>
-                    )}
-                  </div>
-                </div>
+                    );
+                  };
+                  return (
+                    <div className="space-y-5">
+                      {chosen.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 px-1">
+                            <CheckCircle2 size={14} className="text-iogga-accent" />
+                            <span className="text-[10px] font-black text-iogga-accent uppercase tracking-widest font-sans">Te seleccionaron ({chosen.length})</span>
+                          </div>
+                          <div className="space-y-2">{chosen.map(mPlan => <MatchRow key={mPlan.id} mPlan={mPlan} picked />)}</div>
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 px-1">
+                          <Users size={14} className="text-zinc-500" />
+                          <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest font-sans">Planes que coinciden ({rest.length})</span>
+                        </div>
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto no-scrollbar">
+                          {rest.map(mPlan => <MatchRow key={mPlan.id} mPlan={mPlan} />)}
+                          {rest.length === 0 && chosen.length === 0 && (
+                            <div className="p-8 rounded-[28px] bg-white/5 border border-dashed border-white/10 text-center">
+                              <p className="text-xs text-zinc-500 italic font-sans animate-pulse">Buscando usuarios planificando actividades similares hoy en Chihuahua...</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
-                <button 
+                <button
                   onClick={() => setSelectedPromoForMatches(null)}
                   className="w-full py-4 bg-zinc-900 border border-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 min-h-[44px]"
                 >
                   Volver a Mis Ofertas
+                </button>
+              </div>
+            </Modal>
+          )}
+
+          {/* Editor de cupón personalizado (igual a editar promo): ajusta y envía */}
+          {couponDraft && (
+            <Modal onClose={() => setCouponDraft(null)} title="Cupón especial">
+              <div className="space-y-5">
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
+                  <img src={couponDraft.target.userAvatar} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-white truncate">Para {couponDraft.target.userName}</p>
+                    <p className="text-[11px] text-zinc-400 truncate italic">"{couponDraft.target.activity}"</p>
+                  </div>
+                </div>
+                <div className="relative rounded-2xl overflow-hidden h-36 border border-white/10">
+                  <img src={couponDraft.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                </div>
+                <input
+                  type="text"
+                  value={couponDraft.title}
+                  onChange={e => setCouponDraft({ ...couponDraft, title: e.target.value })}
+                  placeholder="Título del cupón"
+                  className="w-full h-14 px-6 rounded-2xl bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-iogga-accent outline-none"
+                />
+                <input
+                  type="text"
+                  value={couponDraft.offer}
+                  onChange={e => setCouponDraft({ ...couponDraft, offer: e.target.value })}
+                  placeholder="Oferta especial (Ej. 3x1 solo para ti)"
+                  className="w-full h-14 px-6 rounded-2xl bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-iogga-accent outline-none"
+                />
+                <textarea
+                  value={couponDraft.description}
+                  onChange={e => setCouponDraft({ ...couponDraft, description: e.target.value })}
+                  placeholder="Mensaje para la persona"
+                  className="w-full h-24 px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-iogga-accent outline-none resize-none"
+                />
+                <button
+                  onClick={() => {
+                    const d = couponDraft;
+                    const idSeed = `${d.target.id}-${d.promo.id}`;
+                    setAcceptedPlanIds(prev => prev.includes(idSeed) ? prev : [...prev, idSeed]);
+                    // La invitación personalizada le llega como plan-invitación
+                    const newInv: Plan = {
+                      id: Math.random().toString(36).substr(2, 9),
+                      userName: d.promo.businessName || 'Negocio',
+                      userAvatar: d.promo.businessLogo || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=150&q=80',
+                      activity: `🎁 ${d.offer ? d.offer + ' — ' : ''}${d.title}`,
+                      comment: d.description,
+                      startTime: d.target.startTime,
+                      endTime: d.target.endTime,
+                      location: d.promo.location,
+                      acceptedCount: 1,
+                      timestamp: Date.now(),
+                      isPublic: false,
+                      image: d.image,
+                      tags: [],
+                      budget: 'no-money',
+                      transport: 'each-arrives',
+                      guests: 'public',
+                      isInvitation: true,
+                      invitedUids: d.target.uid ? [d.target.uid] : [],
+                    };
+                    void saveDocIn('plans', newInv.id, newInv);
+                    setPlans(prev => [newInv, ...prev]);
+                    // Notificación real al dueño del plan (campana + casita)
+                    if (d.target.uid) {
+                      void sendNotification({
+                        type: 'invite',
+                        to: d.target.uid,
+                        fromName: d.promo.businessName || 'Negocio',
+                        title: `${d.promo.businessName} te envió un cupón`,
+                        message: `${d.offer ? d.offer + ' — ' : ''}${d.title}. ${d.description}`,
+                        planId: newInv.id,
+                      });
+                    }
+                    setCouponDraft(null);
+                    triggerBeta('¡Cupón enviado!', `${d.target.userName.split(' ')[0]} recibirá tu cupón especial en sus invitaciones.`);
+                  }}
+                  className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-iogga-accent/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <Send size={16} /> Enviar cupón
                 </button>
               </div>
             </Modal>

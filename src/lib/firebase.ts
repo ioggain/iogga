@@ -518,6 +518,13 @@ export async function incrementPlanAccepted(planId: string): Promise<void> {
   await updateDoc(doc(db, 'plans', planId), { acceptedCount: increment(1) }).catch(() => {});
 }
 
+// Contador "Seleccionados" de una oferta: suma cuando alguien la elige para su plan
+// (o baja su QR). Es el pulso real de interés que ve el negocio.
+export async function incrementPromoSelected(promoId: string): Promise<void> {
+  if (!db) return;
+  await updateDoc(doc(db, 'promos', promoId), { qrScans: increment(1) }).catch(() => {});
+}
+
 // Registrar QUIÉN aceptó el plan (nombre y foto) para mostrarlo al creador
 export async function acceptPlanAs(planId: string, user: AuthUser, photoURL?: string | null): Promise<void> {
   if (!db) return;

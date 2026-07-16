@@ -26,3 +26,12 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           channelId: live
           projectId: iogga-b932b
+      # Publicar también las REGLAS de Firestore (seguridad de solicitudes/bloqueo).
+      # Si la cuenta de servicio no tiene permiso, no rompe el deploy del sitio.
+      - name: Publicar reglas de Firestore
+        continue-on-error: true
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
+          npx firebase-tools deploy --only firestore:rules --project iogga-b932b --non-interactive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json

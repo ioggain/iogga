@@ -2474,6 +2474,28 @@ export default function App() {
     setActiveTab('search');
   };
 
+  // Al unirte se abre la pantalla "Avisar" (mismo patrón que Invitar en iogga /
+  // por WhatsApp). El aviso en iogga queda sombreado al enviarse y persiste.
+  const [joinedFlow, setJoinedFlow] = useState<Plan | null>(null);
+  const [joinedNotifiedIds, setJoinedNotifiedIds] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('iogga_joined_notified') || '[]'); } catch { return []; }
+  });
+  const notifyHostJoined = (plan: Plan) => {
+    if (joinedNotifiedIds.includes(plan.id)) return;
+    if (plan.uid && currentUser && plan.uid !== currentUser.uid) {
+      const me = (currentUser.name || 'Alguien').split(' ')[0];
+      void sendNotification({
+        type: 'accepted',
+        to: plan.uid,
+        fromName: currentUser.name || 'Alguien',
+        title: `${me} se unió a tu plan`,
+        message: `${me} se apuntó a "${plan.activity}". Elígelo en tu tarjeta para confirmar y que vea el punto exacto.`,
+        planId: plan.id,
+      });
+    }
+    setJoinedNotifiedIds(prev => { const n = [...prev, plan.id]; try { localStorage.setItem('iogga_joined_notified', JSON.stringify(n)); } catch { /* sin storage */ } return n; });
+  };
+
   const handleAcceptPlan = (id: string) => {
     // Momento clave: aceptar un plan requiere cuenta (explorar sigue siendo libre)
     ensureLoggedIn(() => {
@@ -2484,26 +2506,8 @@ export default function App() {
       } else {
         void incrementPlanAccepted(id);
       }
-      // Avisar EN VIVO al creador del plan que alguien se unió (notificación real).
-      if (plan?.uid && currentUser && plan.uid !== currentUser.uid) {
-        const me = (currentUser.name || 'Alguien').split(' ')[0];
-        void sendNotification({
-          type: 'accepted',
-          to: plan.uid,
-          fromName: currentUser.name || 'Alguien',
-          title: `${me} se unió a tu plan`,
-          message: `${me} se apuntó a "${plan.activity}". Elígelo en tu tarjeta para confirmar y que vea el punto exacto.`,
-          planId: plan.id,
-        });
-      }
-      // Respuesta clara para quien se une: qué sigue (cierre del ciclo, pokayoke)
-      if (plan && plan.uid !== currentUser?.uid) {
-        triggerBeta('¡Te apuntaste! 🙌', `${(plan.userName || 'La persona').split(' ')[0]} verá que te uniste. Cuando te elija para su plan te avisaremos y podrás ver la ubicación exacta${plan.whatsapp ? ' y su WhatsApp' : ''}.`);
-      }
-      // Al unirte, si el creador dejó WhatsApp, abre el chat para coordinar.
-      if (plan?.whatsapp) {
-        window.open(waLink(plan.whatsapp, `¡Hola ${plan.userName}! Me uní a tu plan "${plan.activity}" en iogga. ¿Sigue en pie?`), '_blank');
-      }
+      // Abrir la pantalla "¡Te uniste!" para avisar por iogga o WhatsApp
+      if (plan && plan.uid !== currentUser?.uid) setJoinedFlow(plan);
     });
   };
 
@@ -2952,23 +2956,25 @@ export default function App() {
                     <div className="space-y-4">
                       <div className="space-y-3">
                         {plans
-                          .filter(p => isInviteForMe(p) && isLivePlan(p) && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id))
+                          .filter(p => isInviteForMe(p) && isLivePlan(p) && !ignoredPlanIds.includes(p.id))
                           .filter(p => p.activity.toLowerCase().includes(searchQuery.toLowerCase()) || p.userName.toLowerCase().includes(searchQuery.toLowerCase()))
-                          .map(plan => (
+                          .map(plan => { const joined = acceptedPlanIds.includes(plan.id); return (
                             <div key={plan.id} className="space-y-2">
                               <motion.div
                                 layout
                                 onClick={() => setSelectedInvitationId(selectedInvitationId === plan.id ? null : plan.id)}
-                                className={`relative overflow-hidden p-4 rounded-[32px] border transition-all cursor-pointer ${selectedInvitationId === plan.id ? 'bg-zinc-900 border-iogga-primary shadow-xl' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                                className={`relative overflow-hidden p-4 rounded-[32px] border transition-all cursor-pointer ${joined ? 'bg-emerald-500/5 border-emerald-500/30' : selectedInvitationId === plan.id ? 'bg-zinc-900 border-iogga-primary shadow-xl' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
                               >
                                 {plan.isSeed && <SeedTag />}
-                                {/* Tachita: descartar la invitación desde la tarjeta (pokayoke, como en notificaciones) */}
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleIgnorePlan(plan.id); }}
-                                  className="absolute top-3 right-3 z-20 w-7 h-7 rounded-full bg-white/10 text-zinc-300 hover:bg-white/20 hover:text-white transition-colors flex items-center justify-center border border-white/10"
-                                >
-                                  <X size={14} />
-                                </button>
+                                {/* Tachita: descartar la invitación (solo si aún no te uniste) */}
+                                {!joined && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleIgnorePlan(plan.id); }}
+                                    className="absolute top-3 right-3 z-20 w-7 h-7 rounded-full bg-white/10 text-zinc-300 hover:bg-white/20 hover:text-white transition-colors flex items-center justify-center border border-white/10"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                )}
                                 <div className="flex items-center gap-4">
                                   <div 
                                     className="relative cursor-pointer hover:scale-105 transition-transform"
@@ -3094,26 +3100,38 @@ export default function App() {
                                         </div>
 
                                         <div className="flex gap-3 pt-2">
-                                          <button 
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleIgnorePlan(plan.id);
-                                              setSelectedInvitationId(null);
-                                            }}
-                                            className="flex-1 py-4 rounded-2xl bg-white/5 text-zinc-400 text-xs font-bold hover:bg-white/10 transition-all"
-                                          >
-                                            Ignorar
-                                          </button>
-                                          <button 
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleAcceptPlan(plan.id);
-                                              setSelectedInvitationId(null);
-                                            }}
-                                            className="flex-[2] py-4 rounded-2xl bg-iogga-primary text-white text-xs font-black shadow-lg shadow-iogga-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
-                                          >
-                                            Aceptar Invitación
-                                          </button>
+                                          {joined ? (
+                                            /* Ya unido (como "Asistiré ✓" de Facebook): reabre Avisar */
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); setJoinedFlow(plan); }}
+                                              className="w-full py-4 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 text-xs font-black flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                                            >
+                                              <CheckCircle2 size={16} /> Te uniste
+                                            </button>
+                                          ) : (
+                                            <>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleIgnorePlan(plan.id);
+                                                  setSelectedInvitationId(null);
+                                                }}
+                                                className="flex-1 py-4 rounded-2xl bg-white/5 text-zinc-400 text-xs font-bold hover:bg-white/10 transition-all"
+                                              >
+                                                Ignorar
+                                              </button>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleAcceptPlan(plan.id);
+                                                  setSelectedInvitationId(null);
+                                                }}
+                                                className="flex-[2] py-4 rounded-2xl bg-iogga-primary text-white text-xs font-black shadow-lg shadow-iogga-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                              >
+                                                Unirme al plan
+                                              </button>
+                                            </>
+                                          )}
                                         </div>
                                       </div>
                                     </motion.div>
@@ -3121,9 +3139,9 @@ export default function App() {
                                 </AnimatePresence>
                               </motion.div>
                             </div>
-                          ))}
-                        
-                        {plans.filter(p => isInviteForMe(p) && isLivePlan(p) && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id)).length === 0 && (
+                          ); })}
+
+                        {plans.filter(p => isInviteForMe(p) && isLivePlan(p) && !ignoredPlanIds.includes(p.id)).length === 0 && (
                           <div className="py-20 text-center space-y-4">
                             <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto">
                               <MessageSquare size={32} className="text-zinc-700" />
@@ -4534,10 +4552,10 @@ export default function App() {
                         </button>
                       </div>
                       <div className="flex-1 flex items-center justify-around">
-                        <div className="flex flex-col items-center">
+                        <button onClick={() => setActiveTab('active')} className="flex flex-col items-center active:scale-95 transition-transform">
                           <span className="text-lg font-black text-white">{plans.filter(p => isMyPlan(p)).length}</span>
                           <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Planes</span>
-                        </div>
+                        </button>
                         <button onClick={() => setShowFriends('followers')} className="flex flex-col items-center active:scale-95 transition-transform">
                           <span className="text-lg font-black text-white">{followersAll.length}</span>
                           <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Seguidores</span>
@@ -6273,13 +6291,13 @@ export default function App() {
                   </div>
                 ) : (
                   acceptedPlanIds.includes(selectedPlanForDetails.id) ? (
-                    // Ya te uniste: confirmación clara (palomita morada) y salir.
+                    // Ya te uniste (como "Asistiré ✓"): tocar reabre Avisar por iogga/WhatsApp
                     <div className="flex gap-4">
                       <button
-                        onClick={() => setSelectedPlanForDetails(null)}
-                        className="w-full py-4 rounded-2xl bg-iogga-primary/15 text-iogga-primary border border-iogga-primary/40 font-black flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
+                        onClick={() => { const p = selectedPlanForDetails; setSelectedPlanForDetails(null); setJoinedFlow(p); }}
+                        className="w-full py-4 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 font-black flex items-center justify-center gap-2 text-xs uppercase tracking-wider active:scale-[0.98] transition-all"
                       >
-                        <CheckCircle2 size={16} /> Ya estás unido
+                        <CheckCircle2 size={16} /> Te uniste
                       </button>
                     </div>
                   ) : (
@@ -7567,6 +7585,48 @@ export default function App() {
                 className="w-full py-4 bg-green-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                 <UserPlus size={16} /> Invitar por WhatsApp
+              </button>
+            </div>
+          </Modal>
+        )}
+
+        {/* ¡Te uniste! — avisar por iogga o WhatsApp (mismo patrón que Invitar).
+            Pokayoke: al cerrar, el aviso en iogga se envía solo si no lo tocó. */}
+        {joinedFlow && (
+          <Modal onClose={() => { notifyHostJoined(joinedFlow); setJoinedFlow(null); }} title="¡Te uniste! 🎉">
+            <div className="space-y-5">
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-3">
+                <img src={joinedFlow.userAvatar} className="w-11 h-11 rounded-full object-cover" referrerPolicy="no-referrer" />
+                <p className="text-sm text-zinc-200 leading-snug flex-1">Te apuntaste al plan de <span className="font-black text-white">{joinedFlow.userName.split(' ')[0]}</span>. Avísale para que te tome en cuenta:</p>
+              </div>
+
+              {/* Avisar por iogga: al enviarse queda sombreado con palomita */}
+              <button
+                disabled={joinedNotifiedIds.includes(joinedFlow.id)}
+                onClick={() => notifyHostJoined(joinedFlow)}
+                className={`w-full py-4 rounded-[20px] font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${joinedNotifiedIds.includes(joinedFlow.id) ? 'bg-white/5 text-zinc-500 border border-white/10' : 'bg-iogga-primary text-white shadow-lg shadow-iogga-primary/20 active:scale-95'}`}
+              >
+                {joinedNotifiedIds.includes(joinedFlow.id) ? <><CheckCircle2 size={16} /> Avisado por iogga</> : <><Send size={16} /> Avisar por iogga</>}
+              </button>
+
+              {/* Avisar por WhatsApp: directo a SU número; si no lo dejó, WhatsApp normal */}
+              <a
+                href={joinedFlow.whatsapp
+                  ? waLink(joinedFlow.whatsapp, `¡Hola ${joinedFlow.userName.split(' ')[0]}! Me uní a tu plan "${joinedFlow.activity}" en iogga. ¿Sigue en pie?`)
+                  : `https://wa.me/?text=${encodeURIComponent(`Me uní a tu plan "${joinedFlow.activity}" en iogga. ¿Sigue en pie? ${window.location.origin}/?inv=${joinedFlow.id}`)}`}
+                target="_blank" rel="noopener noreferrer"
+                className="w-full py-4 rounded-[20px] bg-green-500 text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <UserPlus size={16} /> Avisar por WhatsApp
+              </a>
+
+              <p className="text-[11px] text-zinc-500 text-center leading-snug">Cuando {joinedFlow.userName.split(' ')[0]} te elija, te avisaremos y podrás ver la ubicación exacta{joinedFlow.whatsapp ? '' : ' y su WhatsApp'}.</p>
+
+              <button
+                onClick={() => { notifyHostJoined(joinedFlow); setJoinedFlow(null); }}
+                className="w-full py-4 bg-white/10 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
+              >
+                Listo
               </button>
             </div>
           </Modal>

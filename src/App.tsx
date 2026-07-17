@@ -819,7 +819,15 @@ export default function App() {
   };
   const [businessExploreCategory, setBusinessExploreCategory] = useState('Todos');
   const [showTrends, setShowTrends] = useState(false);
-  const [acceptedPlanIds, setAcceptedPlanIds] = useState<string[]>([]);
+  // Planes a los que YA te uniste: persiste en el teléfono (no se pierde al
+  // actualizar) y además se deriva de la nube (acceptedBy del plan), que es la
+  // fuente real — así "Te uniste" se ve igual en cualquier dispositivo.
+  const [acceptedPlanIds, setAcceptedPlanIds] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('iogga_accepted_plans') || '[]'); } catch { return []; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('iogga_accepted_plans', JSON.stringify(acceptedPlanIds)); } catch { /* sin storage */ }
+  }, [acceptedPlanIds]);
   const [ignoredPlanIds, setIgnoredPlanIds] = useState<string[]>([]);
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const [homeFilter, setHomeFilter] = useState<'all' | 'my-plans' | 'offers'>('all');
@@ -1692,6 +1700,18 @@ export default function App() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.uid, currentUser?.isAnonymous]);
+
+  // Fuente REAL de "te uniste": si el plan (en la nube) me tiene en acceptedBy,
+  // marcarlo como unido aunque haya cambiado de dispositivo o borrado datos.
+  useEffect(() => {
+    if (!currentUser) return;
+    const joined = plans.filter(p => p.acceptedBy?.some(a => a.uid === currentUser.uid)).map(p => p.id);
+    if (joined.length === 0) return;
+    setAcceptedPlanIds(prev => {
+      const missing = joined.filter(id => !prev.includes(id));
+      return missing.length ? [...prev, ...missing] : prev;
+    });
+  }, [plans, currentUser?.uid]);
 
   // Perfil extendido del usuario (bio, ubicación, foto) para el medidor de perfil
   const [userProfile, setUserProfile] = useState<UserProfile>({});

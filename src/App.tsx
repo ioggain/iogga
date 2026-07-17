@@ -635,6 +635,63 @@ async function shareStatusImage(dataUrl: string, link: string) {
   window.open(`https://wa.me/?text=${encodeURIComponent(`Coincide con los que amas 💜 ${link}`)}`, '_blank');
 }
 
+// Mini "video" animado (sin peso de video real): muestra en bucle cómo instalar
+// iogga en iPhone — tocar Compartir, subir el menú y Agregar a inicio.
+function InstallAnimationIOS() {
+  const [scene, setScene] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setScene(s => (s + 1) % 3), 1800);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="relative w-40 h-64 mx-auto rounded-[24px] border-4 border-zinc-700 bg-zinc-900 overflow-hidden shadow-2xl">
+      {/* Pantalla: página de iogga */}
+      <div className="absolute inset-0 flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center gap-2">
+          <div className="w-10 h-10 rounded-full bg-white shadow-[0_0_18px_rgba(255,255,255,0.35)]" />
+          <span className="text-white text-sm font-bold" style={{ fontFamily: '"Quicksand", sans-serif' }}>iogga</span>
+        </div>
+        {/* Barra de Safari con el botón Compartir */}
+        <div className="h-11 bg-zinc-800/95 border-t border-white/10 flex items-center justify-center gap-6 relative z-10">
+          <span className="w-4 h-4 rounded-sm bg-white/15" />
+          <motion.span
+            animate={scene === 0 ? { scale: [1, 1.35, 1] } : { scale: 1 }}
+            transition={{ duration: 0.9, repeat: scene === 0 ? Infinity : 0 }}
+            className={`w-8 h-8 rounded-xl flex items-center justify-center ${scene === 0 ? 'bg-[#0a84ff] ring-4 ring-[#0a84ff]/30' : 'bg-[#0a84ff]/60'}`}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>
+          </motion.span>
+          <span className="w-4 h-4 rounded-sm bg-white/15" />
+        </div>
+      </div>
+      {/* Menú de compartir que sube (escenas 1 y 2) */}
+      <motion.div
+        animate={{ y: scene === 0 ? 200 : 0 }}
+        transition={{ type: 'spring', damping: 22, stiffness: 220 }}
+        className="absolute bottom-0 left-0 right-0 bg-zinc-800 rounded-t-2xl border-t border-white/15 p-3 space-y-2 z-20"
+      >
+        <div className="w-8 h-1 bg-white/20 rounded-full mx-auto" />
+        <div className="h-6 rounded-lg bg-white/10" />
+        <motion.div
+          animate={scene === 2 ? { scale: [1, 1.06, 1], backgroundColor: ['rgba(99,102,241,0.25)', 'rgba(99,102,241,0.5)', 'rgba(99,102,241,0.25)'] } : {}}
+          transition={{ duration: 0.9, repeat: scene === 2 ? Infinity : 0 }}
+          className={`h-8 rounded-lg flex items-center justify-between px-2.5 ${scene === 2 ? 'bg-iogga-primary/30 ring-2 ring-iogga-primary' : 'bg-white/10'}`}
+        >
+          <span className="text-[8px] font-black text-white">Agregar a inicio</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+        </motion.div>
+        <div className="h-6 rounded-lg bg-white/10" />
+      </motion.div>
+      {/* Etiqueta de la escena */}
+      <div className="absolute top-2 left-0 right-0 text-center z-30">
+        <span className="text-[8px] font-black text-white bg-black/60 px-2 py-1 rounded-full uppercase tracking-widest">
+          {scene === 0 ? '1 · Toca Compartir' : scene === 1 ? '2 · Sube el menú' : '3 · Agregar a inicio'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // Etiqueta "Prueba" para distinguir datos ficticios (esquina, sin mover el diseño).
 function SeedTag() {
   return (
@@ -1113,6 +1170,19 @@ export default function App() {
 
   // Borrador de plan: nunca se pierde nada sin preguntar
   const [askDraft, setAskDraft] = useState(false);
+  // Tutorial de VOZ (primera vez que abres "Crear plan"): explica escribir,
+  // dictar y platicar, paso a paso. Solo sale una vez; siempre se puede saltar.
+  const [showVoiceIntro, setShowVoiceIntro] = useState(false);
+  useEffect(() => {
+    if (!showCreatePlan) return;
+    try {
+      if (!localStorage.getItem('iogga_voice_intro_seen')) setShowVoiceIntro(true);
+    } catch { /* sin storage */ }
+  }, [showCreatePlan]);
+  const dismissVoiceIntro = () => {
+    setShowVoiceIntro(false);
+    try { localStorage.setItem('iogga_voice_intro_seen', '1'); } catch { /* sin storage */ }
+  };
   const closeCreatePlan = () => {
     setShowCreatePlan(false);
     setEditingPlanId(null);
@@ -4842,31 +4912,95 @@ export default function App() {
               onBack={currentPlanStep > 0 ? () => setCurrentPlanStep(currentPlanStep - 1) : undefined}
               title={editingPlanId ? "Editar Plan" : "Crear Plan"}
             >
-              {/* ¿Guardar borrador? — nunca se pierde nada sin preguntar */}
+              {/* Primera vez en "Crear plan": popup paso a paso de las 3 formas
+                  de crear tu plan (escribir, dictar, platicar). Pokayoke. */}
+              {showVoiceIntro && (
+                <div className="fixed inset-0 z-[640] flex items-center justify-center p-6">
+                  <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={dismissVoiceIntro} />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.92, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    className="relative w-full max-w-sm bg-zinc-900 border border-white/15 rounded-[28px] p-6 space-y-4 shadow-2xl"
+                  >
+                    <p className="text-lg font-black text-white text-center leading-tight">3 formas de crear tu plan ✨</p>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="relative shrink-0">
+                          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"><Edit3 size={18} className="text-zinc-300" /></div>
+                          <div className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-iogga-primary text-white text-[11px] font-black flex items-center justify-center">1</div>
+                        </div>
+                        <div className="pt-0.5">
+                          <p className="text-sm font-black text-white leading-tight">Escríbelo</p>
+                          <p className="text-[12px] text-zinc-400 leading-snug mt-0.5">Como siempre: teclea qué quieres hacer.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="relative shrink-0">
+                          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"><Mic size={18} className="text-iogga-primary" /></div>
+                          <div className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-iogga-primary text-white text-[11px] font-black flex items-center justify-center">2</div>
+                        </div>
+                        <div className="pt-0.5">
+                          <p className="text-sm font-black text-white leading-tight">Díctalo</p>
+                          <p className="text-[12px] text-zinc-400 leading-snug mt-0.5">Toca el micrófono <Mic size={11} className="inline align-middle text-iogga-primary" /> de cualquier caja y habla: se escribe solo.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="relative shrink-0">
+                          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"><AudioLines size={18} className="text-iogga-primary" /></div>
+                          <div className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-iogga-primary text-white text-[11px] font-black flex items-center justify-center">3</div>
+                        </div>
+                        <div className="pt-0.5">
+                          <p className="text-sm font-black text-white leading-tight">Platícalo</p>
+                          <p className="text-[12px] text-zinc-400 leading-snug mt-0.5">Toca las ondas <AudioLines size={11} className="inline align-middle text-iogga-primary" /> y iogga te va preguntando: tú solo contesta hablando y el plan se arma solo.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <button onClick={dismissVoiceIntro} className="w-full py-3.5 rounded-2xl bg-iogga-primary text-white text-xs font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-iogga-primary/20">
+                      ¡Entendido!
+                    </button>
+                  </motion.div>
+                </div>
+              )}
+
+              {/* ¿Guardar cambios? — POPUP centrado, como Word/Pages/Google Docs:
+                  se distingue, oscurece el fondo y usa los textos universales. */}
               {askDraft && (
-                <div className="mb-5 p-5 rounded-3xl bg-amber-500/10 border border-amber-500/30 space-y-3">
-                  <p className="text-sm font-black text-white">¿Guardamos tu plan como borrador?</p>
-                  <p className="text-xs text-zinc-400">Podrás continuarlo la próxima vez que toques +.</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => { try { localStorage.setItem('iogga_plan_draft', JSON.stringify({ plan: newPlan, step: currentPlanStep, guestName })); } catch {} setAskDraft(false); closeCreatePlan(); triggerBeta('Borrador guardado', 'Tu plan te espera: toca + para continuarlo.'); }}
-                      className="flex-1 py-3 rounded-2xl bg-iogga-primary text-white text-[11px] font-black uppercase tracking-widest active:scale-95"
-                    >
-                      Guardar borrador
-                    </button>
-                    <button
-                      onClick={() => { try { localStorage.removeItem('iogga_plan_draft'); } catch {} setAskDraft(false); closeCreatePlan(); }}
-                      className="flex-1 py-3 rounded-2xl bg-white/5 border border-white/10 text-zinc-400 text-[11px] font-black uppercase tracking-widest active:scale-95"
-                    >
-                      Descartar
-                    </button>
-                    <button
-                      onClick={() => setAskDraft(false)}
-                      className="flex-1 py-3 rounded-2xl bg-white/5 border border-white/10 text-white text-[11px] font-black uppercase tracking-widest active:scale-95"
-                    >
-                      Seguir editando
-                    </button>
-                  </div>
+                <div className="fixed inset-0 z-[650] flex items-center justify-center p-6">
+                  <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={() => setAskDraft(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.92, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    className="relative w-full max-w-xs bg-zinc-900 border border-white/15 rounded-[28px] p-6 text-center space-y-4 shadow-2xl"
+                  >
+                    <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
+                      {/* Disquete: el ícono universal de guardar */}
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+                    </div>
+                    <div>
+                      <p className="text-base font-black text-white leading-tight">¿Quieres guardar tu plan?</p>
+                      <p className="text-xs text-zinc-400 mt-1.5 leading-snug">Si no lo guardas, se perderá lo que llevas. Guardado podrás continuarlo cuando vuelvas.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => { try { localStorage.setItem('iogga_plan_draft', JSON.stringify({ plan: newPlan, step: currentPlanStep, guestName })); } catch { /* sin storage */ } setAskDraft(false); closeCreatePlan(); triggerBeta('Borrador guardado', 'Tu plan te espera: toca + para continuarlo donde te quedaste.'); }}
+                        className="w-full py-3.5 rounded-2xl bg-iogga-primary text-white text-xs font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-iogga-primary/20"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        onClick={() => { try { localStorage.removeItem('iogga_plan_draft'); } catch { /* sin storage */ } setAskDraft(false); closeCreatePlan(); }}
+                        className="w-full py-3.5 rounded-2xl bg-white/5 border border-white/10 text-red-400 text-xs font-black uppercase tracking-widest active:scale-95 transition-all"
+                      >
+                        No guardar
+                      </button>
+                      <button
+                        onClick={() => setAskDraft(false)}
+                        className="w-full py-3 text-zinc-400 text-[11px] font-bold uppercase tracking-widest active:scale-95 transition-all"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </motion.div>
                 </div>
               )}
               {/* Platica por voz: la app pregunta y tú respondes hablando */}
@@ -4906,6 +5040,18 @@ export default function App() {
                   ))}
                 </div>
 
+                {/* Swipe como Instagram: izquierda = siguiente, derecha = atrás */}
+                <motion.div
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.18}
+                  dragDirectionLock
+                  onDragEnd={(_, info) => {
+                    const canNext = currentPlanStep < 6 && !(currentPlanStep === 0 && !newPlan.activity);
+                    if (info.offset.x < -70 && canNext) setCurrentPlanStep(currentPlanStep + 1);
+                    else if (info.offset.x > 70 && currentPlanStep > 0) setCurrentPlanStep(currentPlanStep - 1);
+                  }}
+                >
                 <AnimatePresence mode="wait">
                   {currentPlanStep === 0 && (
                     <motion.div 
@@ -5403,6 +5549,7 @@ export default function App() {
                       >
                         <PlusCircle size={14} /> Pegar imagen copiada
                       </button>
+                      <p className="text-[10px] text-zinc-500 text-center leading-snug">1. Busca en Google y <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen". 2. Vuelve y toca <span className="text-white font-bold">"Pegar imagen copiada"</span>.</p>
                       {newPlan.image && (
                         <button
                           onClick={() => setNewPlan({...newPlan, image: undefined})}
@@ -5437,6 +5584,7 @@ export default function App() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+                </motion.div>
 
                 <div className="flex gap-3 pt-4">
                   {currentPlanStep < 6 ? (
@@ -5503,6 +5651,41 @@ export default function App() {
                     <span className="text-xs font-bold text-white uppercase tracking-widest">Cambiar Foto</span>
                   </div>
                 </button>
+                {/* Pegar imagen copiada + guía de Google, clarísimo en 2 pasos */}
+                <div className="space-y-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const items = await (navigator as any).clipboard?.read?.();
+                        if (items) {
+                          for (const it of items) {
+                            const t = it.types.find((x: string) => x.startsWith('image/'));
+                            if (t) {
+                              const blob = await it.getType(t);
+                              const url: string = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(blob); });
+                              setPromoImage(url);
+                              return;
+                            }
+                          }
+                        }
+                        triggerBeta('Copia una imagen primero', 'Mantén presionada una imagen (en Google, tu galería o donde sea), toca "Copiar imagen", y vuelve aquí a "Pegar imagen copiada".');
+                      } catch {
+                        triggerBeta('No se pudo pegar', 'Tu navegador no permitió leer el portapapeles. Usa "Subir Foto Real".');
+                      }
+                    }}
+                    className="w-full py-3 bg-white/5 border border-white/10 text-zinc-300 rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <PlusCircle size={14} /> Pegar imagen copiada
+                  </button>
+                  <a
+                    href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(newPromo.title || 'comida promoción')}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="w-full py-3 bg-white/5 border border-dashed border-white/15 text-zinc-400 rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Search size={14} /> Buscar imagen en Google
+                  </a>
+                  <p className="text-[10px] text-zinc-500 text-center leading-snug">1. Busca en Google y <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen".<br />2. Vuelve aquí y toca <span className="text-white font-bold">"Pegar imagen copiada"</span>. Listo.</p>
+                </div>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Información del Producto</label>
@@ -7219,8 +7402,10 @@ export default function App() {
                   <Download size={22} /> Instalar ahora
                 </button>
               ) : isIOS ? (
-                // iPhone (Safari): Apple no permite instalar solo; guía visual de 3 pasos claros
+                // iPhone (Safari): Apple no permite instalar solo; animación en bucle
+                // (como un videíto) + guía de 3 pasos claros
                 <div className="space-y-3 text-left">
+                  <InstallAnimationIOS />
                   <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
                     <span className="w-9 h-9 rounded-full bg-iogga-primary text-white text-base font-black flex items-center justify-center shrink-0">1</span>
                     <p className="text-sm text-zinc-200 leading-snug">
@@ -8773,26 +8958,36 @@ function Modal({ children, onClose, onBack, title }: { children: React.ReactNode
         transition={{ duration: 0.6, ease: [0.22, 0.61, 0.36, 1] }}
         className="w-full bg-zinc-950 rounded-t-[48px] p-8 max-h-[94%] overflow-y-auto no-scrollbar shadow-2xl border-t border-white/10 relative"
       >
-        <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-8 shrink-0" />
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            {onBack && (
-              <button 
-                onClick={onBack} 
-                className="p-2.5 bg-white/5 text-white rounded-full hover:bg-white/10 transition-all active:scale-90 border border-white/10"
-              >
-                <ArrowRight size={20} className="rotate-180" />
-              </button>
-            )}
-            <h2 className="text-2xl font-black text-white tracking-tight">{title}</h2>
+        {/* Encabezado arrastrable: deslizar hacia ABAJO cierra la tarjeta
+            (además de la tachita), en TODAS las pantallas de persona y negocio. */}
+        <motion.div
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={{ top: 0, bottom: 0.6 }}
+          onDragEnd={(_, info) => { if (info.offset.y > 80 || info.velocity.y > 600) onClose(); }}
+          className="cursor-grab active:cursor-grabbing touch-none"
+        >
+          <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-8 shrink-0" />
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              {onBack && (
+                <button
+                  onClick={onBack}
+                  className="p-2.5 bg-white/5 text-white rounded-full hover:bg-white/10 transition-all active:scale-90 border border-white/10"
+                >
+                  <ArrowRight size={20} className="rotate-180" />
+                </button>
+              )}
+              <h2 className="text-2xl font-black text-white tracking-tight">{title}</h2>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2.5 bg-white/5 text-white rounded-full hover:bg-white/10 transition-all active:scale-90 border border-white/10"
+            >
+              <X size={20} />
+            </button>
           </div>
-          <button 
-            onClick={onClose} 
-            className="p-2.5 bg-white/5 text-white rounded-full hover:bg-white/10 transition-all active:scale-90 border border-white/10"
-          >
-            <X size={20} />
-          </button>
-        </div>
+        </motion.div>
         <div className="pb-10">
           {children}
         </div>

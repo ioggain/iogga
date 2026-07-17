@@ -692,6 +692,144 @@ function InstallAnimationIOS() {
   );
 }
 
+// Mini "video" animado del ESTADO (mismo formato que el de instalar): compartir,
+// elegir WhatsApp, tocar Mi estado y elegir quién puede verla (3 puntos).
+function StatusAnimationWA() {
+  const [scene, setScene] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setScene(s => (s + 1) % 4), 1800);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="relative w-40 h-64 mx-auto rounded-[24px] border-4 border-zinc-700 bg-zinc-900 overflow-hidden shadow-2xl shrink-0">
+      {/* Fondo: la imagen del estado (morado iogga) */}
+      <div className="absolute inset-0 bg-gradient-to-b from-indigo-900 to-zinc-950 flex flex-col items-center justify-center gap-1.5">
+        <div className="w-8 h-8 rounded-full bg-white shadow-[0_0_14px_rgba(255,255,255,0.35)]" />
+        <span className="text-white text-[10px] font-bold" style={{ fontFamily: '"Quicksand", sans-serif' }}>tu plan aquí</span>
+        {/* Botón compartir (escena 0) */}
+        <motion.div
+          animate={scene === 0 ? { scale: [1, 1.15, 1] } : { scale: 1 }}
+          transition={{ duration: 0.9, repeat: scene === 0 ? Infinity : 0 }}
+          className={`mt-3 px-3 py-1.5 rounded-full text-[8px] font-black text-white uppercase tracking-widest ${scene === 0 ? 'bg-fuchsia-500 ring-4 ring-fuchsia-500/30' : 'bg-fuchsia-500/50'}`}
+        >
+          Compartir ahora
+        </motion.div>
+      </div>
+      {/* Menú de compartir: elegir WhatsApp (escena 1) */}
+      <motion.div
+        animate={{ y: scene === 0 ? 200 : 0 }}
+        transition={{ type: 'spring', damping: 22, stiffness: 220 }}
+        className="absolute bottom-0 left-0 right-0 bg-zinc-800 rounded-t-2xl border-t border-white/15 p-3 z-20"
+      >
+        <div className="w-8 h-1 bg-white/20 rounded-full mx-auto mb-2" />
+        {scene <= 1 ? (
+          <div className="flex justify-around">
+            <span className="w-8 h-8 rounded-xl bg-white/10" />
+            <motion.span
+              animate={scene === 1 ? { scale: [1, 1.25, 1] } : {}}
+              transition={{ duration: 0.9, repeat: scene === 1 ? Infinity : 0 }}
+              className={`w-8 h-8 rounded-xl flex items-center justify-center ${scene === 1 ? 'bg-[#25D366] ring-4 ring-[#25D366]/30' : 'bg-[#25D366]/60'}`}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.3-1.38a9.9 9.9 0 004.73 1.2h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.05 2z"/></svg>
+            </motion.span>
+            <span className="w-8 h-8 rounded-xl bg-white/10" />
+          </div>
+        ) : (
+          /* Dentro de WhatsApp: Mi estado (escena 2) y 3 puntos (escena 3) */
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[8px] font-black text-white/60 uppercase">WhatsApp</span>
+              <motion.span
+                animate={scene === 3 ? { scale: [1, 1.35, 1] } : {}}
+                transition={{ duration: 0.9, repeat: scene === 3 ? Infinity : 0 }}
+                className={`px-1 rounded ${scene === 3 ? 'bg-iogga-primary/40 ring-2 ring-iogga-primary' : ''}`}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+              </motion.span>
+            </div>
+            <motion.div
+              animate={scene === 2 ? { scale: [1, 1.05, 1] } : {}}
+              transition={{ duration: 0.9, repeat: scene === 2 ? Infinity : 0 }}
+              className={`h-8 rounded-lg flex items-center gap-1.5 px-2 ${scene === 2 ? 'bg-[#25D366]/25 ring-2 ring-[#25D366]' : 'bg-white/10'}`}
+            >
+              <span className="w-5 h-5 rounded-full border-2 border-dashed border-[#25D366] flex items-center justify-center text-[#25D366] text-[9px] font-black">+</span>
+              <span className="text-[8px] font-black text-white">Mi estado</span>
+            </motion.div>
+            <div className="h-6 rounded-lg bg-white/10" />
+          </div>
+        )}
+      </motion.div>
+      <div className="absolute top-2 left-0 right-0 text-center z-30">
+        <span className="text-[8px] font-black text-white bg-black/60 px-2 py-1 rounded-full uppercase tracking-widest">
+          {scene === 0 ? '1 · Compartir ahora' : scene === 1 ? '2 · Elige WhatsApp' : scene === 2 ? '3 · Toca Mi estado' : '4 · Elige quién la ve'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Mini "video" animado de la VOZ (mismo formato): escribir, dictar y platicar.
+function VoiceAnimation() {
+  const [scene, setScene] = React.useState(0);
+  React.useEffect(() => {
+    const t = setInterval(() => setScene(s => (s + 1) % 3), 1800);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="relative w-40 h-64 mx-auto rounded-[24px] border-4 border-zinc-700 bg-zinc-900 overflow-hidden shadow-2xl shrink-0">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-3">
+        <p className="text-[9px] font-black text-white text-center">¿Cuál es tu plan hoy?</p>
+        {/* Caja de texto con mic y ondas */}
+        <div className="w-full h-9 rounded-xl bg-white/10 border border-white/15 flex items-center px-2 gap-1">
+          <motion.span
+            key={scene === 0 ? 'typing' : 'idle'}
+            className="flex-1 text-[8px] text-white/80 truncate"
+          >
+            {scene === 0 ? (
+              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2 }}>Café con amigos…</motion.span>
+            ) : <span className="text-white/25">Escribe tu plan…</span>}
+          </motion.span>
+          <motion.span
+            animate={scene === 2 ? { scale: [1, 1.3, 1] } : {}}
+            transition={{ duration: 0.8, repeat: scene === 2 ? Infinity : 0 }}
+            className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${scene === 2 ? 'bg-iogga-primary ring-4 ring-iogga-primary/30' : 'bg-white/10'}`}
+          >
+            <AudioLines size={11} className="text-white" />
+          </motion.span>
+          <motion.span
+            animate={scene === 1 ? { scale: [1, 1.3, 1] } : {}}
+            transition={{ duration: 0.8, repeat: scene === 1 ? Infinity : 0 }}
+            className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${scene === 1 ? 'bg-red-500 ring-4 ring-red-500/30' : 'bg-white/10'}`}
+          >
+            <Mic size={11} className="text-white" />
+          </motion.span>
+        </div>
+        {/* Ondas de voz cuando dicta/platica */}
+        {scene > 0 && (
+          <div className="flex items-end gap-0.5 h-6">
+            {[3, 5, 4, 6, 3, 5, 4].map((h, i) => (
+              <motion.span
+                key={i}
+                animate={{ height: [h * 2, h * 4, h * 2] }}
+                transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.08 }}
+                className={`w-1 rounded-full ${scene === 1 ? 'bg-red-400' : 'bg-iogga-primary'}`}
+              />
+            ))}
+          </div>
+        )}
+        {scene === 2 && (
+          <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-[8px] text-iogga-primary font-bold text-center">iogga pregunta, tú contestas 🎙️</motion.p>
+        )}
+      </div>
+      <div className="absolute top-2 left-0 right-0 text-center z-30">
+        <span className="text-[8px] font-black text-white bg-black/60 px-2 py-1 rounded-full uppercase tracking-widest">
+          {scene === 0 ? '1 · Escríbelo' : scene === 1 ? '2 · Díctalo' : '3 · Platícalo'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // Etiqueta "Prueba" para distinguir datos ficticios (esquina, sin mover el diseño).
 function SeedTag() {
   return (
@@ -762,20 +900,35 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(bootSkipIntro ? 'search' : 'home');
   // Con Firebase conectado la app inicia EN BLANCO y se llena con datos reales
   // de los usuarios en tiempo real. Sin Firebase, usa datos de ejemplo.
-  // La base ficticia (SEED_*) siempre acompaña a los datos reales para que la
-  // app se vea llena. Los datos reales van primero; los de prueba, al final.
-  const [plans, setPlans] = useState<Plan[]>([...(isFirebaseEnabled ? [] : MOCK_PLANS), ...SEED_PLANS]);
-  const [promos, setPromos] = useState<Promotion[]>([...(isFirebaseEnabled ? [] : MOCK_PROMOS), ...SEED_PROMOS]);
+  // La base ficticia (SEED_*) acompaña a los datos reales para que la app se
+  // vea llena, PERO el usuario puede limpiar su entorno (ocultar lo de prueba).
+  const [hideSeed, setHideSeed] = useState<boolean>(() => {
+    try { return localStorage.getItem('iogga_hide_seed') === '1'; } catch { return false; }
+  });
+  const toggleHideSeed = () => {
+    setHideSeed(v => {
+      const next = !v;
+      try { localStorage.setItem('iogga_hide_seed', next ? '1' : '0'); } catch { /* sin storage */ }
+      return next;
+    });
+  };
+  const [plans, setPlans] = useState<Plan[]>([...(isFirebaseEnabled ? [] : MOCK_PLANS), ...(hideSeed ? [] : SEED_PLANS)]);
+  const [promos, setPromos] = useState<Promotion[]>([...(isFirebaseEnabled ? [] : MOCK_PROMOS), ...(hideSeed ? [] : SEED_PROMOS)]);
 
   useEffect(() => {
-    if (!isFirebaseEnabled) return;
-    const unsubPlans = watchCollectionDocs<Plan>('plans', (docs) => setPlans([...docs, ...SEED_PLANS]));
-    const unsubPromos = watchCollectionDocs<Promotion>('promos', (docs) => setPromos([...docs, ...SEED_PROMOS]));
+    if (!isFirebaseEnabled) {
+      // Sin Firebase: aplicar el filtro de prueba directamente
+      setPlans([...MOCK_PLANS, ...(hideSeed ? [] : SEED_PLANS)]);
+      setPromos([...MOCK_PROMOS, ...(hideSeed ? [] : SEED_PROMOS)]);
+      return;
+    }
+    const unsubPlans = watchCollectionDocs<Plan>('plans', (docs) => setPlans([...docs, ...(hideSeed ? [] : SEED_PLANS)]));
+    const unsubPromos = watchCollectionDocs<Promotion>('promos', (docs) => setPromos([...docs, ...(hideSeed ? [] : SEED_PROMOS)]));
     return () => {
       unsubPlans();
       unsubPromos();
     };
-  }, []);
+  }, [hideSeed]);
   const [showCreatePlan, setShowCreatePlan] = useState(false);
   const [showCreatePromo, setShowCreatePromo] = useState(false);
   const [glowPromoId, setGlowPromoId] = useState<string | null>(null); // brillo en la oferta recién creada
@@ -828,7 +981,13 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem('iogga_accepted_plans', JSON.stringify(acceptedPlanIds)); } catch { /* sin storage */ }
   }, [acceptedPlanIds]);
-  const [ignoredPlanIds, setIgnoredPlanIds] = useState<string[]>([]);
+  // Invitaciones descartadas: persisten para que NO vuelvan a aparecer.
+  const [ignoredPlanIds, setIgnoredPlanIds] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('iogga_ignored_plans') || '[]'); } catch { return []; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('iogga_ignored_plans', JSON.stringify(ignoredPlanIds)); } catch { /* sin storage */ }
+  }, [ignoredPlanIds]);
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const [homeFilter, setHomeFilter] = useState<'all' | 'my-plans' | 'offers'>('all');
   const [promoImage, setPromoImage] = useState<string | null>(null);
@@ -1178,6 +1337,29 @@ export default function App() {
 
   // Borrador de plan: nunca se pierde nada sin preguntar
   const [askDraft, setAskDraft] = useState(false);
+  // "Ubicación actual": GPS del teléfono + nombre de calle/colonia (OpenStreetMap, gratis)
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const useCurrentLocation = (apply: (text: string) => void) => {
+    if (!navigator.geolocation) { triggerBeta('Sin GPS', 'Tu navegador no permite obtener la ubicación. Escríbela o búscala en Maps.'); return; }
+    setGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude, longitude } = pos.coords;
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&accept-language=es`);
+        const d = await r.json();
+        const a = d.address || {};
+        const nice = [a.amenity || a.shop || a.leisure, a.road, a.neighbourhood || a.suburb].filter(Boolean).slice(0, 2).join(', ');
+        apply(nice || d.display_name?.split(',').slice(0, 2).join(',') || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+      } catch {
+        apply(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+      } finally {
+        setGettingLocation(false);
+      }
+    }, () => {
+      setGettingLocation(false);
+      triggerBeta('No pudimos ubicarte', 'Activa el permiso de ubicación de tu navegador e inténtalo de nuevo, o escribe el lugar.');
+    }, { enableHighAccuracy: true, timeout: 10000 });
+  };
   // Tutorial de VOZ (primera vez que abres "Crear plan"): explica escribir,
   // dictar y platicar, paso a paso. Solo sale una vez; siempre se puede saltar.
   const [showVoiceIntro, setShowVoiceIntro] = useState(false);
@@ -1332,6 +1514,15 @@ export default function App() {
     if (new URLSearchParams(window.location.search).get('install') === '1' && !isStandalone) {
       setIsIntro(false);
       setTimeout(() => setShowInstall(true), 800);
+    } else if (!isStandalone) {
+      // Entró por LINK (navegador, sin la app instalada): ofrecer descargarla,
+      // una vez por visita, después de unos segundos de conocer la app.
+      try {
+        if (!sessionStorage.getItem('iogga_install_offered')) {
+          sessionStorage.setItem('iogga_install_offered', '1');
+          setTimeout(() => setShowInstall(true), 12000);
+        }
+      } catch { /* sin storage */ }
     }
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
@@ -1405,11 +1596,13 @@ export default function App() {
     if (toRate) setPendingRating(toRate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plans, acceptedPlanIds, currentUser?.uid, ratedPlanIds, pendingRating]);
-  const submitRating = (plan: Plan, stars: number) => {
-    if (plan.uid) void rateUser(plan.uid, stars);
-    const next = [...ratedPlanIds, plan.id];
+  // Se pregunta UNA sola vez por plan: calificar o "Ahora no" lo marcan igual
+  // como atendido y no vuelve a aparecer (pokayoke: cero repeticiones).
+  const submitRating = (plan: Plan, stars?: number) => {
+    if (stars && plan.uid) void rateUser(plan.uid, stars);
+    const next = ratedPlanIds.includes(plan.id) ? ratedPlanIds : [...ratedPlanIds, plan.id];
     setRatedPlanIds(next);
-    try { localStorage.setItem('iogga_rated', JSON.stringify(next)); } catch {}
+    try { localStorage.setItem('iogga_rated', JSON.stringify(next)); } catch { /* sin storage */ }
     setPendingRating(null);
   };
 
@@ -1898,10 +2091,10 @@ export default function App() {
   ];
   // Solicitudes que YO envié y siguen pendientes
   const requestedAll: Friend[] = following.filter(f => f.status === 'pending');
-  // Seguidores confirmados (reales + de prueba para la demo)
+  // Seguidores confirmados (reales + de prueba para la demo, si no limpió su entorno)
   const followersAll: Friend[] = [
     ...followers.filter(f => f.status !== 'pending'),
-    ...SEED_USERS.slice(0, 4).map(u => ({ uid: u.uid, name: u.name, photo: u.photo, status: 'accepted' as const })),
+    ...(hideSeed ? [] : SEED_USERS.slice(0, 4).map(u => ({ uid: u.uid, name: u.name, photo: u.photo, status: 'accepted' as const }))),
   ];
   // Solicitudes RECIBIDAS pendientes de aceptar (como Instagram)
   const followRequests: Friend[] = followers.filter(f => f.status === 'pending');
@@ -2050,7 +2243,7 @@ export default function App() {
   // Ejemplos de DEMO para que las secciones "Mis Planes" y "Mis Ofertas" nunca se
   // vean vacías: se muestran unos cuantos elementos de prueba (con etiqueta "Prueba")
   // después de los reales del usuario, sin contar en las analíticas reales.
-  const DEMO_LIMIT = 3;
+  const DEMO_LIMIT = hideSeed ? 0 : 3;
   const myPlansReal = plans.filter(p => isMyPlan(p) && !p.deleted);
   const myPlansDisplay = [...myPlansReal, ...SEED_PLANS.filter(sp => !myPlansReal.some(m => m.id === sp.id)).slice(0, DEMO_LIMIT)];
   const myPromosDisplay = [...myPromos, ...SEED_PROMOS.filter(sp => !myPromos.some(m => m.id === sp.id)).slice(0, DEMO_LIMIT)];
@@ -2519,8 +2712,14 @@ export default function App() {
   const handleAcceptPlan = (id: string) => {
     // Momento clave: aceptar un plan requiere cuenta (explorar sigue siendo libre)
     ensureLoggedIn(() => {
-      setAcceptedPlanIds(prev => (prev.includes(id) ? prev : [...prev, id]));
       const plan = plans.find(p => p.id === id);
+      // Pokayoke: unirse es UNA sola vez. Si ya estás, solo reabre "Avisar".
+      const alreadyJoined = acceptedPlanIds.includes(id) || (!!currentUser && plan?.acceptedBy?.some(a => a.uid === currentUser.uid));
+      if (alreadyJoined) {
+        if (plan && plan.uid !== currentUser?.uid) setJoinedFlow(plan);
+        return;
+      }
+      setAcceptedPlanIds(prev => (prev.includes(id) ? prev : [...prev, id]));
       if (currentUser) {
         void acceptPlanAs(id, currentUser, userProfile.photoURL);
       } else {
@@ -2607,8 +2806,19 @@ export default function App() {
 
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
-  const [notificationsPerson, setNotificationsPerson] = useState<AppNotification[]>(MOCK_NOTIFICATIONS_PERSON);
-  const [notificationsBusiness, setNotificationsBusiness] = useState<AppNotification[]>(MOCK_NOTIFICATIONS_BUSINESS);
+  // Notifs de muestra: las que borres quedan registradas y NUNCA vuelven.
+  const [notificationsPerson, setNotificationsPerson] = useState<AppNotification[]>(() => {
+    try { const gone: string[] = JSON.parse(localStorage.getItem('iogga_gone_mock_p') || '[]'); return MOCK_NOTIFICATIONS_PERSON.filter(n => !gone.includes(n.id)); } catch { return MOCK_NOTIFICATIONS_PERSON; }
+  });
+  const [notificationsBusiness, setNotificationsBusiness] = useState<AppNotification[]>(() => {
+    try { const gone: string[] = JSON.parse(localStorage.getItem('iogga_gone_mock_b') || '[]'); return MOCK_NOTIFICATIONS_BUSINESS.filter(n => !gone.includes(n.id)); } catch { return MOCK_NOTIFICATIONS_BUSINESS; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('iogga_gone_mock_p', JSON.stringify(MOCK_NOTIFICATIONS_PERSON.filter(m => !notificationsPerson.some(n => n.id === m.id)).map(m => m.id))); } catch { /* sin storage */ }
+  }, [notificationsPerson]);
+  useEffect(() => {
+    try { localStorage.setItem('iogga_gone_mock_b', JSON.stringify(MOCK_NOTIFICATIONS_BUSINESS.filter(m => !notificationsBusiness.some(n => n.id === m.id)).map(m => m.id))); } catch { /* sin storage */ }
+  }, [notificationsBusiness]);
   const [groupedPlans, setGroupedPlans] = useState(MOCK_GROUPED_PLANS);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -4117,7 +4327,7 @@ export default function App() {
                     onDismiss: () => hideRealNotif(n.id),
                   }));
                   // 3) De muestra (para ver cómo funcionan)
-                  (mode === 'person' ? notificationsPerson : notificationsBusiness).forEach((notif, i) => feed.push({
+                  (hideSeed ? [] : (mode === 'person' ? notificationsPerson : notificationsBusiness)).forEach((notif, i) => feed.push({
                     id: `mock-${notif.id}`, ts: Date.now() - (i + 1) * 45 * 60 * 1000, read: notif.isRead, demo: true, timeLabel: notif.time,
                     title: notif.title, message: notif.message, icon: notif.icon,
                     tone: notif.type === 'warning' ? 'warning' : notif.type === 'success' ? 'success' : notif.type === 'ai' ? 'ai' : 'info',
@@ -4965,6 +5175,8 @@ export default function App() {
                     className="relative w-full max-w-sm bg-zinc-900 border border-white/15 rounded-[28px] p-6 space-y-4 shadow-2xl"
                   >
                     <p className="text-lg font-black text-white text-center leading-tight">3 formas de crear tu plan ✨</p>
+                    {/* Mini video animado (mismo formato que los demás tutoriales) */}
+                    <VoiceAnimation />
                     <div className="space-y-3">
                       <div className="flex items-start gap-3">
                         <div className="relative shrink-0">
@@ -5360,13 +5572,23 @@ export default function App() {
                         />
                         <FieldVoice step={4} onDicta={t => setNewPlan(p => ({ ...p, location: t }))} />
                       </div>
-                      <a
-                        href={`https://www.google.com/maps/search/${encodeURIComponent(newPlan.location || '')}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-iogga-primary/15 text-iogga-primary text-[12px] font-black active:scale-95 transition-all"
-                      >
-                        <MapPin size={14} /> Buscar en Maps
-                      </a>
+                      <div className="flex gap-2">
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(newPlan.location || '')}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-iogga-primary/15 text-iogga-primary text-[12px] font-black active:scale-95 transition-all"
+                        >
+                          <MapPin size={14} /> Buscar en Maps
+                        </a>
+                        <button
+                          type="button"
+                          disabled={gettingLocation}
+                          onClick={() => useCurrentLocation(t => setNewPlan(p => ({ ...p, location: t })))}
+                          className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-[12px] font-black active:scale-95 transition-all disabled:opacity-50"
+                        >
+                          <Navigation size={14} className={gettingLocation ? 'animate-pulse' : ''} /> {gettingLocation ? 'Ubicando…' : 'Ubicación actual'}
+                        </button>
+                      </div>
                       {/* Pista PÚBLICA: la zona que sí verán todos en la invitación y el estado */}
                       <div className="space-y-1.5 pt-1">
                         <div className="flex items-center gap-1.5 px-1">
@@ -5787,13 +6009,21 @@ export default function App() {
                       onChange={e => setNewPromo({...newPromo, location: e.target.value})}
                     />
                     <a
-                      href={`https://www.google.com/maps/search/${encodeURIComponent(newPromo.location || '')}`}
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(newPromo.location || '')}`}
                       target="_blank" rel="noopener noreferrer"
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 px-3 h-10 rounded-full bg-iogga-accent/15 text-iogga-accent text-[11px] font-black active:scale-95"
                     >
                       <MapPin size={13} /> Maps
                     </a>
                   </div>
+                  <button
+                    type="button"
+                    disabled={gettingLocation}
+                    onClick={() => useCurrentLocation(t => setNewPromo(pr => ({ ...pr, location: t })))}
+                    className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-[12px] font-black active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    <Navigation size={14} className={gettingLocation ? 'animate-pulse' : ''} /> {gettingLocation ? 'Ubicando…' : 'Ubicación actual'}
+                  </button>
 
                   {/* Vigencia con el MISMO selector que los planes: día+hora inicio y fin, o todo el día */}
                   <div className="space-y-2">
@@ -5891,7 +6121,7 @@ export default function App() {
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Nombre Completo</label>
-                    <input type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Tu nombre" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
+                    <input type="text" autoComplete="name" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Tu nombre" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Biografía</label>
@@ -5899,11 +6129,11 @@ export default function App() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Ubicación</label>
-                    <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="Ej. Chihuahua, MX" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
+                    <input type="text" autoComplete="address-level2" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="Ej. Chihuahua, MX" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">WhatsApp (10 dígitos)</label>
-                    <input type="tel" value={editWhatsapp} onChange={e => setEditWhatsapp(e.target.value)} placeholder="Ej. 6141234567" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
+                    <input type="tel" autoComplete="tel-national" value={editWhatsapp} onChange={e => setEditWhatsapp(e.target.value)} placeholder="Ej. 6141234567" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
                     <p className="text-[10px] text-zinc-600 ml-4">Solo lo verán quienes acepten tus planes, para coordinar directo.</p>
                   </div>
                   <div className="space-y-1.5">
@@ -6038,7 +6268,8 @@ export default function App() {
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">3. Contacto</label>
                   <div className="grid grid-cols-2 gap-4">
                     <input
-                      type="text"
+                      type="tel"
+                      autoComplete="tel-national"
                       value={businessProfile.phone || ''}
                       onChange={e => setBusinessProfile({...businessProfile, phone: e.target.value})}
                       placeholder="Teléfono"
@@ -6563,9 +6794,26 @@ export default function App() {
                         triggerBeta("Centro de Ayuda", "Contacta a admin@iogga.com si requieres asistencia técnica adicional durante tus pruebas de MVP.");
                       }}
                     />
-                    <SettingsItem 
-                      icon={<PackagePlus size={18} />} 
-                      label="Novedades" 
+                    {/* Entorno limpio: oculta TODO lo de prueba (planes, ofertas,
+                        personas, notificaciones demo) para usar solo datos reales */}
+                    <button
+                      onClick={toggleHideSeed}
+                      className="w-full p-4 flex items-center justify-between transition-colors border-b border-white/5 group hover:bg-white/5"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-zinc-500 group-hover:text-iogga-primary transition-colors"><Sparkles size={18} /></div>
+                        <div className="text-left">
+                          <span className="text-sm font-bold text-zinc-300 block">Datos de prueba</span>
+                          <span className="text-[10px] text-zinc-500">{hideSeed ? 'Ocultos: solo ves datos reales' : 'Visibles: ejemplos con etiqueta "Prueba"'}</span>
+                        </div>
+                      </div>
+                      <span className={`w-11 h-6 rounded-full relative transition-all shrink-0 ${hideSeed ? 'bg-white/15' : 'bg-iogga-primary'}`}>
+                        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${hideSeed ? 'left-0.5' : 'left-[22px]'}`} />
+                      </span>
+                    </button>
+                    <SettingsItem
+                      icon={<PackagePlus size={18} />}
+                      label="Novedades"
                       onClick={() => {
                         setShowSettingsMenu(false);
                         triggerBeta("Novedades de la Versión", "¡Bienvenido a iogga v2.4 (Chihuahua MVP)! Hemos agregado el motor inteligente Spark Matcher de coincidencia en tiempo real entre planes y negocios.");
@@ -7699,7 +7947,7 @@ export default function App() {
                   const byId: Record<string, Friend> = {};
                   followingAll.forEach(u => { byId[u.uid] = u; });
                   allUsers.forEach(u => { if (!byId[u.uid]) byId[u.uid] = u; });
-                  SEED_USERS.forEach(u => { if (!byId[u.uid]) byId[u.uid] = { uid: u.uid, name: u.name, photo: u.photo }; });
+                  (hideSeed ? [] : SEED_USERS).forEach(u => { if (!byId[u.uid]) byId[u.uid] = { uid: u.uid, name: u.name, photo: u.photo }; });
                   let list = Object.values(byId);
                   if (q) list = list.filter(u => u.name.toLowerCase().includes(q));
                   return list.map(f => {
@@ -7817,7 +8065,7 @@ export default function App() {
                     const known = new Set([...followersAll, ...followingAll, ...requestedAll, ...followRequests].map(f => f.uid));
                     const byId: Record<string, Friend & { rating?: number }> = {};
                     allUsers.forEach(u => { byId[u.uid] = u; });
-                    SEED_USERS.forEach(u => { if (!byId[u.uid]) byId[u.uid] = u; });
+                    (hideSeed ? [] : SEED_USERS).forEach(u => { if (!byId[u.uid]) byId[u.uid] = u; });
                     friendResults.forEach(f => { if (!byId[f.uid]) byId[f.uid] = f; });
                     const list = Object.values(byId).filter(u => !known.has(u.uid) && u.uid !== currentUser?.uid && u.name.toLowerCase().includes(q));
                     if (list.length === 0) return null;
@@ -7976,7 +8224,7 @@ export default function App() {
 
         {/* Calificar al anfitrión al terminar el plan (peer rating, justo) */}
         {pendingRating && (
-          <Modal onClose={() => setPendingRating(null)} title="¿Qué tal estuvo el plan?">
+          <Modal onClose={() => submitRating(pendingRating)} title="¿Qué tal estuvo el plan?">
             <div className="space-y-5 text-center">
               <img src={pendingRating.userAvatar} className="w-20 h-20 rounded-full object-cover mx-auto border-2 border-white/10" referrerPolicy="no-referrer" />
               <div>
@@ -7992,7 +8240,7 @@ export default function App() {
                 ))}
               </div>
               <p className="text-[11px] text-zinc-500">Toca una estrella. Tu opinión ayuda a que iogga sea confiable.</p>
-              <button onClick={() => setPendingRating(null)} className="w-full py-2.5 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Ahora no</button>
+              <button onClick={() => submitRating(pendingRating)} className="w-full py-2.5 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Ahora no</button>
             </div>
           </Modal>
         )}
@@ -8367,12 +8615,10 @@ function StatusHelpOverlay({ preview, onClose, onShare }: { preview: string | nu
           </div>
         </div>
 
-        <div className="p-5 flex gap-4">
-          {/* Vista previa 9:16 de la imagen que se va a subir */}
-          {preview && (
-            <img src={preview} className="w-24 rounded-2xl border border-white/10 shadow-xl shrink-0" alt="Vista previa del estado" />
-          )}
-          <div className="flex-1 space-y-4">
+        <div className="p-5 space-y-4">
+          {/* Mini video animado (mismo formato que el de instalar la app) */}
+          <StatusAnimationWA />
+          <div className="space-y-4">
             {steps.map((s, i) => (
               <div key={i} className="flex items-start gap-3">
                 <div className="relative shrink-0">

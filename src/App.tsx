@@ -3511,15 +3511,6 @@ export default function App() {
                               ) : (
                                 <span className="px-3 py-1 bg-iogga-primary text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">Tu Plan Activo</span>
                               )}
-                              {/* Etiqueta de visibilidad: recuerda si es público; tócala para cambiarlo */}
-                              {isMyPlan(plan) && !expired && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleEditPlan(plan); setCurrentPlanStep(5); }}
-                                  className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg flex items-center gap-1 active:scale-95 transition-all border ${plan.isPublic ? 'bg-amber-500/90 text-zinc-950 border-amber-300/50' : 'bg-zinc-800/90 text-zinc-200 border-white/20'}`}
-                                >
-                                  {plan.isPublic ? <><Globe size={10} /> Público</> : <><Lock size={10} /> Privado</>}
-                                </button>
-                              )}
                             </div>
                             <div className="absolute top-4 right-4 flex items-center gap-2">
                               <button 
@@ -3623,7 +3614,20 @@ export default function App() {
                             )}
 
                             <div className="mb-4">
-                              <h3 className="text-2xl font-black mb-1">{plan.activity}</h3>
+                              <h3 className="text-2xl font-black mb-1 flex items-center gap-2">
+                                <span className="min-w-0">{plan.activity}</span>
+                                {/* Visibilidad como Facebook: mundito 🌐 si es público, siluetas 👥 si es
+                                    entre amigos. Blanco, sutil; tocarlo lleva a cambiarla. */}
+                                {isMyPlan(plan) && !expired && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleEditPlan(plan); setCurrentPlanStep(5); }}
+                                    title={plan.isPublic ? 'Público — toca para cambiar' : 'Amigos — toca para cambiar'}
+                                    className="shrink-0 text-white/50 hover:text-white active:scale-90 transition-all p-1 -m-1"
+                                  >
+                                    {plan.isPublic ? <Globe size={15} /> : <Users size={15} />}
+                                  </button>
+                                )}
+                              </h3>
                               <p className="text-xs text-zinc-400 font-medium italic line-clamp-1">"{getPlanDescription(plan)}"</p>
                             </div>
 

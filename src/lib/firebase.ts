@@ -308,7 +308,16 @@ export interface UserProfile {
   tiktok?: string;
   linkedin?: string;
   blocked?: string[]; // uids de usuarios/negocios bloqueados por este usuario
+  groups?: IoggaGroup[]; // grupos de amigos (como WhatsApp) para invitar de un toque
   business?: BusinessProfile; // perfil de negocio del usuario (mismo modelo que Facebook: una cuenta, dos caras)
+}
+
+// Grupo de amigos (como WhatsApp): nombre + personas de iogga. Vive dentro del
+// perfil del usuario (no es un chat: sirve para invitar a todos de un toque).
+export interface IoggaGroup {
+  id: string;
+  name: string;
+  members: Friend[];
 }
 
 // Perfil PÚBLICO de otra persona (para ver su tarjeta). La info sensible

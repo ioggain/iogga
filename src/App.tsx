@@ -111,7 +111,8 @@ import {
   type Friend,
   type AppNotif,
   type AuthUser,
-  type UserProfile
+  type UserProfile,
+  type IoggaGroup
 } from './lib/firebase';
 import { RedeemQRModal, ValidateCodeModal } from './components/qr';
 import { pickImage } from './lib/images';
@@ -1654,6 +1655,31 @@ export default function App() {
   const [realNotifs, setRealNotifs] = useState<AppNotif[]>([]);
   const [invitePlan, setInvitePlan] = useState<Plan | null>(null); // ventana "invitar en iogga / WhatsApp"
   const [inviteSel, setInviteSel] = useState<string[]>([]); // amigos elegidos para invitar a ese plan
+
+  // ---- GRUPOS (como WhatsApp): nombre + personas, para invitar de UN toque ----
+  // Viven en tu perfil (nube) y en el teléfono (respaldo sin sesión).
+  const [myGroups, setMyGroups] = useState<IoggaGroup[]>(() => {
+    try { return JSON.parse(localStorage.getItem('iogga_groups') || '[]'); } catch { return []; }
+  });
+  // Al cargar el perfil, los grupos de la nube mandan (si existen)
+  useEffect(() => {
+    if (userProfile.groups && userProfile.groups.length) setMyGroups(userProfile.groups);
+  }, [userProfile.groups]);
+  const saveGroups = (groups: IoggaGroup[]) => {
+    setMyGroups(groups);
+    try { localStorage.setItem('iogga_groups', JSON.stringify(groups)); } catch { /* lleno */ }
+    if (currentUser && !currentUser.isAnonymous) void saveProfile(currentUser.uid, { groups }).catch(() => {});
+  };
+  // Editor de grupo: null = cerrado; sin id = nuevo; con id = editando
+  const [groupDraft, setGroupDraft] = useState<null | { id?: string; name: string; members: Friend[] }>(null);
+  const [groupSearch, setGroupSearch] = useState('');
+  // ¿Todo el grupo ya está seleccionado en esta invitación?
+  const groupAllSelected = (g: IoggaGroup, sel: string[]) => g.members.length > 0 && g.members.every(m => sel.includes(m.uid));
+  // Tocar un grupo: selecciona a todos; si ya estaban todos, los quita (toggle)
+  const toggleGroupSel = (g: IoggaGroup, sel: string[], setSel: (ids: string[]) => void) => {
+    if (groupAllSelected(g, sel)) setSel(sel.filter(id => !g.members.some(m => m.uid === id)));
+    else setSel(Array.from(new Set([...sel, ...g.members.map(m => m.uid)])));
+  };
   // Abrir la ventana de invitar; conserva la selección si es el mismo plan
   const openInvite = (plan: Plan) => {
     setInvitePlan(prev => {
@@ -6345,6 +6371,27 @@ export default function App() {
                       </div>
                     ) : (
                       <>
+                        {/* GRUPOS arriba (como WhatsApp): un toque invita a todo el grupo */}
+                        {myGroups.length > 0 && (
+                          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                            {myGroups.map(g => {
+                              const allIn = groupAllSelected(g, pendingFriendIds);
+                              return (
+                                <button key={g.id} onClick={() => toggleGroupSel(g, pendingFriendIds, setPendingFriendIds)} className={`shrink-0 px-3 py-2 rounded-2xl border flex items-center gap-2 active:scale-95 transition-all ${allIn ? 'bg-iogga-primary/15 border-iogga-primary/50' : 'bg-white/5 border-white/10'}`}>
+                                  <div className="flex -space-x-2">
+                                    {g.members.slice(0, 3).map((m, i) => (
+                                      m.photo
+                                        ? <img key={i} src={m.photo} className="w-6 h-6 rounded-full object-cover border-2 border-zinc-900" referrerPolicy="no-referrer" />
+                                        : <div key={i} className="w-6 h-6 rounded-full bg-iogga-primary/25 text-iogga-primary border-2 border-zinc-900 flex items-center justify-center text-[8px] font-black">{m.name.charAt(0).toUpperCase()}</div>
+                                    ))}
+                                  </div>
+                                  <span className="text-[11px] font-bold text-white max-w-[80px] truncate">{g.name}</span>
+                                  {allIn && <Check size={12} className="text-iogga-primary" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                         {/* Buscar a cualquier usuario de iogga para invitarlo (no solo amigos) */}
                         <div className="relative">
                           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
@@ -7155,15 +7202,49 @@ export default function App() {
                 <p className="text-sm text-white leading-relaxed">{buildInviteMessage(invitePlan)}</p>
               </div>
 
+              {/* GRUPOS arriba (como WhatsApp): un toque selecciona a todo el grupo */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest">Tus grupos</p>
+                  <button onClick={() => { setGroupDraft({ name: '', members: [] }); setGroupSearch(''); }} className="text-[10px] font-black text-iogga-primary flex items-center gap-1 bg-iogga-primary/10 px-2.5 py-1 rounded-full border border-iogga-primary/20"><Plus size={11} /> Nuevo grupo</button>
+                </div>
+                {myGroups.length > 0 ? (
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                    {myGroups.map(g => {
+                      const allIn = groupAllSelected(g, inviteSel);
+                      return (
+                        <div key={g.id} className={`shrink-0 rounded-2xl border transition-all ${allIn ? 'bg-iogga-primary/15 border-iogga-primary/50' : 'bg-white/5 border-white/10'}`}>
+                          <button onClick={() => toggleGroupSel(g, inviteSel, setInviteSel)} className="px-3 pt-2.5 pb-1.5 flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
+                            <div className="flex -space-x-2">
+                              {g.members.slice(0, 3).map((m, i) => (
+                                m.photo
+                                  ? <img key={i} src={m.photo} className="w-8 h-8 rounded-full object-cover border-2 border-zinc-900" referrerPolicy="no-referrer" />
+                                  : <div key={i} className="w-8 h-8 rounded-full bg-iogga-primary/25 text-iogga-primary border-2 border-zinc-900 flex items-center justify-center text-[10px] font-black">{m.name.charAt(0).toUpperCase()}</div>
+                              ))}
+                              {g.members.length > 3 && <div className="w-8 h-8 rounded-full bg-white/10 text-white border-2 border-zinc-900 flex items-center justify-center text-[9px] font-black">+{g.members.length - 3}</div>}
+                            </div>
+                            <span className="text-[11px] font-bold text-white max-w-[90px] truncate">{g.name}</span>
+                            <span className={`text-[9px] font-black uppercase tracking-widest ${allIn ? 'text-iogga-primary' : 'text-zinc-500'}`}>{allIn ? '✓ Todos' : `${g.members.length} personas`}</span>
+                          </button>
+                          <button onClick={() => { setGroupDraft({ id: g.id, name: g.name, members: [...g.members] }); setGroupSearch(''); }} className="w-full py-1 text-[8px] font-black text-zinc-500 uppercase tracking-widest border-t border-white/5 active:scale-95">Editar</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-zinc-500">Crea un grupo (como en WhatsApp) y luego invítalos a todos con un toque.</p>
+                )}
+              </div>
+
               {/* Opción 1: invitar amigos de iogga (les llega notificación real) */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest">Invitar en iogga</p>
+                  <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest">O elige individual</p>
                   <button onClick={() => { setInvitePlan(null); setInviteSel([]); setShowFriends('following'); }} className="text-[10px] font-black text-iogga-primary flex items-center gap-1 bg-iogga-primary/10 px-2.5 py-1 rounded-full border border-iogga-primary/20"><UserPlus size={11} /> Agregar</button>
                 </div>
-                {following.length > 0 ? (
+                {followingAll.length > 0 ? (
                   <div className="space-y-2 max-h-44 overflow-y-auto no-scrollbar">
-                    {following.map(f => {
+                    {followingAll.map(f => {
                       const sel = inviteSel.includes(f.uid);
                       return (
                         <button key={f.uid} onClick={() => setInviteSel(prev => sel ? prev.filter(x => x !== f.uid) : [...prev, f.uid])} className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border transition-all ${sel ? 'bg-iogga-primary/15 border-iogga-primary/40' : 'bg-white/5 border-white/10'}`}>
@@ -7207,6 +7288,97 @@ export default function App() {
               >
                 <UserPlus size={16} /> Invitar por WhatsApp
               </button>
+            </div>
+          </Modal>
+        )}
+
+        {/* Crear / editar GRUPO (como WhatsApp): nombre + personas de iogga */}
+        {groupDraft && (
+          <Modal onClose={() => setGroupDraft(null)} title={groupDraft.id ? 'Editar grupo' : 'Nuevo grupo'}>
+            <div className="space-y-5">
+              {/* Nombre del grupo */}
+              <div className="relative">
+                <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                <input
+                  autoFocus={!groupDraft.id}
+                  value={groupDraft.name}
+                  onChange={e => setGroupDraft({ ...groupDraft, name: e.target.value })}
+                  placeholder="Nombre del grupo (Ej. Los del gym)"
+                  className="w-full h-14 pl-12 pr-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/25 outline-none focus:ring-2 focus:ring-iogga-primary text-sm font-bold"
+                />
+              </div>
+
+              {/* Seleccionados (como la fila de WhatsApp al crear grupo) */}
+              {groupDraft.members.length > 0 && (
+                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+                  {groupDraft.members.map(m => (
+                    <button key={m.uid} onClick={() => setGroupDraft({ ...groupDraft, members: groupDraft.members.filter(x => x.uid !== m.uid) })} className="shrink-0 flex flex-col items-center gap-1 w-14 active:scale-95 transition-transform">
+                      <div className="relative">
+                        {m.photo ? <img src={m.photo} className="w-11 h-11 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-11 h-11 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center text-sm font-black">{m.name.charAt(0).toUpperCase()}</div>}
+                        <span className="absolute -top-1 -right-1 w-4.5 h-4.5 w-[18px] h-[18px] rounded-full bg-zinc-700 text-white flex items-center justify-center border border-zinc-900"><X size={10} /></span>
+                      </div>
+                      <span className="text-[9px] text-zinc-400 truncate w-full text-center">{m.name.split(' ')[0]}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Buscar y palomear personas (amigos + comunidad) */}
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                <input
+                  value={groupSearch}
+                  onChange={e => setGroupSearch(e.target.value)}
+                  placeholder="Buscar personas…"
+                  className="w-full h-12 pl-11 pr-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/25 outline-none focus:ring-2 focus:ring-iogga-primary text-sm"
+                />
+              </div>
+              <div className="space-y-2 max-h-60 overflow-y-auto no-scrollbar">
+                {(() => {
+                  const q = groupSearch.trim().toLowerCase();
+                  const byId: Record<string, Friend> = {};
+                  followingAll.forEach(u => { byId[u.uid] = u; });
+                  allUsers.forEach(u => { if (!byId[u.uid]) byId[u.uid] = u; });
+                  SEED_USERS.forEach(u => { if (!byId[u.uid]) byId[u.uid] = { uid: u.uid, name: u.name, photo: u.photo }; });
+                  let list = Object.values(byId);
+                  if (q) list = list.filter(u => u.name.toLowerCase().includes(q));
+                  return list.map(f => {
+                    const inGroup = groupDraft.members.some(m => m.uid === f.uid);
+                    return (
+                      <button
+                        key={f.uid}
+                        onClick={() => setGroupDraft({ ...groupDraft, members: inGroup ? groupDraft.members.filter(m => m.uid !== f.uid) : [...groupDraft.members, { uid: f.uid, name: f.name, photo: f.photo || null }] })}
+                        className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border transition-all ${inGroup ? 'bg-iogga-primary/15 border-iogga-primary/40' : 'bg-white/5 border-white/10'}`}
+                      >
+                        {f.photo ? <img src={f.photo} className="w-9 h-9 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white">{f.name.charAt(0).toUpperCase()}</div>}
+                        <span className="text-sm text-white flex-1 text-left truncate">{f.name}</span>
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${inGroup ? 'bg-iogga-primary text-white' : 'border-2 border-white/20'}`}>{inGroup && <Check size={14} />}</div>
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+
+              {/* Guardar / eliminar */}
+              <button
+                disabled={!groupDraft.name.trim() || groupDraft.members.length === 0}
+                onClick={() => {
+                  const g: IoggaGroup = { id: groupDraft.id || Math.random().toString(36).substr(2, 9), name: groupDraft.name.trim(), members: groupDraft.members };
+                  saveGroups(groupDraft.id ? myGroups.map(x => x.id === g.id ? g : x) : [...myGroups, g]);
+                  setGroupDraft(null);
+                }}
+                className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                <Check size={16} /> {groupDraft.id ? 'Guardar cambios' : `Crear grupo${groupDraft.members.length ? ` (${groupDraft.members.length})` : ''}`}
+              </button>
+              {groupDraft.id && (
+                <button
+                  onClick={() => { saveGroups(myGroups.filter(x => x.id !== groupDraft.id)); setGroupDraft(null); }}
+                  className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  Eliminar grupo
+                </button>
+              )}
             </div>
           </Modal>
         )}
@@ -7262,6 +7434,31 @@ export default function App() {
                         </div>
                       ));
                     })()}
+                  </div>
+
+                  {/* Tus GRUPOS (como WhatsApp): crear y editar desde aquí */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Tus grupos ({myGroups.length})</p>
+                      <button onClick={() => { setGroupDraft({ name: '', members: [] }); setGroupSearch(''); }} className="text-[10px] font-black text-iogga-primary flex items-center gap-1 bg-iogga-primary/10 px-2.5 py-1 rounded-full border border-iogga-primary/20"><Plus size={11} /> Nuevo grupo</button>
+                    </div>
+                    {myGroups.length > 0 && (
+                      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                        {myGroups.map(g => (
+                          <button key={g.id} onClick={() => { setGroupDraft({ id: g.id, name: g.name, members: [...g.members] }); setGroupSearch(''); }} className="shrink-0 px-3 py-2 rounded-2xl border bg-white/5 border-white/10 flex items-center gap-2 active:scale-95 transition-all">
+                            <div className="flex -space-x-2">
+                              {g.members.slice(0, 3).map((m, i) => (
+                                m.photo
+                                  ? <img key={i} src={m.photo} className="w-6 h-6 rounded-full object-cover border-2 border-zinc-900" referrerPolicy="no-referrer" />
+                                  : <div key={i} className="w-6 h-6 rounded-full bg-iogga-primary/25 text-iogga-primary border-2 border-zinc-900 flex items-center justify-center text-[8px] font-black">{m.name.charAt(0).toUpperCase()}</div>
+                              ))}
+                            </div>
+                            <span className="text-[11px] font-bold text-white max-w-[90px] truncate">{g.name}</span>
+                            <span className="text-[9px] text-zinc-500 font-bold">({g.members.length})</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Solicitudes recibidas (como Instagram): confirmar o eliminar */}

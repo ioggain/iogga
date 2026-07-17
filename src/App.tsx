@@ -1602,6 +1602,27 @@ export default function App() {
     return unsubscribe;
   }, []);
 
+  // Transportar a tu sesión los planes que creaste SIN iniciar sesión: al
+  // loguearte, todo lo que programaste como invitado pasa a tu cuenta.
+  useEffect(() => {
+    if (!currentUser || currentUser.isAnonymous) return;
+    let mine: string[] = [];
+    try { mine = JSON.parse(localStorage.getItem('iogga_authored_plans') || '[]'); } catch { return; }
+    if (mine.length === 0) return;
+    mine.forEach(id => {
+      const local = plans.find(p => p.id === id);
+      const migrate = (p: Plan) => {
+        if (p.uid === currentUser.uid) return;
+        const updated = { ...p, uid: currentUser.uid, userName: currentUser.name || p.userName };
+        void saveDocIn('plans', id, updated);
+        setPlans(prev => prev.map(x => x.id === id ? updated : x));
+      };
+      if (local) migrate(local);
+      else void fetchDocIn<Plan>('plans', id).then(p => { if (p) migrate(p); });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.uid, currentUser?.isAnonymous]);
+
   // Perfil extendido del usuario (bio, ubicación, foto) para el medidor de perfil
   const [userProfile, setUserProfile] = useState<UserProfile>({});
   useEffect(() => {
@@ -1623,7 +1644,8 @@ export default function App() {
   // ---- Amigos (seguir) y notificaciones reales ----
   const [following, setFollowing] = useState<Friend[]>([]);
   const [followers, setFollowers] = useState<Friend[]>([]);
-  const [showFriends, setShowFriends] = useState<null | 'following' | 'followers'>(null);
+  const [showFriends, setShowFriends] = useState<null | 'following' | 'followers' | 'groups'>(null);
+  const [showBlockedList, setShowBlockedList] = useState(false); // sección Bloqueados (colapsable)
   const [friendSearch, setFriendSearch] = useState('');
   const [friendResults, setFriendResults] = useState<Friend[]>([]);
   const [allUsers, setAllUsers] = useState<Friend[]>([]); // universo real de iogga
@@ -1680,10 +1702,11 @@ export default function App() {
     if (groupAllSelected(g, sel)) setSel(sel.filter(id => !g.members.some(m => m.uid === id)));
     else setSel(Array.from(new Set([...sel, ...g.members.map(m => m.uid)])));
   };
-  // Abrir la ventana de invitar; conserva la selección si es el mismo plan
+  // Abrir la ventana de invitar. Los que YA invitaste aparecen seleccionados
+  // (sincronizado con el plan), así no invitas doble ni pierdes el registro.
   const openInvite = (plan: Plan) => {
     setInvitePlan(prev => {
-      if (!prev || prev.id !== plan.id) setInviteSel([]);
+      if (!prev || prev.id !== plan.id) setInviteSel([...(plan.invitedUids || [])]);
       return plan;
     });
   };
@@ -1715,6 +1738,20 @@ export default function App() {
     setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, invitedUids: nextInvited } : p));
   };
   const notifyPendingFriends = (plan: Plan) => sendIoggaInvites(plan, pendingFriendIds);
+
+  // RESPALDO pokayoke: si me llega una invitación y su plan aún no está en
+  // memoria (lista llena, red lenta…), lo traemos directo para que SIEMPRE
+  // aparezca en la casita → Invitaciones.
+  useEffect(() => {
+    const missing = realNotifs.filter(n => n.type === 'invite' && n.planId && !plans.some(p => p.id === n.planId));
+    if (missing.length === 0) return;
+    missing.slice(0, 10).forEach(n => {
+      void fetchDocIn<Plan>('plans', n.planId!).then(p => {
+        if (p) setPlans(prev => prev.some(x => x.id === p.id) ? prev : [p, ...prev]);
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realNotifs, plans.length]);
 
   useEffect(() => {
     if (!currentUser || currentUser.isAnonymous) {
@@ -2225,6 +2262,12 @@ export default function App() {
         invitedUids: selectedFriendIds.filter(id => !id.startsWith('su_')),
       };
       void saveDocIn('plans', plan.id, plan);
+      // Recordar que YO creé este plan: si lo hice sin cuenta, al iniciar sesión
+      // se transporta automáticamente a mi sesión (no se pierde nada).
+      try {
+        const mine: string[] = JSON.parse(localStorage.getItem('iogga_authored_plans') || '[]');
+        if (!mine.includes(plan.id)) { mine.push(plan.id); localStorage.setItem('iogga_authored_plans', JSON.stringify(mine)); }
+      } catch { /* sin storage */ }
       setPendingFriendIds([...selectedFriendIds]); // se enviarán al confirmar en "Verifica tu mensaje"
       setPlans([plan, ...plans]);
       setLastPublishedPlan(plan);
@@ -2379,9 +2422,13 @@ export default function App() {
           to: plan.uid,
           fromName: currentUser.name || 'Alguien',
           title: `${me} se unió a tu plan`,
-          message: `${me} se apuntó a "${plan.activity}". Pónganse de acuerdo.`,
+          message: `${me} se apuntó a "${plan.activity}". Elígelo en tu tarjeta para confirmar y que vea el punto exacto.`,
           planId: plan.id,
         });
+      }
+      // Respuesta clara para quien se une: qué sigue (cierre del ciclo, pokayoke)
+      if (plan && plan.uid !== currentUser?.uid) {
+        triggerBeta('¡Te apuntaste! 🙌', `${(plan.userName || 'La persona').split(' ')[0]} verá que te uniste. Cuando te elija para su plan te avisaremos y podrás ver la ubicación exacta${plan.whatsapp ? ' y su WhatsApp' : ''}.`);
       }
       // Al unirte, si el creador dejó WhatsApp, abre el chat para coordinar.
       if (plan?.whatsapp) {
@@ -3365,7 +3412,13 @@ export default function App() {
                             // TU plan (vivo): abre la pantalla final "Revisa y publica"
                             // (invitar en iogga/WhatsApp y compartir el estado). Los demás
                             // (demo o caducado) abren el detalle normal.
-                            if (isMyPlan(plan) && !expired) { setLastPublishedPlan(plan); setShowMatchCelebration(true); }
+                            if (isMyPlan(plan) && !expired) {
+                              setLastPublishedPlan(plan);
+                              // Los ya invitados aparecen seleccionados (sincronizado con el plan)
+                              setPendingFriendIds([...(plan.invitedUids || [])]);
+                              setIoggaSent(false);
+                              setShowMatchCelebration(true);
+                            }
                             else setSelectedPlanForDetails(plan);
                           }}
                           className={`w-full text-left p-0 rounded-[32px] bg-zinc-900 border-2 text-white shadow-xl relative overflow-hidden transition-transform active:scale-[0.98] group cursor-pointer ${expired ? 'border-white/5 opacity-80 grayscale-[0.3]' : plan.closed ? 'border-emerald-500/70 shadow-emerald-500/10' : 'border-white/10'}`}
@@ -3387,6 +3440,15 @@ export default function App() {
                                 <span className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg flex items-center gap-1"><CheckCircle2 size={11} /> Cerrado</span>
                               ) : (
                                 <span className="px-3 py-1 bg-iogga-primary text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">Tu Plan Activo</span>
+                              )}
+                              {/* Etiqueta de visibilidad: recuerda si es público; tócala para cambiarlo */}
+                              {isMyPlan(plan) && !expired && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleEditPlan(plan); setCurrentPlanStep(5); }}
+                                  className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg flex items-center gap-1 active:scale-95 transition-all border ${plan.isPublic ? 'bg-amber-500/90 text-zinc-950 border-amber-300/50' : 'bg-zinc-800/90 text-zinc-200 border-white/20'}`}
+                                >
+                                  {plan.isPublic ? <><Globe size={10} /> Público</> : <><Lock size={10} /> Privado</>}
+                                </button>
                               )}
                             </div>
                             <div className="absolute top-4 right-4 flex items-center gap-2">
@@ -3427,41 +3489,67 @@ export default function App() {
                             {/* Fila de perfiles que aceptaron (swipe horizontal), arriba del aviso.
                                 Los que ya aceptaste llevan palomita morada. */}
                             {!currentUser?.isAnonymous && (plan.acceptedBy?.length || 0) > 0 && (
-                              <div className="flex gap-3 overflow-x-auto no-scrollbar mb-3 pb-1">
-                                {plan.acceptedBy!.map((a, i) => {
-                                  const ok = (plan.confirmedUids || []).includes(a.uid);
-                                  return (
-                                    <button
-                                      key={i}
-                                      onClick={(e) => { e.stopPropagation(); setSelectedPlanForDetails(plan); }}
-                                      className="flex flex-col items-center gap-1 shrink-0 w-14"
-                                    >
-                                      <div className="relative">
-                                        {a.photo ? <img src={a.photo} className="w-12 h-12 rounded-full object-cover border-2 border-white/10" referrerPolicy="no-referrer" /> : <div className="w-12 h-12 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center text-sm font-black">{a.name.charAt(0).toUpperCase()}</div>}
-                                        {ok && <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-iogga-primary text-white flex items-center justify-center border-2 border-zinc-900"><Check size={11} /></div>}
-                                      </div>
-                                      <span className="text-[9px] text-zinc-400 truncate w-full text-center">{a.name.split(' ')[0]}</span>
-                                    </button>
-                                  );
-                                })}
+                              <div className="mb-3">
+                                {/* Título claro + "Omar y 2 más" (modelo de los me gusta de Instagram) */}
+                                <div className="flex items-center gap-2 mb-2 px-0.5">
+                                  <UserPlus size={13} className="text-emerald-400" />
+                                  <p className="text-[10px] font-black text-emerald-300 uppercase tracking-widest">Se apuntaron a tu plan</p>
+                                </div>
+                                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+                                  {plan.acceptedBy!.map((a, i) => {
+                                    const ok = (plan.confirmedUids || []).includes(a.uid);
+                                    return (
+                                      <button
+                                        key={i}
+                                        onClick={(e) => { e.stopPropagation(); setSelectedPlanForDetails(plan); }}
+                                        className="flex flex-col items-center gap-1 shrink-0 w-14"
+                                      >
+                                        <div className="relative">
+                                          <motion.div animate={{ boxShadow: ['0 0 0 0 rgba(52,211,153,0)', '0 0 0 5px rgba(52,211,153,0.25)', '0 0 0 0 rgba(52,211,153,0)'] }} transition={{ duration: 2.4, repeat: Infinity }} className="rounded-full">
+                                            {a.photo ? <img src={a.photo} className="w-12 h-12 rounded-full object-cover border-2 border-emerald-400/40" referrerPolicy="no-referrer" /> : <div className="w-12 h-12 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center text-sm font-black border-2 border-emerald-400/40">{a.name.charAt(0).toUpperCase()}</div>}
+                                          </motion.div>
+                                          {ok && <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-iogga-primary text-white flex items-center justify-center border-2 border-zinc-900"><Check size={11} /></div>}
+                                        </div>
+                                        <span className="text-[9px] text-zinc-400 truncate w-full text-center">{a.name.split(' ')[0]}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             )}
 
-                            {/* Solo se muestra cuando HAY gente unida (el aviso genérico no aportaba) */}
+                            {/* "Omar y 2 más se unieron" — brilla junto con las fotos */}
                             {plan.acceptedCount > 0 && (
-                              <button
+                              <motion.button
+                                animate={currentUser?.isAnonymous ? {} : { borderColor: ['rgba(52,211,153,0.25)', 'rgba(52,211,153,0.6)', 'rgba(52,211,153,0.25)'] }}
+                                transition={{ duration: 2.4, repeat: Infinity }}
                                 onClick={(e) => {
-                                  if (currentUser?.isAnonymous) { e.stopPropagation(); setIsRegistering(true); setShowLoginModal(true); }
+                                  e.stopPropagation();
+                                  if (currentUser?.isAnonymous) { setIsRegistering(true); setShowLoginModal(true); }
+                                  else setSelectedPlanForDetails(plan);
                                 }}
                                 className="w-full mb-4 flex items-center gap-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl text-left"
                               >
-                                <span className={`text-4xl font-black text-emerald-400 leading-none shrink-0 ${currentUser?.isAnonymous ? 'blur-[7px] select-none' : ''}`}>{plan.acceptedCount}</span>
-                                <p className="text-xs font-black uppercase tracking-wider text-emerald-300 leading-tight">
-                                  {currentUser?.isAnonymous
-                                    ? 'se unieron a tu plan — crea tu cuenta gratis para ver quiénes.'
-                                    : `${plan.acceptedCount === 1 ? 'persona se unió' : 'personas se unieron'} a tu plan.`}
-                                </p>
-                              </button>
+                                {currentUser?.isAnonymous ? (
+                                  <>
+                                    <span className="text-4xl font-black text-emerald-400 leading-none shrink-0 blur-[7px] select-none">{plan.acceptedCount}</span>
+                                    <p className="text-xs font-black uppercase tracking-wider text-emerald-300 leading-tight">se unieron a tu plan — crea tu cuenta gratis para ver quiénes.</p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <p className="text-xs font-black uppercase tracking-wider text-emerald-300 leading-tight flex-1">
+                                      {(() => {
+                                        const first = plan.acceptedBy?.[0]?.name?.split(' ')[0];
+                                        const rest = plan.acceptedCount - 1;
+                                        if (!first) return `${plan.acceptedCount} ${plan.acceptedCount === 1 ? 'persona se unió' : 'personas se unieron'}`;
+                                        if (rest <= 0) return `${first} se unió a tu plan`;
+                                        return `${first} y ${rest} más se unieron`;
+                                      })()}
+                                    </p>
+                                    <ChevronRight size={16} className="text-emerald-400 shrink-0" />
+                                  </>
+                                )}
+                              </motion.button>
                             )}
 
                             <div className="mb-4">
@@ -3893,7 +3981,7 @@ export default function App() {
                     importantes arriba, luego por actualidad. TODAS navegan al
                     tocarlas y TODAS se borran con swipe o con la tachita. */}
                 {(() => {
-                  type FeedNotif = { id: string; ts: number; urgent?: boolean; read?: boolean; timeLabel?: string; title: string; message: string; icon: any; tone: 'warning' | 'ai' | 'success' | 'info'; onOpen: () => void; onDismiss: () => void };
+                  type FeedNotif = { id: string; ts: number; urgent?: boolean; read?: boolean; demo?: boolean; timeLabel?: string; title: string; message: string; icon: any; tone: 'warning' | 'ai' | 'success' | 'info'; onOpen: () => void; onDismiss: () => void };
                   const feed: FeedNotif[] = [];
                   // 1) Derivadas (caducidad/evaluación): urgentes, siempre arriba
                   derivedNotifs.forEach(n => feed.push({
@@ -3918,7 +4006,7 @@ export default function App() {
                   }));
                   // 3) De muestra (para ver cómo funcionan)
                   (mode === 'person' ? notificationsPerson : notificationsBusiness).forEach((notif, i) => feed.push({
-                    id: `mock-${notif.id}`, ts: Date.now() - (i + 1) * 45 * 60 * 1000, read: notif.isRead, timeLabel: notif.time,
+                    id: `mock-${notif.id}`, ts: Date.now() - (i + 1) * 45 * 60 * 1000, read: notif.isRead, demo: true, timeLabel: notif.time,
                     title: notif.title, message: notif.message, icon: notif.icon,
                     tone: notif.type === 'warning' ? 'warning' : notif.type === 'success' ? 'success' : notif.type === 'ai' ? 'ai' : 'info',
                     onOpen: () => {
@@ -3971,7 +4059,10 @@ export default function App() {
                               </div>
                               <div className="flex-1 min-w-0 pr-7">
                                 <div className="flex items-center justify-between mb-1 gap-2">
-                                  <h3 className={`font-black text-sm truncate ${n.read ? 'text-zinc-400' : 'text-white'}`}>{n.title}</h3>
+                                  <h3 className={`font-black text-sm truncate flex items-center gap-1.5 ${n.read ? 'text-zinc-400' : 'text-white'}`}>
+                                    {n.demo && <span className="shrink-0 text-[8px] font-black text-amber-300 bg-amber-500/20 border border-amber-400/30 px-1.5 py-0.5 rounded-full uppercase tracking-[0.15em]">Prueba</span>}
+                                    <span className="truncate">{n.title}</span>
+                                  </h3>
                                   <span className="text-[10px] text-zinc-500 font-bold shrink-0">{n.timeLabel || timeAgo(n.ts)}</span>
                                 </div>
                                 <p className={`text-xs leading-relaxed line-clamp-2 ${n.read ? 'text-zinc-500' : 'text-zinc-300'}`}>{n.message}</p>
@@ -4373,13 +4464,13 @@ export default function App() {
                           <span className="text-lg font-black text-white">{plans.filter(p => isMyPlan(p)).length}</span>
                           <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Planes</span>
                         </div>
-                        <button onClick={() => setShowFriends('following')} className="flex flex-col items-center active:scale-95 transition-transform">
-                          <span className="text-lg font-black text-white">{followingAll.length}</span>
-                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Amigos</span>
-                        </button>
                         <button onClick={() => setShowFriends('followers')} className="flex flex-col items-center active:scale-95 transition-transform">
                           <span className="text-lg font-black text-white">{followersAll.length}</span>
                           <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Seguidores</span>
+                        </button>
+                        <button onClick={() => setShowFriends('following')} className="flex flex-col items-center active:scale-95 transition-transform">
+                          <span className="text-lg font-black text-white">{followingAll.length}</span>
+                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Seguidos</span>
                         </button>
                       </div>
                     </div>
@@ -5933,7 +6024,7 @@ export default function App() {
                               const plan = selectedPlanForDetails;
                               // Avisar solo a los NUEVOS aceptados (no a los que ya lo estaban)
                               const already = plan.confirmedUids || [];
-                              confirmSel.filter(uid => !already.includes(uid)).forEach(uid => sendNotification({ type:'accepted', to: uid, fromName: plan.userName, title: `${plan.userName.split(' ')[0]} te aceptó en su plan`, message: `¡Estás dentro! Ya con el lugar exacto: ${buildInviteMessage(plan, true)}`, planId: plan.id }));
+                              confirmSel.filter(uid => !already.includes(uid)).forEach(uid => sendNotification({ type:'accepted', to: uid, fromName: plan.userName, title: `${plan.userName.split(' ')[0]} te está esperando 🎉`, message: `Decidió hacer su plan contigo. Ya puedes ver la ubicación exacta y su WhatsApp para coordinar. ${buildInviteMessage(plan, true)}`, planId: plan.id }));
                               // Guardar la selección para que quede con palomita al volver
                               const updated = { ...plan, confirmedUids: confirmSel };
                               void saveDocIn('plans', plan.id, updated);
@@ -7385,165 +7476,201 @@ export default function App() {
 
         {/* Amigos: buscar, seguir y ver tus listas (estilo Instagram) */}
         {showFriends && (
-          <Modal onClose={() => { setShowFriends(null); setFriendSearch(''); }} title="Amigos en iogga">
-            <div className="space-y-5">
+          <Modal onClose={() => { setShowFriends(null); setFriendSearch(''); setShowBlockedList(false); }} title="Tu gente">
+            <div className="space-y-4">
               {(!currentUser || currentUser.isAnonymous) && (
                 <button onClick={() => { setShowFriends(null); setIsRegistering(true); setShowLoginModal(true); }} className="w-full p-3 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/25 text-left flex items-center gap-2">
                   <Shield size={16} className="text-iogga-primary shrink-0" />
-                  <span className="text-xs text-zinc-300 leading-snug">Explora la comunidad. <span className="text-iogga-primary font-black">Inicia sesión</span> para guardar tus amigos.</span>
+                  <span className="text-xs text-zinc-300 leading-snug">Explora la comunidad. <span className="text-iogga-primary font-black">Inicia sesión</span> para guardar tu gente.</span>
                 </button>
               )}
-              {(
-                <>
-                  {/* Buscar usuarios para agregar */}
-                  <div className="space-y-3">
-                    <div className="relative">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                      <input
-                        value={friendSearch}
-                        onChange={e => setFriendSearch(e.target.value)}
-                        placeholder="Buscar personas por nombre…"
-                        className="w-full h-14 pl-12 pr-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/25 outline-none focus:ring-2 focus:ring-iogga-primary text-sm font-medium"
-                      />
-                    </div>
-                    {/* Universo de iogga: todos (semilla + reales), foto, nombre y ranking */}
-                    {(() => {
-                      const q = friendSearch.trim().toLowerCase();
-                      const byId: Record<string, { uid: string; name: string; photo?: string | null; rating?: number }> = {};
-                      // Usuarios REALES registrados primero; luego los de prueba
-                      allUsers.forEach(u => { byId[u.uid] = u; });
-                      SEED_USERS.forEach(u => { if (!byId[u.uid]) byId[u.uid] = u; });
-                      friendResults.forEach(f => { if (!byId[f.uid]) byId[f.uid] = f; });
-                      let list = Object.values(byId);
-                      if (q) list = list.filter(u => u.name.toLowerCase().includes(q));
-                      return list.map(f => (
-                        <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
-                          {/* Tocar la persona abre su perfil (estilo Instagram) */}
-                          <button onClick={() => setSelectedFriend(f)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                            {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
-                            <div className="flex-1 min-w-0">
-                              <span className="text-sm font-bold text-white block truncate">{f.name}</span>
-                              {typeof f.rating === 'number' && (
-                                <span className="text-[10px] text-yellow-500 font-bold flex items-center gap-0.5"><Star size={9} fill="currentColor" /> {f.rating.toFixed(1)}</span>
-                              )}
-                            </div>
-                          </button>
-                          <button onClick={() => toggleFollow(f as Friend)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all ${followState(f.uid) === 'friends' ? 'bg-white/10 text-zinc-300' : followState(f.uid) === 'requested' ? 'bg-white/5 text-zinc-500 border border-white/15' : 'bg-iogga-primary text-white'}`}>
-                            {followState(f.uid) === 'friends' ? 'Amigos' : followState(f.uid) === 'requested' ? 'Solicitado' : 'Agregar'}
-                          </button>
-                        </div>
-                      ));
-                    })()}
-                  </div>
 
-                  {/* Tus GRUPOS (como WhatsApp): crear y editar desde aquí */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Tus grupos ({myGroups.length})</p>
-                      <button onClick={() => { setGroupDraft({ name: '', members: [] }); setGroupSearch(''); }} className="text-[10px] font-black text-iogga-primary flex items-center gap-1 bg-iogga-primary/10 px-2.5 py-1 rounded-full border border-iogga-primary/20"><Plus size={11} /> Nuevo grupo</button>
-                    </div>
-                    {myGroups.length > 0 && (
-                      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                        {myGroups.map(g => (
-                          <button key={g.id} onClick={() => { setGroupDraft({ id: g.id, name: g.name, members: [...g.members] }); setGroupSearch(''); }} className="shrink-0 px-3 py-2 rounded-2xl border bg-white/5 border-white/10 flex items-center gap-2 active:scale-95 transition-all">
-                            <div className="flex -space-x-2">
-                              {g.members.slice(0, 3).map((m, i) => (
-                                m.photo
-                                  ? <img key={i} src={m.photo} className="w-6 h-6 rounded-full object-cover border-2 border-zinc-900" referrerPolicy="no-referrer" />
-                                  : <div key={i} className="w-6 h-6 rounded-full bg-iogga-primary/25 text-iogga-primary border-2 border-zinc-900 flex items-center justify-center text-[8px] font-black">{m.name.charAt(0).toUpperCase()}</div>
-                              ))}
-                            </div>
-                            <span className="text-[11px] font-bold text-white max-w-[90px] truncate">{g.name}</span>
-                            <span className="text-[9px] text-zinc-500 font-bold">({g.members.length})</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+              {/* Pestañas ARRIBA (como Instagram): Seguidores · Seguidos · Grupos */}
+              <div className="flex border-b border-white/10">
+                {([['followers', `Seguidores`, followersAll.length + followRequests.length], ['following', `Seguidos`, followingAll.length], ['groups', `Grupos`, myGroups.length]] as const).map(([key, label, count]) => (
+                  <button
+                    key={key}
+                    onClick={() => setShowFriends(key)}
+                    className={`flex-1 pb-3 pt-1 text-xs font-black uppercase tracking-widest transition-all relative ${showFriends === key ? 'text-white' : 'text-zinc-500'}`}
+                  >
+                    {label} <span className="text-[10px]">({count})</span>
+                    {showFriends === key && <motion.div layoutId="socialTab" className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-iogga-primary" />}
+                  </button>
+                ))}
+              </div>
 
-                  {/* Solicitudes recibidas (como Instagram): confirmar o eliminar */}
-                  {followRequests.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest px-1">Solicitudes ({followRequests.length})</p>
-                      {followRequests.map(f => (
-                        <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/25">
-                          {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
-                          <div className="flex-1 min-w-0">
-                            <span className="text-sm font-bold text-white block truncate">{f.name}</span>
-                            <span className="text-[10px] text-zinc-400">quiere seguirte</span>
-                          </div>
-                          <button
-                            onClick={() => { if (currentUser) void acceptFollower(currentUser, f.uid); }}
-                            className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-iogga-primary text-white active:scale-95"
-                          >
-                            Confirmar
-                          </button>
-                          <button
-                            onClick={() => { if (currentUser) void removeFollower(currentUser.uid, f.uid); }}
-                            className="w-9 h-9 rounded-full bg-white/10 text-zinc-400 flex items-center justify-center active:scale-95"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+              {/* Buscador debajo de las pestañas */}
+              {showFriends !== 'groups' && (
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                  <input
+                    value={friendSearch}
+                    onChange={e => setFriendSearch(e.target.value)}
+                    placeholder="Buscar personas…"
+                    className="w-full h-12 pl-12 pr-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/25 outline-none focus:ring-2 focus:ring-iogga-primary text-sm font-medium"
+                  />
+                </div>
+              )}
 
-                  {/* Pestañas */}
-                  <div className="flex gap-2">
-                    <button onClick={() => setShowFriends('following')} className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${showFriends === 'following' ? 'bg-iogga-primary text-white' : 'bg-white/5 text-zinc-400'}`}>Sigues ({followingAll.length})</button>
-                    <button onClick={() => setShowFriends('followers')} className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${showFriends === 'followers' ? 'bg-iogga-primary text-white' : 'bg-white/5 text-zinc-400'}`}>Seguidores ({followersAll.length})</button>
-                  </div>
-
-                  {/* Lista: sigues (con Solicitado) o seguidores (con Seguir también) */}
-                  <div className="space-y-2">
-                    {showFriends === 'following' && requestedAll.map(f => (
-                      <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 opacity-80">
+              {/* Contenido con swipe: izquierda/derecha cambia de pestaña */}
+              <motion.div
+                key={showFriends}
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.25}
+                onDragEnd={(_, info) => {
+                  const order: ('followers' | 'following' | 'groups')[] = ['followers', 'following', 'groups'];
+                  const i = order.indexOf(showFriends as any);
+                  if (info.offset.x < -70 && i < order.length - 1) setShowFriends(order[i + 1]);
+                  else if (info.offset.x > 70 && i > 0) setShowFriends(order[i - 1]);
+                }}
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-4"
+              >
+                {(() => {
+                  const q = friendSearch.trim().toLowerCase();
+                  const Row = ({ f, right }: { f: Friend & { rating?: number }; right: React.ReactNode; key?: string }) => (
+                    <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
+                      <button onClick={() => setSelectedFriend(f)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
                         {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
                         <div className="flex-1 min-w-0">
                           <span className="text-sm font-bold text-white block truncate">{f.name}</span>
-                          <span className="text-[10px] text-zinc-500">esperando que acepte</span>
+                          {typeof f.rating === 'number' && <span className="text-[10px] text-yellow-500 font-bold flex items-center gap-0.5"><Star size={9} fill="currentColor" /> {f.rating.toFixed(1)}</span>}
                         </div>
-                        <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/5 text-zinc-500 border border-white/15 active:scale-95">Solicitado</button>
+                      </button>
+                      {right}
+                    </div>
+                  );
+                  // Al buscar: también sugerir gente NUEVA de iogga (descubrir, como Instagram)
+                  const discover = () => {
+                    if (!q) return null;
+                    const known = new Set([...followersAll, ...followingAll, ...requestedAll, ...followRequests].map(f => f.uid));
+                    const byId: Record<string, Friend & { rating?: number }> = {};
+                    allUsers.forEach(u => { byId[u.uid] = u; });
+                    SEED_USERS.forEach(u => { if (!byId[u.uid]) byId[u.uid] = u; });
+                    friendResults.forEach(f => { if (!byId[f.uid]) byId[f.uid] = f; });
+                    const list = Object.values(byId).filter(u => !known.has(u.uid) && u.uid !== currentUser?.uid && u.name.toLowerCase().includes(q));
+                    if (list.length === 0) return null;
+                    return (
+                      <div className="space-y-2 pt-2">
+                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Más personas en iogga</p>
+                        {list.map(f => (
+                          <Row key={f.uid} f={f} right={
+                            <button onClick={() => toggleFollow(f)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all ${followState(f.uid) === 'requested' ? 'bg-white/5 text-zinc-500 border border-white/15' : 'bg-iogga-primary text-white'}`}>
+                              {followState(f.uid) === 'requested' ? 'Solicitado' : 'Seguir'}
+                            </button>
+                          } />
+                        ))}
                       </div>
-                    ))}
-                    {(showFriends === 'following' ? followingAll : followersAll).map(f => (
-                      <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
-                        <button onClick={() => setSelectedFriend(f)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                          {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
-                          <span className="text-sm font-bold text-white flex-1 truncate">{f.name}</span>
-                        </button>
-                        {showFriends === 'following' ? (
-                          <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/10 text-zinc-300 active:scale-95">Quitar</button>
-                        ) : (
-                          <>
-                            {followState(f.uid) === 'none' && (
-                              <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-iogga-primary text-white active:scale-95">Seguir también</button>
-                            )}
-                            {followState(f.uid) === 'requested' && (
-                              <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/5 text-zinc-500 border border-white/15 active:scale-95">Solicitado</button>
-                            )}
-                            {!isSeedUid(f.uid) && (
-                              <button
-                                onClick={() => { if (currentUser) void removeFollower(currentUser.uid, f.uid); }}
-                                title="Quitar seguidor"
-                                className="w-9 h-9 rounded-full bg-white/10 text-zinc-400 flex items-center justify-center active:scale-95"
-                              >
-                                <X size={14} />
-                              </button>
-                            )}
-                          </>
+                    );
+                  };
+
+                  if (showFriends === 'followers') {
+                    const list = followersAll.filter(f => !q || f.name.toLowerCase().includes(q));
+                    return (
+                      <>
+                        {/* Solicitudes (como Instagram): confirmar o eliminar */}
+                        {followRequests.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest px-1">Solicitudes ({followRequests.length})</p>
+                            {followRequests.map(f => (
+                              <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/25">
+                                {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-sm font-bold text-white block truncate">{f.name}</span>
+                                  <span className="text-[10px] text-zinc-400">quiere seguirte</span>
+                                </div>
+                                <button onClick={() => { if (currentUser) void acceptFollower(currentUser, f.uid); }} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-iogga-primary text-white active:scale-95">Confirmar</button>
+                                <button onClick={() => { if (currentUser) void removeFollower(currentUser.uid, f.uid); }} className="w-9 h-9 rounded-full bg-white/10 text-zinc-400 flex items-center justify-center active:scale-95"><X size={14} /></button>
+                              </div>
+                            ))}
+                          </div>
                         )}
-                      </div>
-                    ))}
-                    {(showFriends === 'following' ? followingAll.length + requestedAll.length : followersAll.length) === 0 && (
-                      <p className="text-xs text-zinc-500 text-center py-6">
-                        {showFriends === 'following' ? 'Aún no sigues a nadie. Búscalos arriba o invítalos por WhatsApp.' : 'Aún no tienes seguidores.'}
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
+                        <div className="space-y-2">
+                          {list.map(f => (
+                            <Row key={f.uid} f={f} right={
+                              <>
+                                {followState(f.uid) === 'none' && <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-iogga-primary text-white active:scale-95">Seguir también</button>}
+                                {followState(f.uid) === 'requested' && <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/5 text-zinc-500 border border-white/15 active:scale-95">Solicitado</button>}
+                                {followState(f.uid) === 'friends' && <span className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-zinc-500">Siguiendo</span>}
+                                {!isSeedUid(f.uid) && (
+                                  <button onClick={() => { if (currentUser) void removeFollower(currentUser.uid, f.uid); }} title="Quitar seguidor" className="w-9 h-9 rounded-full bg-white/10 text-zinc-400 flex items-center justify-center active:scale-95"><X size={14} /></button>
+                                )}
+                              </>
+                            } />
+                          ))}
+                          {list.length === 0 && followRequests.length === 0 && <p className="text-xs text-zinc-500 text-center py-6">Aún no tienes seguidores.</p>}
+                        </div>
+                        {discover()}
+                        {/* Bloqueados: aquí mismo, colapsado (todo lo social en una pantalla) */}
+                        {blockedUids.length > 0 && (
+                          <div className="pt-2 border-t border-white/5 space-y-2">
+                            <button onClick={() => setShowBlockedList(v => !v)} className="w-full flex items-center justify-between px-1 py-1">
+                              <span className="text-[10px] font-black text-red-400/80 uppercase tracking-widest">Bloqueados ({blockedUids.length})</span>
+                              <ChevronRight size={14} className={`text-zinc-500 transition-transform ${showBlockedList ? 'rotate-90' : ''}`} />
+                            </button>
+                            {showBlockedList && blockedUids.map(uid => {
+                              const known = allUsers.find(u => u.uid === uid) || SEED_USERS.find(u => u.uid === uid);
+                              const name = known?.name || plans.find(p => p.uid === uid)?.userName || promos.find(pr => pr.uid === uid)?.businessName || 'Usuario';
+                              return (
+                                <div key={uid} className="flex items-center gap-3 p-3 rounded-2xl bg-red-500/5 border border-red-500/15">
+                                  <div className="w-9 h-9 rounded-full bg-red-500/15 text-red-400 flex items-center justify-center font-black">{name.charAt(0).toUpperCase()}</div>
+                                  <span className="text-sm font-bold text-zinc-300 flex-1 truncate">{name}</span>
+                                  <button onClick={() => void doUnblock(uid)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/10 text-white active:scale-95">Desbloquear</button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    );
+                  }
+                  if (showFriends === 'following') {
+                    const list = followingAll.filter(f => !q || f.name.toLowerCase().includes(q));
+                    const reqs = requestedAll.filter(f => !q || f.name.toLowerCase().includes(q));
+                    return (
+                      <>
+                        <div className="space-y-2">
+                          {reqs.map(f => (
+                            <Row key={f.uid} f={f} right={<button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/5 text-zinc-500 border border-white/15 active:scale-95">Solicitado</button>} />
+                          ))}
+                          {list.map(f => (
+                            <Row key={f.uid} f={f} right={<button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/10 text-zinc-300 active:scale-95">Siguiendo</button>} />
+                          ))}
+                          {list.length + reqs.length === 0 && <p className="text-xs text-zinc-500 text-center py-6">Aún no sigues a nadie. Busca arriba para descubrir gente.</p>}
+                        </div>
+                        {discover()}
+                      </>
+                    );
+                  }
+                  // Pestaña GRUPOS
+                  return (
+                    <div className="space-y-3">
+                      <button onClick={() => { setGroupDraft({ name: '', members: [] }); setGroupSearch(''); }} className="w-full py-3.5 rounded-2xl bg-iogga-primary/10 border border-dashed border-iogga-primary/40 text-iogga-primary font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2">
+                        <Plus size={15} /> Nuevo grupo
+                      </button>
+                      {myGroups.map(g => (
+                        <button key={g.id} onClick={() => { setGroupDraft({ id: g.id, name: g.name, members: [...g.members] }); setGroupSearch(''); }} className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 active:scale-[0.98] transition-all text-left">
+                          <div className="flex -space-x-2 shrink-0">
+                            {g.members.slice(0, 3).map((m, i) => (
+                              m.photo
+                                ? <img key={i} src={m.photo} className="w-10 h-10 rounded-full object-cover border-2 border-zinc-900" referrerPolicy="no-referrer" />
+                                : <div key={i} className="w-10 h-10 rounded-full bg-iogga-primary/25 text-iogga-primary border-2 border-zinc-900 flex items-center justify-center text-xs font-black">{m.name.charAt(0).toUpperCase()}</div>
+                            ))}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-bold text-white block truncate">{g.name}</span>
+                            <span className="text-[10px] text-zinc-500">{g.members.length} {g.members.length === 1 ? 'persona' : 'personas'} · {g.members.slice(0, 2).map(m => m.name.split(' ')[0]).join(', ')}{g.members.length > 2 ? '…' : ''}</span>
+                          </div>
+                          <Edit3 size={14} className="text-zinc-500 shrink-0" />
+                        </button>
+                      ))}
+                      {myGroups.length === 0 && <p className="text-xs text-zinc-500 text-center py-4">Crea un grupo (como en WhatsApp) para invitar a todos con un toque.</p>}
+                    </div>
+                  );
+                })()}
+              </motion.div>
             </div>
           </Modal>
         )}

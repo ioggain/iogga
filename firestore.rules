@@ -16,6 +16,13 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Pagos (Mercado Pago): los escribe SOLO el backend (Functions).
+    // El admin ve todos; cada usuario puede ver los suyos.
+    match /payments/{id} {
+      allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow write: if false;
+    }
+
     // Perfiles de usuarios: cada quien puede leer perfiles,
     // pero solo editar el suyo.
     match /users/{userId} {

@@ -292,6 +292,11 @@ export interface BusinessProfile {
   facebook?: string;
   tiktok?: string;
   linkedin?: string;
+  photos?: string[]; // hasta 5 fotos del negocio
+  // Datos para DEPOSITARLE sus ventas por SPEI (solo los ve el negocio y el administrador)
+  payoutHolder?: string; // titular de la cuenta
+  payoutBank?: string; // banco
+  payoutClabe?: string; // CLABE interbancaria (18 dígitos)
 }
 
 export interface UserProfile {
@@ -681,6 +686,69 @@ export function watchUserRedemptions(uid: string, callback: (items: Redemption[]
     (snap) => callback(snap.docs.map((d) => d.data() as Redemption)),
     () => callback([])
   );
+}
+
+// ---------- Panel de administrador ----------
+export const FOUNDER_EMAIL = 'omareduardo_@hotmail.com';
+
+// ¿Este correo es administrador? (el fundador siempre; otros si están en /admins)
+export async function checkIsAdmin(email?: string | null): Promise<boolean> {
+  if (!email) return false;
+  if (email.toLowerCase() === FOUNDER_EMAIL) return true;
+  if (!db) return false;
+  try { return (await getDoc(doc(db, 'admins', email))).exists(); } catch { return false; }
+}
+
+export interface AdminData {
+  userCount: number;
+  planCount: number;
+  promoCount: number;
+  redemptionsTotal: number;
+  redemptionsRedeemed: number;
+  incomeTotal: number; // suma del libro contable (comisiones/ingresos de iogga)
+  salesTotal: number;  // ventas concretadas (montos de canjes)
+  feedback: { text: string; context: string; userName: string; email?: string; createdAtMs?: number }[];
+  admins: string[];
+  recentRedemptions: Redemption[];
+}
+
+// Todo lo del panel en una sola llamada (conteos y listas recientes)
+export async function fetchAdminData(): Promise<AdminData> {
+  const empty: AdminData = { userCount: 0, planCount: 0, promoCount: 0, redemptionsTotal: 0, redemptionsRedeemed: 0, incomeTotal: 0, salesTotal: 0, feedback: [], admins: [], recentRedemptions: [] };
+  if (!db) return empty;
+  const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => { try { return await fn(); } catch { return fallback; } };
+  const [users, plansSnap, promosSnap, reds, ledger, fb, adminsSnap] = await Promise.all([
+    safe(() => getDocs(query(collection(db!, 'users'), limit(500))), null as any),
+    safe(() => getDocs(query(collection(db!, 'plans'), limit(500))), null as any),
+    safe(() => getDocs(query(collection(db!, 'promos'), limit(500))), null as any),
+    safe(() => getDocs(query(collection(db!, 'redemptions'), limit(500))), null as any),
+    safe(() => getDocs(query(collection(db!, 'ledger'), limit(500))), null as any),
+    safe(() => getDocs(query(collection(db!, 'feedback'), limit(200))), null as any),
+    safe(() => getDocs(collection(db!, 'admins')), null as any),
+  ]);
+  const redsList: Redemption[] = reds ? reds.docs.map((d: any) => d.data() as Redemption) : [];
+  const redeemed = redsList.filter(r => r.status === 'redeemed');
+  return {
+    userCount: users?.size || 0,
+    planCount: plansSnap?.size || 0,
+    promoCount: promosSnap?.size || 0,
+    redemptionsTotal: redsList.length,
+    redemptionsRedeemed: redeemed.length,
+    incomeTotal: ledger ? ledger.docs.reduce((s: number, d: any) => s + (Number(d.data().amount) || 0), 0) : 0,
+    salesTotal: redeemed.reduce((s, r) => s + (r.priceAmount || 0), 0),
+    feedback: fb ? fb.docs.map((d: any) => d.data()).sort((a: any, b: any) => (b.createdAtMs || 0) - (a.createdAtMs || 0)) : [],
+    admins: adminsSnap ? adminsSnap.docs.map((d: any) => d.id) : [],
+    recentRedemptions: redeemed.sort((a, b) => (b.redeemedAtMs || 0) - (a.redeemedAtMs || 0)).slice(0, 20),
+  };
+}
+
+export async function addAdmin(email: string): Promise<void> {
+  if (!db) return;
+  await setDoc(doc(db, 'admins', email.trim().toLowerCase()), { addedAt: serverTimestamp() });
+}
+export async function removeAdmin(email: string): Promise<void> {
+  if (!db) return;
+  await deleteDoc(doc(db, 'admins', email));
 }
 
 export function authErrorMessage(err: unknown): string {

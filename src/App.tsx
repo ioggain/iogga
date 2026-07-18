@@ -102,6 +102,11 @@ import {
   blockUser,
   unblockUser,
   fetchUserProfile,
+  checkIsAdmin,
+  fetchAdminData,
+  addAdmin,
+  removeAdmin,
+  type AdminData,
   watchFollowing,
   watchFollowers,
   sendNotification,
@@ -880,7 +885,7 @@ export default function App() {
   const [isWiggleMode, setIsWiggleMode] = useState(false);
   const [showEditBusinessProfile, setShowEditBusinessProfile] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const [businessProfile, setBusinessProfile] = useState({
+  const [businessProfile, setBusinessProfile] = useState<import('./lib/firebase').BusinessProfile>({
     name: '',
     bio: '',
     logo: 'https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=150&q=80',
@@ -912,23 +917,33 @@ export default function App() {
       return next;
     });
   };
-  const [plans, setPlans] = useState<Plan[]>([...(isFirebaseEnabled ? [] : MOCK_PLANS), ...(hideSeed ? [] : SEED_PLANS)]);
-  const [promos, setPromos] = useState<Promotion[]>([...(isFirebaseEnabled ? [] : MOCK_PROMOS), ...(hideSeed ? [] : SEED_PROMOS)]);
+  // Elementos de prueba BORRADOS uno a uno (persisten borrados para siempre)
+  const [deletedSeedIds, setDeletedSeedIds] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('iogga_deleted_seed') || '[]'); } catch { return []; }
+  });
+  const deleteSeedItem = (id: string) => {
+    setDeletedSeedIds(prev => { const n = [...prev, id]; try { localStorage.setItem('iogga_deleted_seed', JSON.stringify(n)); } catch { /* sin storage */ } return n; });
+  };
+  const liveSeedPlans = () => hideSeed ? [] : SEED_PLANS.filter(p => !deletedSeedIds.includes(p.id));
+  const liveSeedPromos = () => hideSeed ? [] : SEED_PROMOS.filter(p => !deletedSeedIds.includes(p.id));
+  const [plans, setPlans] = useState<Plan[]>([...(isFirebaseEnabled ? [] : MOCK_PLANS), ...liveSeedPlans()]);
+  const [promos, setPromos] = useState<Promotion[]>([...(isFirebaseEnabled ? [] : MOCK_PROMOS), ...liveSeedPromos()]);
 
   useEffect(() => {
     if (!isFirebaseEnabled) {
       // Sin Firebase: aplicar el filtro de prueba directamente
-      setPlans([...MOCK_PLANS, ...(hideSeed ? [] : SEED_PLANS)]);
-      setPromos([...MOCK_PROMOS, ...(hideSeed ? [] : SEED_PROMOS)]);
+      setPlans([...MOCK_PLANS, ...liveSeedPlans()]);
+      setPromos([...MOCK_PROMOS, ...liveSeedPromos()]);
       return;
     }
-    const unsubPlans = watchCollectionDocs<Plan>('plans', (docs) => setPlans([...docs, ...(hideSeed ? [] : SEED_PLANS)]));
-    const unsubPromos = watchCollectionDocs<Promotion>('promos', (docs) => setPromos([...docs, ...(hideSeed ? [] : SEED_PROMOS)]));
+    const unsubPlans = watchCollectionDocs<Plan>('plans', (docs) => setPlans([...docs, ...liveSeedPlans()]));
+    const unsubPromos = watchCollectionDocs<Promotion>('promos', (docs) => setPromos([...docs, ...liveSeedPromos()]));
     return () => {
       unsubPlans();
       unsubPromos();
     };
-  }, [hideSeed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hideSeed, deletedSeedIds.length]);
   const [showCreatePlan, setShowCreatePlan] = useState(false);
   const [showCreatePromo, setShowCreatePromo] = useState(false);
   const [glowPromoId, setGlowPromoId] = useState<string | null>(null); // brillo en la oferta recién creada
@@ -1906,6 +1921,21 @@ export default function App() {
     });
   }, [plans, currentUser?.uid]);
 
+  // ---- Panel de administrador: solo usuarios asignados lo ven ----
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [adminData, setAdminData] = useState<AdminData | null>(null);
+  const [adminNewEmail, setAdminNewEmail] = useState('');
+  useEffect(() => {
+    if (!currentUser?.email) { setIsAdmin(false); return; }
+    void checkIsAdmin(currentUser.email).then(setIsAdmin);
+  }, [currentUser?.email]);
+  const openAdmin = () => {
+    setShowAdmin(true);
+    setAdminData(null);
+    void fetchAdminData().then(setAdminData);
+  };
+
   // Perfil extendido del usuario (bio, ubicación, foto) para el medidor de perfil
   const [userProfile, setUserProfile] = useState<UserProfile>({});
   useEffect(() => {
@@ -1985,13 +2015,12 @@ export default function App() {
     if (groupAllSelected(g, sel)) setSel(sel.filter(id => !g.members.some(m => m.uid === id)));
     else setSel(Array.from(new Set([...sel, ...g.members.map(m => m.uid)])));
   };
-  // Abrir la ventana de invitar. Los que YA invitaste aparecen seleccionados
-  // (sincronizado con el plan), así no invitas doble ni pierdes el registro.
+  // Abrir la ventana de invitar. SIEMPRE se toma la versión más fresca del plan
+  // y los que YA invitaste aparecen seleccionados (nunca vacíos).
   const openInvite = (plan: Plan) => {
-    setInvitePlan(prev => {
-      if (!prev || prev.id !== plan.id) setInviteSel([...(plan.invitedUids || [])]);
-      return plan;
-    });
+    const live = plans.find(p => p.id === plan.id) || plan;
+    setInviteSel([...(live.invitedUids || [])]);
+    setInvitePlan(live);
   };
   const [confirmSel, setConfirmSel] = useState<string[]>([]); // unidos que el anfitrión acepta
   // Al abrir un plan mío, precargar a quiénes ya acepté (palomitas persistentes)
@@ -2775,6 +2804,8 @@ export default function App() {
   };
 
   const handleDeletePlan = (id: string) => {
+    // Los de prueba también se pueden borrar (y quedan borrados para siempre)
+    if (id.startsWith('s_')) { deleteSeedItem(id); setPlans(plans.filter(p => p.id !== id)); return; }
     void deleteDocIn('plans', id);
     setPlans(plans.filter(p => p.id !== id));
   };
@@ -4076,7 +4107,7 @@ export default function App() {
                       >
                         <div 
                           onClick={() => isWiggleMode ? null : handleEditPromo(promo)}
-                          className={`p-0 rounded-[32px] bg-zinc-900 border flex flex-col group hover:bg-zinc-800 transition-all shadow-2xl overflow-hidden cursor-pointer ${isWiggleMode ? 'ring-2 ring-red-500/50 border-white/10' : glowPromoId === promo.id ? 'border-iogga-accent ring-4 ring-iogga-accent/40 shadow-iogga-accent/40 animate-pulse' : 'border-white/10'}`}
+                          className={`p-0 rounded-[32px] bg-zinc-900 border flex flex-col group hover:bg-zinc-800 transition-all shadow-2xl overflow-hidden cursor-pointer ${promoExpired(promo) ? 'border-white/5 opacity-80 grayscale-[0.4]' : isWiggleMode ? 'ring-2 ring-red-500/50 border-white/10' : glowPromoId === promo.id ? 'border-iogga-accent ring-4 ring-iogga-accent/40 shadow-iogga-accent/40 animate-pulse' : 'border-white/10'}`}
                         >
                           <div className="relative w-full h-48 shrink-0">
                             {promo.isSeed && <SeedTag />}
@@ -4109,7 +4140,8 @@ export default function App() {
                                 <button 
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    void deleteDocIn('promos', promo.id);
+                                    if (promo.isSeed) deleteSeedItem(promo.id);
+                                    else void deleteDocIn('promos', promo.id);
                                     setPromos(promos.filter(p => p.id !== promo.id));
                                   }}
                                   className="p-2.5 bg-red-500 text-white rounded-full shadow-2xl animate-bounce"
@@ -4142,7 +4174,8 @@ export default function App() {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       if (window.confirm(`¿Eliminar la oferta "${promo.title}"? No se puede deshacer.`)) {
-                                        void deleteDocIn('promos', promo.id);
+                                        if (promo.isSeed) deleteSeedItem(promo.id);
+                                        else void deleteDocIn('promos', promo.id);
                                         setPromos(promos.filter(p => p.id !== promo.id));
                                       }
                                     }}
@@ -4639,7 +4672,8 @@ export default function App() {
                         <button onClick={() => comingSoon("Ver todos")} className="text-xs font-bold text-iogga-accent uppercase tracking-widest">Ver todos</button>
                       </div>
                       <div className="space-y-3">
-                        {promos.map(promo => (
+                        {/* Cada oferta TUYA aparece aquí como producto/servicio individual */}
+                        {myPromosDisplay.map(promo => (
                           <button 
                             key={promo.id} 
                             onClick={() => setSelectedProductAnalytics(promo)}
@@ -6285,11 +6319,50 @@ export default function App() {
                   </div>
                   <input
                     type="text"
+                    autoComplete="address-level2"
                     value={businessProfile.location || ''}
                     onChange={e => setBusinessProfile({...businessProfile, location: e.target.value})}
                     placeholder="Dirección o ubicación"
                     className="w-full h-14 px-6 rounded-2xl bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-iogga-accent outline-none"
                   />
+                </div>
+
+                {/* Cobros: a dónde le depositamos sus ventas (SPEI). Privado. */}
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Cobros (dónde recibes tus ventas)</label>
+                  <div className="flex items-start gap-2 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                    <Shield size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-emerald-200/90 leading-snug">Tus ventas en iogga se te depositan por <span className="font-black">transferencia SPEI</span>. Estos datos son privados: solo los ves tú y el administrador de iogga.</p>
+                  </div>
+                  <input
+                    type="text"
+                    autoComplete="name"
+                    value={businessProfile.payoutHolder || ''}
+                    onChange={e => setBusinessProfile({ ...businessProfile, payoutHolder: e.target.value })}
+                    placeholder="Titular de la cuenta"
+                    className="w-full h-14 px-6 rounded-2xl bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-iogga-accent outline-none"
+                  />
+                  <div className="grid grid-cols-3 gap-3">
+                    <input
+                      type="text"
+                      value={businessProfile.payoutBank || ''}
+                      onChange={e => setBusinessProfile({ ...businessProfile, payoutBank: e.target.value })}
+                      placeholder="Banco"
+                      className="col-span-1 h-14 px-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-iogga-accent outline-none text-sm"
+                    />
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={18}
+                      value={businessProfile.payoutClabe || ''}
+                      onChange={e => setBusinessProfile({ ...businessProfile, payoutClabe: e.target.value.replace(/\D/g, '').slice(0, 18) })}
+                      placeholder="CLABE (18 dígitos)"
+                      className="col-span-2 h-14 px-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-iogga-accent outline-none text-sm tracking-widest"
+                    />
+                  </div>
+                  {businessProfile.payoutClabe && businessProfile.payoutClabe.length !== 18 && (
+                    <p className="text-[10px] text-amber-300">La CLABE debe tener 18 dígitos ({businessProfile.payoutClabe.length}/18).</p>
+                  )}
                 </div>
 
                 <div className="space-y-3">
@@ -6794,6 +6867,14 @@ export default function App() {
                         triggerBeta("Centro de Ayuda", "Contacta a admin@iogga.com si requieres asistencia técnica adicional durante tus pruebas de MVP.");
                       }}
                     />
+                    {/* Panel de administrador: SOLO lo ven los usuarios asignados */}
+                    {isAdmin && (
+                      <SettingsItem
+                        icon={<BarChart3 size={18} />}
+                        label="Panel de administrador"
+                        onClick={() => { setShowSettingsMenu(false); openAdmin(); }}
+                      />
+                    )}
                     {/* Entorno limpio: oculta TODO lo de prueba (planes, ofertas,
                         personas, notificaciones demo) para usar solo datos reales */}
                     <button
@@ -7854,6 +7935,109 @@ export default function App() {
               >
                 <UserPlus size={16} /> Invitar por WhatsApp
               </button>
+            </div>
+          </Modal>
+        )}
+
+        {/* PANEL DE ADMINISTRADOR (solo usuarios asignados): KPIs del negocio,
+            ventas concretadas, comentarios/fallas, administradores y versión. */}
+        {showAdmin && isAdmin && (
+          <Modal onClose={() => setShowAdmin(false)} title="Administrador">
+            <div className="space-y-6">
+              {!adminData ? (
+                <div className="py-16 text-center">
+                  <RefreshCw size={26} className="text-iogga-primary mx-auto animate-spin" />
+                  <p className="text-xs text-zinc-500 mt-3">Cargando datos de iogga…</p>
+                </div>
+              ) : (
+                <>
+                  {/* KPIs principales */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: 'Usuarios registrados', value: adminData.userCount, color: 'text-white' },
+                      { label: 'Planes creados', value: adminData.planCount, color: 'text-iogga-primary' },
+                      { label: 'Ofertas publicadas', value: adminData.promoCount, color: 'text-iogga-accent' },
+                      { label: 'Citas concretadas', value: adminData.redemptionsRedeemed, color: 'text-emerald-400' },
+                      { label: 'Ventas concretadas', value: `$${adminData.salesTotal.toLocaleString('es-MX')}`, color: 'text-emerald-400' },
+                      { label: 'Ingresos iogga', value: `$${adminData.incomeTotal.toLocaleString('es-MX')}`, color: 'text-amber-300' },
+                    ].map(k => (
+                      <div key={k.label} className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{k.label}</p>
+                        <p className={`text-2xl font-black mt-1 ${k.color}`}>{k.value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Últimos canjes concretados */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Últimas ofertas concretadas</p>
+                    {adminData.recentRedemptions.length === 0 && <p className="text-xs text-zinc-500 px-1">Aún no hay canjes concretados.</p>}
+                    {adminData.recentRedemptions.map((r, i) => (
+                      <div key={i} className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0"><QrCode size={16} /></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-white truncate">{r.promoTitle} · {r.businessName}</p>
+                          <p className="text-[10px] text-zinc-500">Folio {r.code} · {r.userName} · {r.redeemedAtMs ? new Date(r.redeemedAtMs).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</p>
+                        </div>
+                        <span className="text-sm font-black text-emerald-400 shrink-0">${r.priceAmount || 0}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Comentarios y fallas reportadas */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Comentarios y fallas ({adminData.feedback.length})</p>
+                    {adminData.feedback.length === 0 && <p className="text-xs text-zinc-500 px-1">Sin comentarios todavía.</p>}
+                    <div className="space-y-2 max-h-56 overflow-y-auto no-scrollbar">
+                      {adminData.feedback.map((f, i) => (
+                        <div key={i} className="p-3 rounded-2xl bg-white/5 border border-white/5">
+                          <p className="text-xs text-zinc-200 leading-snug">"{f.text}"</p>
+                          <p className="text-[10px] text-zinc-500 mt-1">{f.userName}{f.email ? ` · ${f.email}` : ''} · {f.context}{f.createdAtMs ? ` · ${new Date(f.createdAtMs).toLocaleDateString('es-MX')}` : ''}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Administradores: agregar/quitar por correo */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Administradores</p>
+                    <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-3">
+                      <Shield size={14} className="text-amber-300 shrink-0" />
+                      <span className="text-xs font-bold text-white flex-1 truncate">omareduardo_@hotmail.com</span>
+                      <span className="text-[9px] font-black text-amber-300 uppercase tracking-widest">Fundador</span>
+                    </div>
+                    {adminData.admins.map(a => (
+                      <div key={a} className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-3">
+                        <Shield size={14} className="text-zinc-500 shrink-0" />
+                        <span className="text-xs font-bold text-white flex-1 truncate">{a}</span>
+                        <button onClick={() => { void removeAdmin(a).then(openAdmin); }} className="w-8 h-8 rounded-full bg-white/10 text-zinc-400 flex items-center justify-center active:scale-95"><X size={13} /></button>
+                      </div>
+                    ))}
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        value={adminNewEmail}
+                        onChange={e => setAdminNewEmail(e.target.value)}
+                        placeholder="correo@delnuevo.admin"
+                        className="flex-1 h-12 px-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm outline-none focus:ring-2 focus:ring-iogga-primary"
+                      />
+                      <button
+                        disabled={!adminNewEmail.includes('@')}
+                        onClick={() => { void addAdmin(adminNewEmail).then(() => { setAdminNewEmail(''); openAdmin(); }); }}
+                        className="px-4 h-12 rounded-2xl bg-iogga-primary text-white text-xs font-black uppercase tracking-widest active:scale-95 disabled:opacity-40"
+                      >
+                        Agregar
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Control de versiones */}
+                  <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">
+                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Versión en producción</span>
+                    <span className="text-xs font-black text-white">v{APP_VERSION}</span>
+                  </div>
+                </>
+              )}
             </div>
           </Modal>
         )}

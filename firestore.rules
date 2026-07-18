@@ -2,6 +2,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ¿Es administrador de iogga? El fundador siempre; los demás, si un admin
+    // los agregó a la colección /admins (documento con id = su correo).
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'omareduardo_@hotmail.com'
+        || exists(/databases/$(database)/documents/admins/$(request.auth.token.email))
+      );
+    }
+
+    // Administradores: solo un admin puede ver o modificar la lista.
+    match /admins/{email} {
+      allow read, write: if isAdmin();
+    }
+
     // Perfiles de usuarios: cada quien puede leer perfiles,
     // pero solo editar el suyo.
     match /users/{userId} {
@@ -28,16 +42,18 @@ service cloud.firestore {
     }
 
     // Libro contable de IOGGA (comisiones e ingresos de la app).
-    // Solo se escribe desde la app al validar; nadie lo lee desde el cliente.
+    // Se escribe desde la app al validar; solo los administradores lo leen.
     match /ledger/{entry} {
       allow create: if request.auth != null;
-      allow read, update, delete: if false;
+      allow read: if isAdmin();
+      allow update, delete: if false;
     }
 
-    // Sugerencias e ideas de usuarios (se leen solo desde el panel de administración).
+    // Sugerencias e ideas de usuarios (las lee el panel de administración).
     match /feedback/{entry} {
       allow create: if request.auth != null;
-      allow read, update, delete: if false;
+      allow read: if isAdmin();
+      allow update, delete: if false;
     }
 
     // Amigos (modelo Instagram): sigues = solicitud pendiente.

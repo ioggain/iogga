@@ -35,3 +35,19 @@ jobs:
           npx firebase-tools deploy --only firestore:rules --project iogga-b932b --non-interactive
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+      # Desplegar el backend de pagos (Functions). Requiere:
+      #  1) Plan Blaze activo en Firebase
+      #  2) Secreto MP_ACCESS_TOKEN agregado en GitHub (Settings -> Secrets -> Actions)
+      # Si falta algo, este paso se salta o falla sin romper el deploy del sitio.
+      - name: Desplegar funciones de pago
+        continue-on-error: true
+        run: |
+          if [ -z "${{ secrets.MP_ACCESS_TOKEN }}" ]; then
+            echo "Sin secreto MP_ACCESS_TOKEN: se omite el deploy de funciones."; exit 0;
+          fi
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
+          cd functions && npm ci --no-audit --no-fund && cd ..
+          printf '%s' "${{ secrets.MP_ACCESS_TOKEN }}" | npx firebase-tools functions:secrets:set MP_ACCESS_TOKEN --project iogga-b932b --data-file=- --force || true
+          npx firebase-tools deploy --only functions --project iogga-b932b --non-interactive --force
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json

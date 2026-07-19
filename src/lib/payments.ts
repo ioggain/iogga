@@ -3,8 +3,9 @@
 // (secreto de Firebase Functions) — nunca aquí.
 export const MP_PUBLIC_KEY = 'APP_USR-3d540450-e4f5-41b2-b972-107a25654fb1'; // credencial de PRUEBA
 
-// Se enciende cuando las Functions estén desplegadas (requiere plan Blaze).
-export const PAYMENTS_ENABLED = false;
+// Encendido: si el backend aún no responde, el QR sale sin pago (pokayoke,
+// nadie se traba). En cuanto las Functions estén vivas, el cobro aparece solo.
+export const PAYMENTS_ENABLED = true;
 
 const FN_BASE = 'https://us-central1-iogga-b932b.cloudfunctions.net';
 

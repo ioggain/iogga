@@ -5,10 +5,12 @@ import { QrCode, X, CheckCircle2, XCircle, Camera, Loader2, Download, Keyboard }
 import {
   createRedemption,
   validateRedemption,
+  parsePrice,
   type AuthUser,
   type Redemption,
   type ValidationResult,
 } from '../lib/firebase';
+import { PAYMENTS_ENABLED, createPaymentLink } from '../lib/payments';
 
 function Overlay({ onClose, title, children }: { onClose: () => void; title: string; children: React.ReactNode }) {
   return (
@@ -41,12 +43,35 @@ export function RedeemQRModal({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [redemption, setRedemption] = useState<Redemption | null>(null);
   const [error, setError] = useState(false);
+  // Pago ANTES de mostrar el QR (modelo Costco: pagas y luego canjeas).
+  // Si el backend de pagos no responde, se sigue sin pago (no se traba nadie).
+  const price = parsePrice(promo.price);
+  const needsPayment = PAYMENTS_ENABLED && price > 0;
+  const [payUrl, setPayUrl] = useState<string | null>(null);
+  const [payStep, setPayStep] = useState<'loading' | 'pay' | 'done' | 'skip'>(needsPayment ? 'loading' : 'skip');
 
   useEffect(() => {
     let cancelled = false;
     createRedemption(promo, user)
       .then((r) => {
         if (!cancelled) setRedemption(r);
+        // Con el folio del QR listo, pedimos el link de pago ligado a ese folio
+        if (!cancelled && needsPayment && r) {
+          void createPaymentLink({
+            title: promo.title,
+            amount: price,
+            promoId: promo.id,
+            code: r.code,
+            userName: user?.name,
+            uid: user?.uid || null,
+            businessName: promo.businessName,
+            businessUid: promo.uid || null,
+          }).then((url) => {
+            if (cancelled) return;
+            if (url) { setPayUrl(url); setPayStep('pay'); }
+            else setPayStep('skip'); // backend aún no disponible: no trabar el canje
+          });
+        }
       })
       .catch(() => {
         if (!cancelled) setError(true);
@@ -64,7 +89,7 @@ export function RedeemQRModal({
         color: { dark: '#09090b', light: '#ffffff' },
       });
     }
-  }, [redemption]);
+  }, [redemption, payStep]);
 
   const downloadQR = () => {
     if (!canvasRef.current || !redemption) return;
@@ -92,7 +117,39 @@ export function RedeemQRModal({
           </div>
         )}
 
-        {redemption && (
+        {/* Paso de PAGO (cuando la oferta tiene precio): pagar y luego ver el QR */}
+        {redemption && payStep === 'loading' && (
+          <div className="flex items-center gap-2 text-zinc-400 py-6">
+            <Loader2 size={18} className="animate-spin" />
+            <span className="text-sm font-medium">Preparando tu pago seguro…</span>
+          </div>
+        )}
+        {redemption && payStep === 'pay' && (
+          <div className="w-full space-y-3">
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Total a pagar</p>
+              <p className="text-3xl font-black text-white mt-1">${price.toLocaleString('es-MX')}</p>
+            </div>
+            <a
+              href={payUrl!}
+              target="_blank" rel="noopener noreferrer"
+              className="w-full py-4 bg-[#009EE3] text-white rounded-[20px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              Pagar con Mercado Pago
+            </a>
+            <button
+              onClick={() => setPayStep('done')}
+              className="w-full py-3.5 bg-white/5 border border-white/10 text-white rounded-[18px] font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all"
+            >
+              Ya pagué → ver mi QR
+            </button>
+            <p className="text-[10px] text-zinc-500 leading-snug text-center">
+              🔒 Pago procesado por Mercado Pago. iogga nunca ve ni guarda tu tarjeta.
+              Puedes pagar con tarjeta, dinero en tu cuenta de Mercado Pago, transferencia u OXXO.
+            </p>
+          </div>
+        )}
+        {redemption && (payStep === 'done' || payStep === 'skip') && (
           <>
             <div className="p-5 bg-white rounded-[32px] shadow-2xl">
               <canvas ref={canvasRef} className="rounded-xl" />

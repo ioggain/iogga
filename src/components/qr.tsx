@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
-import { QrCode, X, CheckCircle2, XCircle, Camera, Loader2, Download, Keyboard } from 'lucide-react';
+import { QrCode, X, CheckCircle2, XCircle, Camera, Loader2, Download, Keyboard, Lock } from 'lucide-react';
 import {
   createRedemption,
   validateRedemption,
   parsePrice,
   sendNotification,
+  watchPaymentForCode,
   type AuthUser,
   type Redemption,
   type ValidationResult,
@@ -62,19 +63,44 @@ export function RedeemQRModal({
   const [payUrl, setPayUrl] = useState<string | null>(null);
   const [payStep, setPayStep] = useState<'loading' | 'pay' | 'done' | 'skip'>(needsPayment ? 'loading' : 'skip');
 
-  // Confirmar la compra: sonido + aviso en la campanita (una sola vez)
-  const confirmPurchase = (r: Redemption) => {
+  // Estado del pago EN VIVO: el webhook de Mercado Pago escribe el pago y aquí
+  // nos enteramos al instante. Aprobado = pasar solo al QR con sonido.
+  const [payStatus, setPayStatus] = useState<string | null>(null);
+  const paid = payStatus === 'approved';
+  useEffect(() => {
+    if (!redemption || price <= 0 || !user?.uid) return;
+    return watchPaymentForCode(redemption.code, user.uid, setPayStatus);
+  }, [redemption?.code, user?.uid, price]);
+  useEffect(() => {
+    if (paid && (payStep === 'pay' || payStep === 'loading')) {
+      setPayStep('done');
+      try { playChime('campanitas'); } catch {}
+    }
+  }, [paid]);
+
+  // Botón "Ya pagué" (respaldo si el aviso automático tarda): pasar al QR
+  const confirmPurchase = () => {
     setPayStep('done');
     try { playChime('campanitas'); } catch {}
-    if (user?.uid) {
-      void sendNotification({
-        type: 'system',
-        to: user.uid,
-        fromName: promo.businessName,
-        title: `Compraste ${promo.title}`,
-        message: `Folio ${r.code} · $${price.toLocaleString('es-MX')}. Tu QR queda en tu perfil, en "Mis promos activas".`,
-      });
-    }
+  };
+
+  // Reintentar el pago de un QR ya generado que quedó sin pagar
+  const [retryBusy, setRetryBusy] = useState(false);
+  const retryPayment = async () => {
+    if (!redemption || retryBusy) return;
+    setRetryBusy(true);
+    const url = await createPaymentLink({
+      title: promo.title,
+      amount: price,
+      promoId: promo.id,
+      code: redemption.code,
+      userName: user?.name,
+      uid: user?.uid || null,
+      businessName: promo.businessName,
+      businessUid: promo.uid || null,
+    });
+    setRetryBusy(false);
+    if (url) window.open(url, '_blank', 'noopener');
   };
 
   useEffect(() => {
@@ -161,30 +187,66 @@ export function RedeemQRModal({
             <a
               href={payUrl!}
               target="_blank" rel="noopener noreferrer"
-              className="w-full py-4 bg-[#009EE3] text-white rounded-[20px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-[#009EE3] text-white rounded-[20px] active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5"
             >
-              Pagar con Mercado Pago
+              <span className="flex items-center justify-center gap-2 font-black text-sm uppercase tracking-widest">
+                {/* Logo oficial de Mercado Pago; si no carga, el texto lo dice igual */}
+                <img
+                  src="https://http2.mlstatic.com/frontend-assets/ui-navigation/5.19.1/mercadopago/logo__small.png"
+                  alt="" className="h-5 w-auto rounded bg-white/90 p-0.5"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
+                Pagar con Mercado Pago
+              </span>
+              <span className="text-[9px] font-black uppercase tracking-[0.25em] opacity-90 flex items-center gap-1">
+                <Lock size={9} /> Pago seguro y express
+              </span>
             </a>
             <button
-              onClick={() => confirmPurchase(redemption)}
+              onClick={confirmPurchase}
               className="w-full py-3.5 bg-white/5 border border-white/10 text-white rounded-[18px] font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all"
             >
               Ya pagué → ver mi QR
             </button>
+            <p className="text-[10px] text-zinc-500 leading-snug text-center">
+              Pago procesado por Mercado Pago: tarjeta, dinero en cuenta, transferencia u OXXO.
+              iogga nunca ve ni guarda tu tarjeta. Si entras con tu cuenta de Mercado Pago,
+              tu tarjeta queda guardada y pagas en un toque.
+            </p>
             {redemption.validUntilMs && (
-              <p className="text-[11px] text-amber-300/90 font-bold leading-snug text-center">
-                ⏳ Tu QR vale hasta el {formatUntil(redemption.validUntilMs)}. Canjéalo antes:
+              <p className="text-[11px] font-black text-amber-950 bg-amber-300 rounded-2xl px-4 py-3 leading-snug text-center">
+                Tu QR vale hasta el {formatUntil(redemption.validUntilMs)}. Canjéalo antes:
                 después de esa hora se cancela y no hay reembolso.
               </p>
             )}
-            <p className="text-[10px] text-zinc-500 leading-snug text-center">
-              🔒 Pago procesado por Mercado Pago. iogga nunca ve ni guarda tu tarjeta.
-              Puedes pagar con tarjeta, dinero en tu cuenta de Mercado Pago, transferencia u OXXO.
-            </p>
           </div>
         )}
         {redemption && (payStep === 'done' || payStep === 'skip') && (
           <>
+            {/* Estado del pago, clarísimo (como el "Pago aprobado" de Mercado Pago) */}
+            {price > 0 && paid && (
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/15 border border-green-500/30">
+                <CheckCircle2 size={14} className="text-green-400" />
+                <span className="text-[11px] font-black text-green-400 uppercase tracking-widest">Pago confirmado</span>
+              </div>
+            )}
+            {price > 0 && !paid && (
+              <div className="w-full space-y-2">
+                <div className="px-4 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center">
+                  <p className="text-[11px] font-bold text-amber-300 leading-snug">
+                    Este QR aún no tiene un pago confirmado. Paga antes de canjearlo en el negocio.
+                  </p>
+                </div>
+                <button
+                  onClick={retryPayment}
+                  disabled={retryBusy}
+                  className="w-full py-3.5 bg-[#009EE3] text-white rounded-[18px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {retryBusy ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
+                  Pagar con Mercado Pago
+                </button>
+              </div>
+            )}
             <div className="p-5 bg-white rounded-[32px] shadow-2xl">
               <canvas ref={canvasRef} className="rounded-xl" />
             </div>
@@ -248,6 +310,20 @@ export function ValidateCodeModal({ onClose, validatorUid }: { onClose: () => vo
         fromName: res.redemption.businessName,
         title: `Canjeaste ${res.redemption.promoTitle}`,
         message: `${res.redemption.businessName} escaneó tu QR (folio ${res.redemption.code}). ¡Disfruta! Después te pediremos tu calificación.`,
+      });
+    }
+    // Y dejar constancia al NEGOCIO en su campanita (venta + dinero en camino)
+    if (res.ok && res.redemption.businessUid) {
+      const amt = res.redemption.priceAmount || 0;
+      const neto = amt - Math.round(amt * 10) / 100;
+      void sendNotification({
+        type: 'system',
+        to: res.redemption.businessUid,
+        fromName: 'iogga',
+        title: `Canje registrado: ${res.redemption.promoTitle}`,
+        message: amt > 0
+          ? `Folio ${res.redemption.code} · ${res.redemption.userName} · $${amt.toLocaleString('es-MX')}. Neto para ti: $${neto.toLocaleString('es-MX')}, se deposita en el próximo corte.`
+          : `Folio ${res.redemption.code} · ${res.redemption.userName}. Quedó en tus analíticas.`,
       });
     }
   };
@@ -440,8 +516,8 @@ export function ValidateCodeModal({ onClose, validatorUid }: { onClose: () => vo
                   </p>
                   {result.redemption.priceAmount > 0 && (
                     <p className="text-[10px] text-zinc-400 leading-snug">
-                      💸 El dinero de esta venta se te deposita en el siguiente corte de iogga
-                      (a la CLABE de tu perfil de negocio). Te avisaremos cuando salga.
+                      El dinero de esta venta se te deposita en el siguiente corte de iogga
+                      (a la cuenta de tu perfil de negocio). Te avisaremos cuando salga.
                     </p>
                   )}
                 </>

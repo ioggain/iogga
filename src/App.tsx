@@ -648,7 +648,19 @@ async function shareStatusImage(dataUrl: string, link: string) {
   // Respaldo: descargar la imagen y abrir WhatsApp con el link
   const a = document.createElement('a');
   a.href = dataUrl; a.download = 'iogga-estado.png'; a.click();
-  window.open(`https://wa.me/?text=${encodeURIComponent(`Coincide con los que amas 💜 ${link}`)}`, '_blank');
+  openExternal(`https://wa.me/?text=${encodeURIComponent(`Coincide con los que amas 💜 ${link}`)}`);
+}
+
+// Abrir WhatsApp (u otro link externo) SIN dejar una pestaña en blanco al
+// volver: un <a> real con target _blank se comporta como en las apps famosas.
+function openExternal(url: string): void {
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 // Mini "video" animado (sin peso de video real): muestra en bucle cómo instalar
@@ -966,6 +978,8 @@ export default function App() {
   const [glowPromoId, setGlowPromoId] = useState<string | null>(null); // brillo en la oferta recién creada
   const [selectedPromo, setSelectedPromo] = useState<Promotion | null>(null);
   const [selectedProductAnalytics, setSelectedProductAnalytics] = useState<Promotion | null>(null);
+  // Movimientos de la promo en su detalle: pocas al inicio, "Ver más" muestra el mes
+  const [promoTxExpanded, setPromoTxExpanded] = useState(false);
   const [searchFilter, setSearchFilter] = useState<'plans' | 'promos'>('plans');
   const [searchSubFilter, setSearchSubFilter] = useState<'for-you' | 'public'>('public');
   const [searchQuery, setSearchQuery] = useState('');
@@ -991,6 +1005,18 @@ export default function App() {
           localStorage.setItem('iogga_sel_counted', JSON.stringify(counted));
           void incrementPromoSelected(promoId);
           setPromos(ps => ps.map(pp => pp.id === promoId ? { ...pp, qrScans: (pp.qrScans || 0) + 1 } : pp));
+          // Avisar al negocio: alguien puso su promo en un plan (interés real)
+          const pr = promos.find(pp => pp.id === promoId);
+          if (pr?.uid && pr.uid !== currentUser?.uid && !pr.isSeed) {
+            void sendNotification({
+              type: 'system',
+              to: pr.uid,
+              fromName: currentUser?.name || 'Alguien',
+              fromUid: currentUser?.uid,
+              title: `Seleccionaron tu promo`,
+              message: `${currentUser?.name || 'Alguien'} agregó "${pr.title}" a su plan. Va sumada en tus Seleccionados.`,
+            });
+          }
         }
       } catch { /* sin storage */ }
       const plan = plans.find(pl => pl.id === planId);
@@ -1806,7 +1832,7 @@ export default function App() {
   };
 
   const sharePlanWhatsApp = (plan: Plan) => {
-    window.open(`https://wa.me/?text=${encodeURIComponent(inviteText(plan))}`, '_blank');
+    openExternal(`https://wa.me/?text=${encodeURIComponent(inviteText(plan))}`);
   };
 
   // Compartir una promoción por donde sea; el link siempre lleva a iogga.
@@ -1818,7 +1844,7 @@ export default function App() {
     if ((navigator as any).share) {
       try { await (navigator as any).share({ title: promo.title, text, url }); return; } catch { /* cancelado */ }
     }
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    openExternal(`https://wa.me/?text=${encodeURIComponent(text)}`);
   };
 
   // Si alguien llega con un link de invitación (?inv=ID), mostrarla de inmediato
@@ -1925,16 +1951,26 @@ export default function App() {
     let mine: string[] = [];
     try { mine = JSON.parse(localStorage.getItem('iogga_authored_plans') || '[]'); } catch { return; }
     if (mine.length === 0) return;
+    // Cada plan se transporta UNA sola vez y se borra de la lista: así otra
+    // cuenta que entre después en el mismo teléfono no se lleva planes ajenos.
+    const forget = (id: string) => {
+      try {
+        const rest: string[] = JSON.parse(localStorage.getItem('iogga_authored_plans') || '[]').filter((x: string) => x !== id);
+        localStorage.setItem('iogga_authored_plans', JSON.stringify(rest));
+      } catch { /* sin storage */ }
+    };
     mine.forEach(id => {
       const local = plans.find(p => p.id === id);
       const migrate = (p: Plan) => {
-        if (p.uid === currentUser.uid) return;
-        const updated = { ...p, uid: currentUser.uid, userName: currentUser.name || p.userName };
-        void saveDocIn('plans', id, updated);
-        setPlans(prev => prev.map(x => x.id === id ? updated : x));
+        if (p.uid !== currentUser.uid) {
+          const updated = { ...p, uid: currentUser.uid, userName: currentUser.name || p.userName };
+          void saveDocIn('plans', id, updated);
+          setPlans(prev => prev.map(x => x.id === id ? updated : x));
+        }
+        forget(id);
       };
       if (local) migrate(local);
-      else void fetchDocIn<Plan>('plans', id).then(p => { if (p) migrate(p); });
+      else void fetchDocIn<Plan>('plans', id).then(p => { if (p) migrate(p); else forget(id); });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.uid, currentUser?.isAnonymous]);
@@ -2020,6 +2056,11 @@ export default function App() {
   const [realNotifs, setRealNotifs] = useState<AppNotif[]>([]);
   const [invitePlan, setInvitePlan] = useState<Plan | null>(null); // ventana "invitar en iogga / WhatsApp"
   const [inviteSel, setInviteSel] = useState<string[]>([]); // amigos elegidos para invitar a ese plan
+  // Los que YA estaban invitados al abrir la ventana: se muestran seleccionados
+  // pero NO reactivan "Enviar" (ya les llegó). Si los quitas y los vuelves a
+  // poner, cuentan como nuevos y se les puede reenviar.
+  const [inviteBaseline, setInviteBaseline] = useState<string[]>([]);
+  const inviteNew = inviteSel.filter(id => !inviteBaseline.includes(id));
 
   // ---- GRUPOS (como WhatsApp): nombre + personas, para invitar de UN toque ----
   // Viven en tu perfil (nube) y en el teléfono (respaldo sin sesión).
@@ -2050,6 +2091,7 @@ export default function App() {
   const openInvite = (plan: Plan) => {
     const live = plans.find(p => p.id === plan.id) || plan;
     setInviteSel([...(live.invitedUids || [])]);
+    setInviteBaseline([...(live.invitedUids || [])]);
     setInvitePlan(live);
   };
   const [confirmSel, setConfirmSel] = useState<string[]>([]); // unidos que el anfitrión acepta
@@ -2239,6 +2281,8 @@ export default function App() {
   // "Mis compras": historial completo (modelo Mercado Pago) + comprobante al tocar
   const [showMyPurchases, setShowMyPurchases] = useState(false);
   const [purchaseDetail, setPurchaseDetail] = useState<Redemption | null>(null);
+  // "Mis ventas" del negocio: mismos movimientos pero del lado vendedor
+  const [showMySales, setShowMySales] = useState(false);
   useEffect(() => {
     const check = () => {
       if (pendingEval) return;
@@ -2263,6 +2307,69 @@ export default function App() {
       localStorage.setItem('iogga_rated_redemptions', JSON.stringify(rated));
     } catch { /* ignora */ }
     setPendingEval(null);
+  };
+
+  // Estado de cuenta en TEXTO tipo ticket (modelo recibo bancario): cada venta
+  // como bloque con campos en MAYÚSCULAS, líneas y renglones vacíos. Sirve para
+  // conciliar contra el banco folio por folio.
+  const STATEMENT_FEE = 0.10; // comisión iogga del MVP (igual que el backend)
+  const buildStatementTxt = (rows: Redemption[], opts: { negocio: string; promo?: string }) => {
+    const money = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const fecha = (ms: number) => new Date(ms).toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    const line = '='.repeat(42);
+    const thin = '-'.repeat(42);
+    const list = [...rows].sort((a, b) => (a.redeemedAtMs || a.createdAtMs) - (b.redeemedAtMs || b.createdAtMs));
+    const total = list.reduce((s, r) => s + (r.priceAmount || 0), 0);
+    const fee = Math.round(total * STATEMENT_FEE * 100) / 100;
+    const out: string[] = [
+      line,
+      'IOGGA · ESTADO DE CUENTA',
+      `NEGOCIO: ${opts.negocio || '—'}`,
+      ...(opts.promo ? [`PROMOCION: ${opts.promo}`] : []),
+      `CORTE AL: ${fecha(Date.now())}`,
+      line,
+      '',
+    ];
+    list.forEach((r, i) => {
+      const f = Math.round((r.priceAmount || 0) * STATEMENT_FEE * 100) / 100;
+      out.push(
+        `VENTA ${i + 1} DE ${list.length}`,
+        thin,
+        `FECHA:      ${fecha(r.redeemedAtMs || r.createdAtMs)}`,
+        `FOLIO:      ${r.code}`,
+        `PROMOCION:  ${r.promoTitle}`,
+        `CLIENTE:    ${r.userName}`,
+        `MONTO:      ${money(r.priceAmount || 0)}`,
+        `COMISION:   ${money(f)} (10%)`,
+        `NETO:       ${money((r.priceAmount || 0) - f)}`,
+        '',
+      );
+    });
+    if (list.length === 0) out.push('SIN VENTAS CANJEADAS EN ESTE CORTE', '');
+    out.push(
+      line,
+      'RESUMEN',
+      thin,
+      `VENTAS:            ${list.length}`,
+      `TOTAL VENDIDO:     ${money(total)}`,
+      `COMISION IOGGA:    ${money(fee)}`,
+      `NETO A DEPOSITAR:  ${money(total - fee)}`,
+      line,
+      '',
+      'El neto se deposita por transferencia (SPEI)',
+      'a la cuenta registrada en tu perfil de negocio',
+      'en cada corte. Compara cada folio y monto con',
+      'tu banco: deben coincidir exacto.',
+    );
+    return out.join('\n');
+  };
+  const downloadTxt = (name: string, text: string) => {
+    const blob = new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   // Serie de ventas por día (últimos 7 días) a partir de canjes reales
@@ -2625,12 +2732,15 @@ export default function App() {
         invitedUids: selectedFriendIds.filter(id => !id.startsWith('su_')),
       };
       void saveDocIn('plans', plan.id, plan);
-      // Recordar que YO creé este plan: si lo hice sin cuenta, al iniciar sesión
-      // se transporta automáticamente a mi sesión (no se pierde nada).
-      try {
-        const mine: string[] = JSON.parse(localStorage.getItem('iogga_authored_plans') || '[]');
-        if (!mine.includes(plan.id)) { mine.push(plan.id); localStorage.setItem('iogga_authored_plans', JSON.stringify(mine)); }
-      } catch { /* sin storage */ }
+      // Recordar que YO creé este plan SOLO si lo hice sin cuenta: al iniciar
+      // sesión se transporta a mi cuenta. Si ya estoy registrado NO se apunta,
+      // para que otra cuenta en el mismo teléfono jamás se lleve mis planes.
+      if (!publisher || publisher.isAnonymous) {
+        try {
+          const mine: string[] = JSON.parse(localStorage.getItem('iogga_authored_plans') || '[]');
+          if (!mine.includes(plan.id)) { mine.push(plan.id); localStorage.setItem('iogga_authored_plans', JSON.stringify(mine)); }
+        } catch { /* sin storage */ }
+      }
       setPendingFriendIds([...selectedFriendIds]); // se enviarán al confirmar en "Verifica tu mensaje"
       setPlans([plan, ...plans]);
       setLastPublishedPlan(plan);
@@ -4551,7 +4661,7 @@ export default function App() {
                         <ArrowRight size={20} className="rotate-180" />
                       </button>
                       <div>
-                        <h2 className="text-xl font-black text-white tracking-tight">Detalle de Producto</h2>
+                        <h2 className="text-xl font-black text-white tracking-tight">Detalle de la promoción</h2>
                         <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Analítica específica</p>
                       </div>
                     </div>
@@ -4621,6 +4731,56 @@ export default function App() {
                           )}
                         </div>
                     </div>
+
+                    {/* Movimientos de ESTA promo (modelo banco): últimas ventas,
+                        "Ver más" muestra las del mes, y su estado de cuenta en TXT */}
+                    {(() => {
+                      const all = myRedemptions
+                        .filter(r => r.status === 'redeemed' && r.promoId === selectedProductAnalytics.id)
+                        .sort((a, b) => (b.redeemedAtMs || 0) - (a.redeemedAtMs || 0));
+                      const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+                      const monthRows = all.filter(r => (r.redeemedAtMs || r.createdAtMs) >= monthStart.getTime());
+                      const shown = promoTxExpanded ? monthRows : all.slice(0, 3);
+                      return (
+                        <div className="p-5 rounded-3xl bg-white/5 border border-white/10 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-black text-white uppercase tracking-widest">Movimientos</p>
+                            <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">{promoTxExpanded ? 'Este mes' : 'Recientes'}</span>
+                          </div>
+                          {shown.length === 0 && <p className="text-xs text-zinc-500 text-center py-3">Aún no hay ventas canjeadas{promoTxExpanded ? ' este mes' : ''}.</p>}
+                          <div className="divide-y divide-white/5">
+                            {shown.map(r => (
+                              <div key={r.code} className="flex items-center justify-between gap-3 py-2.5">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-white truncate">Folio {r.code} · {r.userName}</p>
+                                  <p className="text-[10px] text-zinc-500">{new Date(r.redeemedAtMs || r.createdAtMs).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</p>
+                                </div>
+                                <span className="text-sm font-black text-emerald-400 shrink-0">+${(r.priceAmount || 0).toLocaleString('es-MX')}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {all.length > 3 && (
+                            <button
+                              onClick={() => setPromoTxExpanded(v => !v)}
+                              className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+                            >
+                              {promoTxExpanded ? 'Ver menos' : 'Ver más (este mes)'}
+                            </button>
+                          )}
+                          <button
+                            disabled={all.length === 0}
+                            onClick={() => downloadTxt(
+                              `iogga-estado-de-cuenta-${selectedProductAnalytics.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30)}-${new Date().toISOString().slice(0, 10)}.txt`,
+                              buildStatementTxt(all, { negocio: businessProfile.name || selectedProductAnalytics.businessName, promo: selectedProductAnalytics.title })
+                            )}
+                            className="w-full py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
+                          >
+                            <FileDown size={14} />
+                            Estado de cuenta de esta promo
+                          </button>
+                        </div>
+                      );
+                    })()}
 
                     {/* Compartir la promoción por donde sea; el link lleva a iogga */}
                     <div className="p-5 rounded-3xl bg-white/5 border border-white/10 space-y-3 text-center">
@@ -4795,39 +4955,19 @@ export default function App() {
                             </div>
                             <button
                               disabled={rows.length === 0}
-                              onClick={() => {
-                                // CSV con los datos EXACTOS de cada transacción, para
-                                // comparar contra el dinero recibido en el banco.
-                                const esc = (s: unknown) => `"${String(s ?? '').replace(/"/g, '""')}"`;
-                                const list = [...rows].sort((a, b) => (a.redeemedAtMs || 0) - (b.redeemedAtMs || 0));
-                                const lines = [
-                                  ['Fecha de canje', 'Folio', 'Promoción', 'Cliente', 'Monto (MXN)', 'Comisión iogga 10%', 'Neto a depositar'].map(esc).join(','),
-                                  ...list.map(r => {
-                                    const f = Math.round((r.priceAmount || 0) * FEE * 100) / 100;
-                                    return [
-                                      new Date(r.redeemedAtMs || r.createdAtMs).toLocaleString('es-MX'),
-                                      r.code, r.promoTitle, r.userName,
-                                      (r.priceAmount || 0).toFixed(2), f.toFixed(2), ((r.priceAmount || 0) - f).toFixed(2),
-                                    ].map(esc).join(',');
-                                  }),
-                                  ['TOTAL', '', '', '', total.toFixed(2), fee.toFixed(2), (total - fee).toFixed(2)].map(esc).join(','),
-                                ];
-                                const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-                                const a = document.createElement('a');
-                                a.href = URL.createObjectURL(blob);
-                                a.download = `iogga-estado-de-cuenta-${new Date().toISOString().slice(0, 10)}.csv`;
-                                a.click();
-                                URL.revokeObjectURL(a.href);
-                              }}
+                              onClick={() => downloadTxt(
+                                `iogga-estado-de-cuenta-${new Date().toISOString().slice(0, 10)}.txt`,
+                                buildStatementTxt(rows, { negocio: businessProfile.name || 'Mi negocio' })
+                              )}
                               className="w-full py-4 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
                             >
                               <FileDown size={16} />
-                              Descargar estado de cuenta (CSV)
+                              Descargar estado de cuenta
                             </button>
                             <p className="text-[10px] text-zinc-500 leading-snug">
-                              💸 Lo que vendes pagado en iogga se te deposita por transferencia (SPEI) a la
-                              CLABE de tu perfil de negocio en cada corte. Este archivo trae cada transacción
-                              exacta para que compruebes que los números coinciden con tu banco.
+                              Lo que vendes pagado en iogga se te deposita por transferencia (SPEI) a la
+                              cuenta de tu perfil de negocio en cada corte. El archivo trae cada venta como
+                              ticket, con folio y montos exactos para comparar con tu banco.
                             </p>
                           </>
                         );
@@ -4919,13 +5059,38 @@ export default function App() {
                           onClick={() => {
                             const text = `${businessProfile.name || 'Mi negocio'} en iogga: ${window.location.origin}\n\niogga es la app para salir del móvil y vivir lo espontáneo.`;
                             if ((navigator as any).share) { (navigator as any).share({ title: businessProfile.name || 'iogga', text }).catch(() => {}); }
-                            else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                            else openExternal(`https://wa.me/?text=${encodeURIComponent(text)}`);
                           }}
                           className="flex-1 py-2.5 rounded-xl bg-white/10 text-white text-xs font-black uppercase tracking-widest active:scale-95 transition-all"
                         >
                           Compartir
                         </button>
                       </div>
+
+                      {/* Promociones ACTIVAS del negocio: mismo formato que "Mis planes";
+                          tocar una lleva a su Detalle de la promoción */}
+                      {myPromos.filter(pr => promoLive(pr)).length > 0 && (
+                        <div className="pt-1 space-y-2">
+                          <div className="flex items-center gap-2 px-1">
+                            <Store size={14} className="text-iogga-accent" />
+                            <h3 className="text-xs font-black text-white uppercase tracking-widest">Promociones activas</h3>
+                            <span className="text-[10px] font-black text-zinc-500">({myPromos.filter(pr => promoLive(pr)).length})</span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1">
+                            {myPromos.filter(pr => promoLive(pr)).map(pr => (
+                              <button
+                                key={pr.id}
+                                onClick={() => { setSelectedProductAnalytics(pr); setPromoTxExpanded(false); setActiveTab('analytics'); }}
+                                className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform"
+                              >
+                                <img src={pr.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                                <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{pr.title}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Galería del negocio: las fotos que subió (hasta 5), estilo Instagram */}
                       {(businessProfile.photos?.length || 0) > 0 && (
@@ -5003,7 +5168,7 @@ export default function App() {
                           const name = currentUser?.name || 'Alguien';
                           const text = `Encuéntrame en iogga: ${window.location.origin}\n\niogga es la app para salir del móvil y vivir lo espontáneo.`;
                           if ((navigator as any).share) { (navigator as any).share({ title: name, text }).catch(() => {}); }
-                          else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                          else openExternal(`https://wa.me/?text=${encodeURIComponent(text)}`);
                         }}
                         className="flex-1 py-2.5 rounded-xl bg-white/10 text-white text-xs font-black uppercase tracking-widest active:scale-95 transition-all"
                       >
@@ -5012,6 +5177,24 @@ export default function App() {
                       <button onClick={() => setShowFriends('following')} title="Agregar amigos" className="px-3 py-2.5 rounded-xl bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary active:scale-95 transition-all">
                         <UserPlus size={16} />
                       </button>
+                    </div>
+
+                    {/* Dinero a la mano: Mis compras (morado) y, con negocio, Mis ventas (verde) */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => ensureLoggedIn(() => setShowMyPurchases(true))}
+                        className="flex-1 py-2.5 rounded-xl bg-iogga-primary/10 border border-iogga-primary/25 text-iogga-primary text-xs font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Receipt size={14} /> Mis compras
+                      </button>
+                      {hasBusiness && (
+                        <button
+                          onClick={() => ensureLoggedIn(() => setShowMySales(true))}
+                          className="flex-1 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <TrendingUp size={14} /> Mis ventas
+                        </button>
+                      )}
                     </div>
 
                     {/* Sin sesión: acceso siempre visible también en el perfil */}
@@ -6515,6 +6698,33 @@ export default function App() {
                   {businessProfile.payoutClabe && businessProfile.payoutClabe.length !== 18 && (
                     <p className="text-[10px] text-amber-300">La CLABE debe tener 18 dígitos ({businessProfile.payoutClabe.length}/18).</p>
                   )}
+                  {/* Opción sin teclear: subir la carátula de la cuenta o foto de la
+                      tarjeta (como al dar de alta una cuenta en el banco) */}
+                  <button
+                    onClick={async () => {
+                      const img = await pickImage(1000);
+                      if (img) setBusinessProfile({ ...businessProfile, payoutDocImage: img });
+                    }}
+                    className="w-full py-3.5 rounded-2xl bg-white/5 border-2 border-dashed border-white/15 text-zinc-300 font-bold text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+                  >
+                    <Camera size={14} />
+                    {businessProfile.payoutDocImage ? 'Cambiar carátula / foto de tarjeta' : 'O sube la carátula de tu cuenta o foto de tu tarjeta'}
+                  </button>
+                  {businessProfile.payoutDocImage && (
+                    <div className="relative rounded-2xl overflow-hidden border border-white/10">
+                      <img src={businessProfile.payoutDocImage} className="w-full max-h-40 object-cover" />
+                      <button
+                        onClick={() => setBusinessProfile({ ...businessProfile, payoutDocImage: '' })}
+                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500/90 text-white flex items-center justify-center active:scale-90"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-zinc-500 leading-snug">
+                    Con cualquiera de las dos (datos escritos o imagen) iogga puede depositarte tus ventas.
+                    Consejo: si subes foto de tarjeta, tapa el CVV.
+                  </p>
                 </div>
 
                 <div className="space-y-3">
@@ -6926,7 +7136,7 @@ export default function App() {
                           className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-[24px] font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
                         >
                           <QrCode size={16} />
-                          Comprar otra (para alguien más)
+                          Comprar otra
                         </button>
                       </>
                     );
@@ -7006,7 +7216,7 @@ export default function App() {
                       label="Métodos de Pago"
                       onClick={() => {
                         setShowSettingsMenu(false);
-                        triggerBeta("Métodos de Pago", "La pasarela de pago segura de iogga en Chihuahua se encuentra en ambiente sandbox de prueba para este MVP. Pronto estará disponible en producción.");
+                        triggerBeta("Métodos de Pago", "Tus pagos van protegidos por Mercado Pago: tarjeta, dinero en cuenta, transferencia u OXXO. Consejo: si entras con tu cuenta de Mercado Pago, tu tarjeta queda guardada ahí y pagas en un toque. iogga nunca ve ni guarda tu tarjeta.");
                       }}
                     />
                     <SettingsItem 
@@ -7895,6 +8105,33 @@ export default function App() {
           </Modal>
         )}
 
+        {/* Mis ventas (negocio): movimientos como en el banco, verde = entrada */}
+        {showMySales && (
+          <Modal onClose={() => setShowMySales(false)} title="Mis ventas">
+            <div className="space-y-3">
+              {myRedemptions.filter(r => r.status === 'redeemed').length === 0 ? (
+                <div className="text-center py-10 space-y-2">
+                  <TrendingUp size={32} className="mx-auto text-zinc-600" />
+                  <p className="text-sm font-bold text-zinc-400">Aún no tienes ventas canjeadas</p>
+                  <p className="text-[11px] text-zinc-500">Cada QR que valides con tu cámara aparecerá aquí como una venta.</p>
+                </div>
+              ) : (
+                [...myRedemptions.filter(r => r.status === 'redeemed')]
+                  .sort((a, b) => (b.redeemedAtMs || 0) - (a.redeemedAtMs || 0))
+                  .map(r => (
+                    <button key={r.code} onClick={() => setPurchaseDetail(r)} className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3 active:scale-[0.98] transition-transform text-left">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white truncate">{r.promoTitle}</p>
+                        <p className="text-[11px] text-zinc-500 truncate">{r.userName} · {new Date(r.redeemedAtMs || r.createdAtMs).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                      </div>
+                      <span className="text-sm font-black text-emerald-400 shrink-0">+${(r.priceAmount || 0).toLocaleString('es-MX')}</span>
+                    </button>
+                  ))
+              )}
+            </div>
+          </Modal>
+        )}
+
         {/* Comprobante de UNA compra: todos los datos, como recibo bancario */}
         {purchaseDetail && (
           <Modal onClose={() => setPurchaseDetail(null)} title="Comprobante">
@@ -7903,6 +8140,7 @@ export default function App() {
                 {[
                   ['Promoción', purchaseDetail.promoTitle],
                   ['Negocio', purchaseDetail.businessName],
+                  ['Cliente', purchaseDetail.userName],
                   ['Folio', purchaseDetail.code],
                   ['Fecha de compra', new Date(purchaseDetail.createdAtMs).toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' })],
                   purchaseDetail.status === 'redeemed'
@@ -8128,7 +8366,7 @@ export default function App() {
                       const allIn = groupAllSelected(g, inviteSel);
                       return (
                         <div key={g.id} className={`shrink-0 rounded-2xl border transition-all ${allIn ? 'bg-iogga-primary/15 border-iogga-primary/50' : 'bg-white/5 border-white/10'}`}>
-                          <button onClick={() => toggleGroupSel(g, inviteSel, setInviteSel)} className="px-3 pt-2.5 pb-1.5 flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
+                          <button onClick={() => { if (groupAllSelected(g, inviteSel)) setInviteBaseline(prev => prev.filter(id => !g.members.some(m => m.uid === id))); toggleGroupSel(g, inviteSel, setInviteSel); }} className="px-3 pt-2.5 pb-1.5 flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
                             <div className="flex -space-x-2">
                               {g.members.slice(0, 3).map((m, i) => (
                                 m.photo
@@ -8161,7 +8399,7 @@ export default function App() {
                     {followingAll.map(f => {
                       const sel = inviteSel.includes(f.uid);
                       return (
-                        <button key={f.uid} onClick={() => setInviteSel(prev => sel ? prev.filter(x => x !== f.uid) : [...prev, f.uid])} className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border transition-all ${sel ? 'bg-iogga-primary/15 border-iogga-primary/40' : 'bg-white/5 border-white/10'}`}>
+                        <button key={f.uid} onClick={() => { if (sel) setInviteBaseline(prev => prev.filter(x => x !== f.uid)); setInviteSel(prev => sel ? prev.filter(x => x !== f.uid) : [...prev, f.uid]); }} className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border transition-all ${sel ? 'bg-iogga-primary/15 border-iogga-primary/40' : 'bg-white/5 border-white/10'}`}>
                           {f.photo ? <img src={f.photo} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white">{f.name.charAt(0).toUpperCase()}</div>}
                           <span className="text-sm text-white flex-1 text-left">{f.name}</span>
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center ${sel ? 'bg-iogga-primary text-white' : 'border-2 border-white/20'}`}>{sel && <Check size={14} />}</div>
@@ -8174,15 +8412,16 @@ export default function App() {
                 )}
                 <button
                   onClick={() => {
-                    sendIoggaInvites(invitePlan, inviteSel);
-                    const n = inviteSel.length;
-                    setInvitePlan(null); setInviteSel([]);
-                    triggerBeta('¡Enviado en iogga!', n > 0 ? `Se envió la invitación a ${n} ${n === 1 ? 'amigo' : 'amigos'}. Les llegará a su campana y a sus invitaciones.` : 'Selecciona amigos para invitarlos en iogga.');
+                    // Solo se envía a los NUEVOS: a los ya invitados no se les duplica
+                    sendIoggaInvites(invitePlan, inviteNew);
+                    const n = inviteNew.length;
+                    setInvitePlan(null); setInviteSel([]); setInviteBaseline([]);
+                    triggerBeta('¡Enviado en iogga!', `Se envió la invitación a ${n} ${n === 1 ? 'amigo' : 'amigos'}. Les llegará a su campana y a sus invitaciones.`);
                   }}
-                  disabled={inviteSel.length === 0}
+                  disabled={inviteNew.length === 0}
                   className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
                 >
-                  <Send size={16} /> Enviar en iogga {inviteSel.length > 0 ? `(${inviteSel.length})` : ''}
+                  <Send size={16} /> {inviteNew.length > 0 ? `Enviar en iogga (${inviteNew.length})` : 'Ya están invitados'}
                 </button>
               </div>
 
@@ -8193,10 +8432,10 @@ export default function App() {
               {/* Opción 2: WhatsApp */}
               <button
                 onClick={() => {
-                  // WhatsApp además envía la invitación por iogga a los seleccionados
-                  sendIoggaInvites(invitePlan, inviteSel);
+                  // WhatsApp además envía la invitación por iogga a los NUEVOS
+                  sendIoggaInvites(invitePlan, inviteNew);
                   sharePlanWhatsApp(invitePlan);
-                  setInvitePlan(null); setInviteSel([]);
+                  setInvitePlan(null); setInviteSel([]); setInviteBaseline([]);
                 }}
                 className="w-full py-4 bg-green-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
               >

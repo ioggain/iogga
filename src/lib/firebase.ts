@@ -297,6 +297,7 @@ export interface BusinessProfile {
   payoutHolder?: string; // titular de la cuenta
   payoutBank?: string; // banco
   payoutClabe?: string; // CLABE interbancaria (18 dígitos)
+  payoutDocImage?: string; // carátula de la cuenta o foto de la tarjeta (opción sin teclear)
 }
 
 export interface UserProfile {
@@ -688,6 +689,27 @@ export function watchUserRedemptions(uid: string, callback: (items: Redemption[]
     q,
     (snap) => callback(snap.docs.map((d) => d.data() as Redemption)),
     () => callback([])
+  );
+}
+
+// Escuchar EN VIVO el pago de un folio (QR): cuando Mercado Pago lo aprueba,
+// el webhook escribe en /payments y aquí la app se entera al instante para
+// confirmar la compra sola (sin que el usuario tenga que decir "ya pagué").
+export function watchPaymentForCode(code: string, uid: string, callback: (status: string | null) => void): () => void {
+  if (!db || !uid || !code) return () => {};
+  const q = query(collection(db, 'payments'), where('uid', '==', uid), where('code', '==', code));
+  return onSnapshot(
+    q,
+    (snap) => {
+      let status: string | null = null;
+      snap.docs.forEach((d) => {
+        const s = (d.data() as { status?: string }).status || null;
+        if (s === 'approved') status = 'approved';
+        else if (!status) status = s;
+      });
+      callback(status);
+    },
+    () => callback(null)
   );
 }
 

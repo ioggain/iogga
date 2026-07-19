@@ -122,6 +122,20 @@ exports.mpWebhook = onRequest({ secrets: [MP_ACCESS_TOKEN], region: 'us-central1
               createdAtMs: Date.now(),
             }).catch(() => {});
           }
+          // Avisar al NEGOCIO: le pagaron una promo (el cliente llegará con su QR)
+          const sellerUid = meta.business_uid ?? meta.businessUid ?? null;
+          if (sellerUid) {
+            await admin.firestore().collection('notifications').add({
+              type: 'system',
+              to: sellerUid,
+              fromName: 'iogga',
+              title: `Venta pagada: ${pay.description || 'tu promoción'}`,
+              message: `Cobraste $${amount} MXN (folio ${pay.external_reference || pay.id}). Neto para ti: $${amount - fee}. El cliente llegará con su QR para canjear.`,
+              read: false,
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              createdAtMs: Date.now(),
+            }).catch(() => {});
+          }
         }
       }
     }

@@ -100,6 +100,28 @@ exports.mpWebhook = onRequest({ secrets: [MP_ACCESS_TOKEN], region: 'us-central1
             createdAtMs: Date.now(),
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
           }, { merge: true });
+          const promoId = meta.promo_id ?? meta.promoId ?? null;
+          const buyerUid = meta.uid || null;
+          // Sincronizar la compra en las estadísticas de la promoción (analítica del negocio)
+          if (promoId) {
+            await admin.firestore().collection('promos').doc(String(promoId)).set({
+              paidCount: admin.firestore.FieldValue.increment(1),
+              paidAmount: admin.firestore.FieldValue.increment(amount),
+            }, { merge: true }).catch(() => {});
+          }
+          // Avisar al comprador dentro de la app: "Compraste ..." (campanita)
+          if (buyerUid) {
+            await admin.firestore().collection('notifications').add({
+              type: 'system',
+              to: buyerUid,
+              fromName: 'iogga',
+              title: `Compraste ${pay.description || 'tu promoción'}`,
+              message: `Pago aprobado por $${amount} MXN. Folio ${pay.external_reference || pay.id}. Tu QR está en tu perfil, en "Mis promos activas".`,
+              read: false,
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              createdAtMs: Date.now(),
+            }).catch(() => {});
+          }
         }
       }
     }

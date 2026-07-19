@@ -6,11 +6,21 @@ import {
   createRedemption,
   validateRedemption,
   parsePrice,
+  sendNotification,
   type AuthUser,
   type Redemption,
   type ValidationResult,
 } from '../lib/firebase';
 import { PAYMENTS_ENABLED, createPaymentLink } from '../lib/payments';
+import { playChime } from '../lib/sound';
+
+// "sáb 19 jul, 9:30 p.m." — para decir claramente hasta cuándo vale el QR
+function formatUntil(ms: number): string {
+  const d = new Date(ms);
+  const date = d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+  const time = d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
+  return `${date}, ${time}`;
+}
 
 function Overlay({ onClose, title, children }: { onClose: () => void; title: string; children: React.ReactNode }) {
   return (
@@ -35,22 +45,40 @@ export function RedeemQRModal({
   promo,
   user,
   onClose,
+  existing,
 }: {
-  promo: { id: string; title: string; businessName: string; uid?: string | null; price?: string };
+  promo: { id: string; title: string; businessName: string; uid?: string | null; price?: string; validTo?: string; validToTime?: string; allDay?: boolean };
   user: AuthUser | null;
   onClose: () => void;
+  existing?: Redemption | null; // ver un QR ya comprado (desde "Mis promos activas"): sin crear ni cobrar de nuevo
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [redemption, setRedemption] = useState<Redemption | null>(null);
+  const [redemption, setRedemption] = useState<Redemption | null>(existing || null);
   const [error, setError] = useState(false);
   // Pago ANTES de mostrar el QR (modelo Costco: pagas y luego canjeas).
   // Si el backend de pagos no responde, se sigue sin pago (no se traba nadie).
   const price = parsePrice(promo.price);
-  const needsPayment = PAYMENTS_ENABLED && price > 0;
+  const needsPayment = PAYMENTS_ENABLED && price > 0 && !existing;
   const [payUrl, setPayUrl] = useState<string | null>(null);
   const [payStep, setPayStep] = useState<'loading' | 'pay' | 'done' | 'skip'>(needsPayment ? 'loading' : 'skip');
 
+  // Confirmar la compra: sonido + aviso en la campanita (una sola vez)
+  const confirmPurchase = (r: Redemption) => {
+    setPayStep('done');
+    try { playChime('campanitas'); } catch {}
+    if (user?.uid) {
+      void sendNotification({
+        type: 'system',
+        to: user.uid,
+        fromName: promo.businessName,
+        title: `Compraste ${promo.title}`,
+        message: `Folio ${r.code} · $${price.toLocaleString('es-MX')}. Tu QR queda en tu perfil, en "Mis promos activas".`,
+      });
+    }
+  };
+
   useEffect(() => {
+    if (existing) return; // ya existe: solo mostrarlo
     let cancelled = false;
     createRedemption(promo, user)
       .then((r) => {
@@ -138,11 +166,17 @@ export function RedeemQRModal({
               Pagar con Mercado Pago
             </a>
             <button
-              onClick={() => setPayStep('done')}
+              onClick={() => confirmPurchase(redemption)}
               className="w-full py-3.5 bg-white/5 border border-white/10 text-white rounded-[18px] font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all"
             >
               Ya pagué → ver mi QR
             </button>
+            {redemption.validUntilMs && (
+              <p className="text-[11px] text-amber-300/90 font-bold leading-snug text-center">
+                ⏳ Tu QR vale hasta el {formatUntil(redemption.validUntilMs)}. Canjéalo antes:
+                después de esa hora se cancela y no hay reembolso.
+              </p>
+            )}
             <p className="text-[10px] text-zinc-500 leading-snug text-center">
               🔒 Pago procesado por Mercado Pago. iogga nunca ve ni guarda tu tarjeta.
               Puedes pagar con tarjeta, dinero en tu cuenta de Mercado Pago, transferencia u OXXO.
@@ -167,8 +201,12 @@ export function RedeemQRModal({
             </button>
             <p className="text-[11px] text-zinc-500 leading-relaxed max-w-[260px]">
               Muestra este QR en el negocio: lo escanean con su cámara iogga y listo.
-              Válido por <span className="text-white font-bold">24 horas</span> y de{' '}
-              <span className="text-white font-bold">un solo uso</span>.
+              Válido hasta el{' '}
+              <span className="text-white font-bold">
+                {redemption.validUntilMs ? formatUntil(redemption.validUntilMs) : formatUntil(redemption.createdAtMs + 24 * 60 * 60 * 1000)}
+              </span>{' '}
+              y de <span className="text-white font-bold">un solo uso</span>.
+              Después de esa hora se cancela.
             </p>
           </>
         )}
@@ -202,6 +240,16 @@ export function ValidateCodeModal({ onClose, validatorUid }: { onClose: () => vo
     const res = await validateRedemption(value, validatorUid);
     setResult(res);
     setBusy(false);
+    // Avisar al cliente en su campanita que su canje quedó registrado
+    if (res.ok && res.redemption.uid) {
+      void sendNotification({
+        type: 'system',
+        to: res.redemption.uid,
+        fromName: res.redemption.businessName,
+        title: `Canjeaste ${res.redemption.promoTitle}`,
+        message: `${res.redemption.businessName} escaneó tu QR (folio ${res.redemption.code}). ¡Disfruta! Después te pediremos tu calificación.`,
+      });
+    }
   };
 
   const startScan = async () => {
@@ -390,13 +438,19 @@ export function ValidateCodeModal({ onClose, validatorUid }: { onClose: () => vo
                   <p className="text-[10px] text-zinc-500 uppercase tracking-widest">
                     Registrado en tus analíticas
                   </p>
+                  {result.redemption.priceAmount > 0 && (
+                    <p className="text-[10px] text-zinc-400 leading-snug">
+                      💸 El dinero de esta venta se te deposita en el siguiente corte de iogga
+                      (a la CLABE de tu perfil de negocio). Te avisaremos cuando salga.
+                    </p>
+                  )}
                 </>
               ) : (
                 <p className="font-bold text-red-400 text-sm">
                   {result.reason === 'already-used'
                     ? 'Este código ya fue usado.'
                     : result.reason === 'expired'
-                      ? 'Este código expiró (dura 24 horas).'
+                      ? 'Este código expiró: la vigencia de la promoción ya terminó.'
                       : result.reason === 'wrong-business'
                         ? 'Este código es de una promoción de otro negocio.'
                         : result.reason === 'not-found'

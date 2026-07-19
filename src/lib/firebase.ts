@@ -443,6 +443,7 @@ export async function followUser(me: AuthUser, target: Friend, mePhoto?: string 
     type: 'system',
     to: target.uid,
     fromName: me.name,
+    fromUid: me.uid,
     title: `${me.name.split(' ')[0]} quiere seguirte`,
     message: 'Acepta su solicitud en Amigos → Seguidores para que puedan invitarse a planes.',
     read: false,
@@ -464,6 +465,7 @@ export async function acceptFollower(me: AuthUser, followerUid: string): Promise
     type: 'system',
     to: followerUid,
     fromName: me.name,
+    fromUid: me.uid,
     title: `${me.name.split(' ')[0]} aceptó tu solicitud`,
     message: 'Ya son amigos en iogga: pueden verse el perfil completo e invitarse a planes.',
     read: false,
@@ -516,6 +518,7 @@ export interface AppNotif {
   title: string;
   message: string;
   planId?: string;
+  fromUid?: string; // quién la originó: al tocarla se abre su perfil (como Instagram)
   read: boolean;
   createdAtMs: number;
 }
@@ -710,14 +713,34 @@ export interface AdminData {
   feedback: { text: string; context: string; userName: string; email?: string; createdAtMs?: number }[];
   admins: string[];
   recentRedemptions: Redemption[];
+  // Compras pagadas por Mercado Pago (escritas por el backend de pagos)
+  paidCount: number;
+  paidAmount: number;
+  paidFees: number;
+  recentPayments: PaymentRecord[];
+}
+
+// Un pago registrado por el backend (colección /payments)
+export interface PaymentRecord {
+  status?: string; // created / approved / pending / rejected
+  title?: string;
+  amount?: number;
+  feeAmount?: number;
+  payoutAmount?: number;
+  code?: string | null;
+  userName?: string | null;
+  businessName?: string | null;
+  method?: string | null;
+  createdAtMs?: number;
+  approvedAtMs?: number | null;
 }
 
 // Todo lo del panel en una sola llamada (conteos y listas recientes)
 export async function fetchAdminData(): Promise<AdminData> {
-  const empty: AdminData = { userCount: 0, planCount: 0, promoCount: 0, redemptionsTotal: 0, redemptionsRedeemed: 0, incomeTotal: 0, salesTotal: 0, feedback: [], admins: [], recentRedemptions: [] };
+  const empty: AdminData = { userCount: 0, planCount: 0, promoCount: 0, redemptionsTotal: 0, redemptionsRedeemed: 0, incomeTotal: 0, salesTotal: 0, feedback: [], admins: [], recentRedemptions: [], paidCount: 0, paidAmount: 0, paidFees: 0, recentPayments: [] };
   if (!db) return empty;
   const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => { try { return await fn(); } catch { return fallback; } };
-  const [users, plansSnap, promosSnap, reds, ledger, fb, adminsSnap] = await Promise.all([
+  const [users, plansSnap, promosSnap, reds, ledger, fb, adminsSnap, paysSnap] = await Promise.all([
     safe(() => getDocs(query(collection(db!, 'users'), limit(500))), null as any),
     safe(() => getDocs(query(collection(db!, 'plans'), limit(500))), null as any),
     safe(() => getDocs(query(collection(db!, 'promos'), limit(500))), null as any),
@@ -725,9 +748,12 @@ export async function fetchAdminData(): Promise<AdminData> {
     safe(() => getDocs(query(collection(db!, 'ledger'), limit(500))), null as any),
     safe(() => getDocs(query(collection(db!, 'feedback'), limit(200))), null as any),
     safe(() => getDocs(collection(db!, 'admins')), null as any),
+    safe(() => getDocs(query(collection(db!, 'payments'), limit(500))), null as any),
   ]);
   const redsList: Redemption[] = reds ? reds.docs.map((d: any) => d.data() as Redemption) : [];
   const redeemed = redsList.filter(r => r.status === 'redeemed');
+  const paysList: PaymentRecord[] = paysSnap ? paysSnap.docs.map((d: any) => d.data() as PaymentRecord) : [];
+  const paysApproved = paysList.filter(p => p.status === 'approved');
   return {
     userCount: users?.size || 0,
     planCount: plansSnap?.size || 0,
@@ -739,6 +765,12 @@ export async function fetchAdminData(): Promise<AdminData> {
     feedback: fb ? fb.docs.map((d: any) => d.data()).sort((a: any, b: any) => (b.createdAtMs || 0) - (a.createdAtMs || 0)) : [],
     admins: adminsSnap ? adminsSnap.docs.map((d: any) => d.id) : [],
     recentRedemptions: redeemed.sort((a, b) => (b.redeemedAtMs || 0) - (a.redeemedAtMs || 0)).slice(0, 20),
+    paidCount: paysApproved.length,
+    paidAmount: paysApproved.reduce((s, p) => s + (Number(p.amount) || 0), 0),
+    paidFees: paysApproved.reduce((s, p) => s + (Number(p.feeAmount) || 0), 0),
+    recentPayments: paysList
+      .sort((a, b) => (b.approvedAtMs || b.createdAtMs || 0) - (a.approvedAtMs || a.createdAtMs || 0))
+      .slice(0, 20),
   };
 }
 
@@ -778,6 +810,7 @@ export interface Redemption {
   status: 'pending' | 'redeemed';
   createdAtMs: number; // para expiración (24 horas)
   redeemedAtMs?: number; // para la gráfica de ventas por día
+  validUntilMs?: number; // hasta cuándo vale el QR: el fin de la vigencia de la promo
 }
 
 // Convierte "$120", "$1,250.50 MXN", "120 pesos" -> 120 / 1250.5
@@ -812,9 +845,17 @@ function demoWrite(data: Record<string, Redemption>): void {
 }
 
 export async function createRedemption(
-  promo: { id: string; title: string; businessName: string; uid?: string | null; price?: string },
+  promo: { id: string; title: string; businessName: string; uid?: string | null; price?: string; validTo?: string; validToTime?: string; allDay?: boolean },
   user: AuthUser | null
 ): Promise<Redemption> {
+  // El QR vale hasta que termina la vigencia de la promoción (si la tiene);
+  // si no tiene vigencia, vale 24 horas desde que se genera.
+  let validUntilMs = Date.now() + REDEMPTION_TTL_MS;
+  if (promo.validTo) {
+    const hasTime = !promo.allDay && promo.validToTime && /^\d{1,2}:\d{2}$/.test(promo.validToTime);
+    const end = new Date(`${promo.validTo}T${hasTime ? promo.validToTime + ':59' : '23:59:59'}`).getTime();
+    if (Number.isFinite(end) && end > Date.now()) validUntilMs = end;
+  }
   const redemption: Redemption = {
     code: generateCode(),
     promoId: promo.id,
@@ -826,6 +867,7 @@ export async function createRedemption(
     uid: user?.uid || null,
     status: 'pending',
     createdAtMs: Date.now(),
+    validUntilMs,
   };
   if (db) {
     await setDoc(doc(db, 'redemptions', redemption.code), {
@@ -852,7 +894,9 @@ export type ValidationResult =
 
 function checkRedemption(redemption: Redemption, validatorUid?: string | null): ValidationResult | null {
   if (redemption.status === 'redeemed') return { ok: false, reason: 'already-used', redemption };
-  if (redemption.createdAtMs && Date.now() - redemption.createdAtMs > REDEMPTION_TTL_MS) {
+  // Expira cuando termina la vigencia de la promoción (o a las 24 h si no tiene)
+  const limitMs = redemption.validUntilMs || (redemption.createdAtMs ? redemption.createdAtMs + REDEMPTION_TTL_MS : 0);
+  if (limitMs && Date.now() > limitMs) {
     return { ok: false, reason: 'expired', redemption };
   }
   // El código solo lo puede validar el negocio dueño de la promoción

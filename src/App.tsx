@@ -52,7 +52,9 @@ import {
   UserPlus,
   Send,
   Mic,
-  AudioLines
+  AudioLines,
+  Receipt,
+  FileDown
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -501,7 +503,16 @@ function DateTimeRange({ value, onChange, dateOptions, customDateLabel, accent =
           {opt.chip}
         </button>
       ))}
-      <label className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap border cursor-pointer relative ${selected && !dateOptions.some(o => o.iso === selected) ? selOn : 'bg-white/5 border-white/10 text-zinc-400'}`}>
+      <label
+        // Abrir el calendario nativo del teléfono (como Facebook Events): en
+        // algunos celulares el toque no llegaba al input escondido, así que lo
+        // abrimos nosotros de forma explícita con showPicker().
+        onClick={(e) => {
+          const el = e.currentTarget.querySelector('input');
+          try { (el as HTMLInputElement & { showPicker?: () => void })?.showPicker?.(); } catch {}
+        }}
+        className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap border cursor-pointer relative ${selected && !dateOptions.some(o => o.iso === selected) ? selOn : 'bg-white/5 border-white/10 text-zinc-400'}`}
+      >
         📅 Otra
         <input type="date" className="absolute inset-0 opacity-0 cursor-pointer" min={dateOptions[0]?.iso} value={selected || ''} onChange={e => e.target.value && onPick(e.target.value)} />
       </label>
@@ -900,9 +911,15 @@ export default function App() {
     linkedin: '',
     photos: [] as string[], // hasta 5 fotos del negocio (galería)
   });
-  const [mode, setMode] = useState<UserMode>('person');
+  // Al actualizar con "jalar hacia abajo" la app se recarga pero REGRESA a la
+  // misma pantalla y modo donde estaba (como Instagram): lo recordamos aquí.
+  const resumeAfterRefresh = (key: string): string | null => {
+    try { const v = sessionStorage.getItem(key); if (v) { sessionStorage.removeItem(key); return v; } } catch {}
+    return null;
+  };
+  const [mode, setMode] = useState<UserMode>(() => (resumeAfterRefresh('iogga_resume_mode') === 'business' ? 'business' : 'person'));
   // Quien ya usa la app entra directo a Explorar; los nuevos empiezan en Inicio.
-  const [activeTab, setActiveTab] = useState(bootSkipIntro ? 'search' : 'home');
+  const [activeTab, setActiveTab] = useState(() => resumeAfterRefresh('iogga_resume_tab') || (bootSkipIntro ? 'search' : 'home'));
   // Con Firebase conectado la app inicia EN BLANCO y se llena con datos reales
   // de los usuarios en tiempo real. Sin Firebase, usa datos de ejemplo.
   // La base ficticia (SEED_*) acompaña a los datos reales para que la app se
@@ -1668,6 +1685,19 @@ export default function App() {
     return Date.now() > end;
   };
   const promoLive = (pr: Promotion) => !promoExpired(pr) && !(((userProfile.blocked as string[]) || []).includes(pr.uid || ''));
+
+  // Buscador de Explorar: filtra por lo que escribas (actividad, persona, lugar,
+  // título de oferta, negocio o etiquetas). Vacío = mostrar todo.
+  const planMatchesQuery = (p: Plan) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return [p.activity, p.userName, p.location, p.locationHint, p.comment].some(v => (v || '').toLowerCase().includes(q));
+  };
+  const promoMatchesQuery = (pr: Promotion) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return [pr.title, pr.businessName, pr.description, pr.location, pr.offer, ...(pr.tags || [])].some(v => (v || '').toLowerCase().includes(q));
+  };
   // ¿Falta poco para caducar? (plan hoy o mañana / oferta a <= 1 día del fin)
   const planExpiringSoon = (p: Plan) => { if (p.isSeed || isExpiredPlan(p)) return false; const ms = planEndMs(p) - Date.now(); return ms > 0 && ms < 3 * 60 * 60 * 1000; };
   const promoExpiringSoon = (pr: Promotion) => { if (pr.isSeed || promoExpired(pr)) return false; const end = promoEndMs(pr); if (end === null) return false; const ms = end - Date.now(); return ms > 0 && ms < 24 * 60 * 60 * 1000; };
@@ -2198,6 +2228,17 @@ export default function App() {
     if (!currentUser || currentUser.isAnonymous) { setMyUserRedemptions([]); return; }
     return watchUserRedemptions(currentUser.uid, setMyUserRedemptions);
   }, [currentUser?.uid]);
+
+  // Compras VIGENTES del cliente: QR pendiente y dentro de la vigencia de la promo.
+  // Se ven en el perfil ("Mis promos activas") y evitan comprar dos veces sin querer.
+  const purchaseActive = (r: Redemption) =>
+    r.status === 'pending' && (r.validUntilMs || r.createdAtMs + 24 * 60 * 60 * 1000) > Date.now();
+  const myActivePurchases = myUserRedemptions.filter(purchaseActive).sort((a, b) => b.createdAtMs - a.createdAtMs);
+  // Ver un QR ya comprado (sin generar ni cobrar otro)
+  const [viewQR, setViewQR] = useState<Redemption | null>(null);
+  // "Mis compras": historial completo (modelo Mercado Pago) + comprobante al tocar
+  const [showMyPurchases, setShowMyPurchases] = useState(false);
+  const [purchaseDetail, setPurchaseDetail] = useState<Redemption | null>(null);
   useEffect(() => {
     const check = () => {
       if (pendingEval) return;
@@ -2477,6 +2518,16 @@ export default function App() {
   }, []);
 
   const handlePublishPlan = async () => {
+    // Pokayoke: un plan con fecha/hora que YA pasó no se ve en ningún feed
+    // ("¿por qué no aparece mi plan?"). Lo detectamos ANTES de publicar.
+    {
+      const probe = { ...newPlan, timestamp: Date.now() } as Plan;
+      if (Date.now() > planEndMs(probe)) {
+        triggerBeta('Revisa la hora de tu plan', 'La hora que elegiste ya pasó, y un plan pasado no aparece en iogga. Cambia la fecha u hora de término a un momento futuro y vuelve a publicar.');
+        setCurrentPlanStep(1); // llevar directo al paso de fecha y hora
+        return;
+      }
+    }
     // Publicar NO exige registro: se crea una sesión silenciosa.
     // El registro se pide después, cuando alguien acepte su plan.
     let publisher = currentUser;
@@ -2884,6 +2935,11 @@ export default function App() {
   const onPullEnd = () => {
     if (pullRef.current.pulling && pullDist >= PULL_THRESHOLD) {
       setIsRefreshing(true);
+      // Recordar pantalla y modo para volver EXACTAMENTE aquí tras recargar
+      try {
+        sessionStorage.setItem('iogga_resume_tab', activeTab);
+        sessionStorage.setItem('iogga_resume_mode', mode);
+      } catch {}
       setTimeout(() => window.location.reload(), 350);
     }
     pullRef.current.pulling = false;
@@ -3608,7 +3664,7 @@ export default function App() {
                     <>
                       {searchFilter === 'plans' ? (
                         <div className="grid grid-cols-2 gap-4">
-                          {plans.filter(p => (searchSubFilter === 'public' ? p.isPublic : !p.isPublic) && matchesCategory(p) && isLivePlan(p)).length === 0 && (
+                          {plans.filter(p => (searchSubFilter === 'public' ? p.isPublic : !p.isPublic) && matchesCategory(p) && isLivePlan(p) && planMatchesQuery(p)).length === 0 && (
                             <div className="col-span-2 py-16 flex flex-col items-center gap-4 text-center">
                               <div className="p-5 rounded-full bg-iogga-primary/10 border border-iogga-primary/20">
                                 <Sparkles size={28} className="text-iogga-primary" />
@@ -3626,7 +3682,7 @@ export default function App() {
                             </div>
                           )}
                           {plans
-                            .filter(p => (searchSubFilter === 'public' ? p.isPublic : !p.isPublic) && matchesCategory(p) && isLivePlan(p))
+                            .filter(p => (searchSubFilter === 'public' ? p.isPublic : !p.isPublic) && matchesCategory(p) && isLivePlan(p) && planMatchesQuery(p))
                             .map((plan, index) => (
                               <motion.div 
                                 key={plan.id} 
@@ -3680,7 +3736,7 @@ export default function App() {
                             <span className="text-[10px] font-black text-iogga-accent uppercase tracking-widest">Ofertas de negocios cerca de ti</span>
                           </div>
                           <div className="grid grid-cols-2 gap-3 border-l-2 border-iogga-accent/30 pl-3">
-                          {promos.filter(pr => promoLive(pr) && matchesPromoCategory(pr)).map(promo => (
+                          {promos.filter(pr => promoLive(pr) && matchesPromoCategory(pr) && promoMatchesQuery(pr)).map(promo => (
                             <PromoCard
                               key={promo.id}
                               promo={promo}
@@ -4218,7 +4274,7 @@ export default function App() {
                               <span className="text-[9px] font-bold text-iogga-primary/80 uppercase tracking-wider mt-1 text-center leading-tight">En su plan</span>
                             </button>
                             <button
-                              onClick={(e) => { e.stopPropagation(); setSelectedProductAnalytics(promo); }}
+                              onClick={(e) => { e.stopPropagation(); setSelectedProductAnalytics(promo); setActiveTab('analytics'); }}
                               className="flex flex-col items-center p-2 rounded-2xl bg-white/5 active:scale-95 transition-all"
                             >
                               <QrCode size={14} className="text-iogga-accent mb-1" />
@@ -4226,7 +4282,7 @@ export default function App() {
                               <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1 text-center leading-tight">Seleccionados</span>
                             </button>
                             <button
-                              onClick={(e) => { e.stopPropagation(); setSelectedProductAnalytics(promo); }}
+                              onClick={(e) => { e.stopPropagation(); setSelectedProductAnalytics(promo); setActiveTab('analytics'); }}
                               className="flex flex-col items-center p-2 rounded-2xl bg-emerald-500/10 active:scale-95 transition-all"
                             >
                               <CheckCircle2 size={14} className="text-emerald-400 mb-1" />
@@ -4351,7 +4407,11 @@ export default function App() {
                     title: n.title, message: n.message, icon: Sparkles, tone: 'ai',
                     onOpen: () => {
                       void markNotificationRead(n.id);
-                      if (n.planId) {
+                      if (n.fromUid) {
+                        // Como Instagram: tocar "X quiere seguirte" abre SU perfil,
+                        // con la opción de aceptar/seguir también desde ahí.
+                        setSelectedFriend({ uid: n.fromUid, name: n.fromName || 'Usuario' });
+                      } else if (n.planId) {
                         const p = plans.find(pl => pl.id === n.planId);
                         if (p) { setActiveTab('search'); setSelectedPlanForDetails(p); }
                         else fetchDocIn<Plan>('plans', n.planId).then(pl => { if (pl) { setActiveTab('search'); setSelectedPlanForDetails(pl); } });
@@ -4700,6 +4760,80 @@ export default function App() {
                       </div>
                     </section>
 
+                    {/* Estado de cuenta (modelo BBVA): total del negocio, comisión y neto,
+                        con descarga en CSV de cada transacción para conciliar con tu banco. */}
+                    <section className="p-6 rounded-3xl bg-white/5 border border-white/10 space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-emerald-500/15 rounded-xl">
+                          <Receipt size={20} className="text-emerald-400" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-white">Estado de cuenta</p>
+                          <p className="text-xs text-zinc-400">Ventas canjeadas, comisión y neto a depositar</p>
+                        </div>
+                      </div>
+                      {(() => {
+                        const FEE = 0.10; // comisión iogga del MVP (misma que el backend de pagos)
+                        const rows = myRedemptions.filter(r => r.status === 'redeemed');
+                        const total = rows.reduce((s, r) => s + (r.priceAmount || 0), 0);
+                        const fee = Math.round(total * FEE * 100) / 100;
+                        const money = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                        return (
+                          <>
+                            <div className="rounded-2xl bg-black/20 border border-white/5 divide-y divide-white/5 overflow-hidden">
+                              {[
+                                ['Ventas canjeadas', String(rows.length)],
+                                ['Total vendido', money(total)],
+                                ['Comisión iogga (10%)', `− ${money(fee)}`],
+                                ['Neto a depositar', money(total - fee)],
+                              ].map(([k, v], i, arr) => (
+                                <div key={k} className="flex items-center justify-between px-4 py-2.5">
+                                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
+                                  <span className={`text-sm font-black ${i === arr.length - 1 ? 'text-emerald-400' : 'text-white'}`}>{v}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <button
+                              disabled={rows.length === 0}
+                              onClick={() => {
+                                // CSV con los datos EXACTOS de cada transacción, para
+                                // comparar contra el dinero recibido en el banco.
+                                const esc = (s: unknown) => `"${String(s ?? '').replace(/"/g, '""')}"`;
+                                const list = [...rows].sort((a, b) => (a.redeemedAtMs || 0) - (b.redeemedAtMs || 0));
+                                const lines = [
+                                  ['Fecha de canje', 'Folio', 'Promoción', 'Cliente', 'Monto (MXN)', 'Comisión iogga 10%', 'Neto a depositar'].map(esc).join(','),
+                                  ...list.map(r => {
+                                    const f = Math.round((r.priceAmount || 0) * FEE * 100) / 100;
+                                    return [
+                                      new Date(r.redeemedAtMs || r.createdAtMs).toLocaleString('es-MX'),
+                                      r.code, r.promoTitle, r.userName,
+                                      (r.priceAmount || 0).toFixed(2), f.toFixed(2), ((r.priceAmount || 0) - f).toFixed(2),
+                                    ].map(esc).join(',');
+                                  }),
+                                  ['TOTAL', '', '', '', total.toFixed(2), fee.toFixed(2), (total - fee).toFixed(2)].map(esc).join(','),
+                                ];
+                                const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                                const a = document.createElement('a');
+                                a.href = URL.createObjectURL(blob);
+                                a.download = `iogga-estado-de-cuenta-${new Date().toISOString().slice(0, 10)}.csv`;
+                                a.click();
+                                URL.revokeObjectURL(a.href);
+                              }}
+                              className="w-full py-4 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
+                            >
+                              <FileDown size={16} />
+                              Descargar estado de cuenta (CSV)
+                            </button>
+                            <p className="text-[10px] text-zinc-500 leading-snug">
+                              💸 Lo que vendes pagado en iogga se te deposita por transferencia (SPEI) a la
+                              CLABE de tu perfil de negocio en cada corte. Este archivo trae cada transacción
+                              exacta para que compruebes que los números coinciden con tu banco.
+                            </p>
+                          </>
+                        );
+                      })()}
+                    </section>
+
                     <section className="p-6 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 space-y-4">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-indigo-500/20 rounded-xl">
@@ -4890,26 +5024,44 @@ export default function App() {
                       </button>
                     )}
 
-                    {/* Cuadrícula de mis planes (como el feed de tu perfil) */}
-                    {plans.filter(p => isMyPlan(p)).length > 0 && (
+                    {/* Cuadrícula de mis planes ACTIVOS (como el feed de tu perfil) */}
+                    {plans.filter(p => isMyPlan(p) && !p.deleted && !p.closed && !isExpiredPlan(p)).length > 0 && (
                       <div className="pt-3 space-y-2">
                         <div className="flex items-center gap-2 px-1">
                           <LayoutGrid size={14} className="text-iogga-primary" />
                           <h3 className="text-xs font-black text-white uppercase tracking-widest">Mis planes</h3>
-                          <span className="text-[10px] font-black text-zinc-500">({plans.filter(p => isMyPlan(p)).length})</span>
+                          <span className="text-[10px] font-black text-zinc-500">({plans.filter(p => isMyPlan(p) && !p.deleted && !p.closed && !isExpiredPlan(p)).length})</span>
                         </div>
                         <div className="grid grid-cols-3 gap-1">
-                          {plans.filter(p => isMyPlan(p)).map(pl => {
-                            const inactive = pl.closed || isExpiredPlan(pl);
-                            return (
-                              <button key={pl.id} onClick={() => setSelectedPlanForDetails(pl)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
-                                <img src={pl.image || `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=300&q=80`} className={`w-full h-full object-cover ${inactive ? 'grayscale opacity-60' : ''}`} referrerPolicy="no-referrer" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                                {inactive && <span className="absolute top-1 right-1 text-[7px] font-black text-zinc-300 bg-zinc-800/90 px-1.5 py-0.5 rounded-full uppercase tracking-widest">{pl.closed ? 'Cerrado' : 'Inactivo'}</span>}
-                                <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{pl.activity}</span>
-                              </button>
-                            );
-                          })}
+                          {plans.filter(p => isMyPlan(p) && !p.deleted && !p.closed && !isExpiredPlan(p)).map(pl => (
+                            <button key={pl.id} onClick={() => setSelectedPlanForDetails(pl)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
+                              <img src={pl.image || `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=300&q=80`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                              <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{pl.activity}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Mis promos activas: QRs comprados aún vigentes, mismo formato.
+                        Tocar una abre SU QR (sin volver a cobrar). */}
+                    {myActivePurchases.length > 0 && (
+                      <div className="pt-3 space-y-2">
+                        <div className="flex items-center gap-2 px-1">
+                          <QrCode size={14} className="text-iogga-accent" />
+                          <h3 className="text-xs font-black text-white uppercase tracking-widest">Mis promos activas</h3>
+                          <span className="text-[10px] font-black text-zinc-500">({myActivePurchases.length})</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1">
+                          {myActivePurchases.map(r => (
+                            <button key={r.code} onClick={() => setViewQR(r)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
+                              <img src={promos.find(p => p.id === r.promoId)?.image || 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=300&q=80'} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                              <span className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white"><QrCode size={10} /></span>
+                              <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{r.promoTitle}</span>
+                            </button>
+                          ))}
                         </div>
                       </div>
                     )}
@@ -6755,14 +6907,42 @@ export default function App() {
                       {userSelectedOfferIds[expandedPlanId] === selectedPromo.id ? 'Promo Seleccionada' : 'Seleccionar Promo'}
                     </button>
                   )}
-                  <button
-                    onClick={() => ensureLoggedIn(() => setRedeemPromo(selectedPromo))}
-                    className="w-full py-5 bg-iogga-accent text-white rounded-[24px] font-black text-base uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-iogga-accent/30"
-                  >
-                    <QrCode size={20} />
-                    Obtener promoción
-                  </button>
-                  <p className="text-[10px] text-zinc-500 text-center">Generas tu código QR y lo puedes descargar para presentarlo en el local.</p>
+                  {(() => {
+                    // Pokayoke: si ya la compró y su QR sigue vigente, no volver a
+                    // cobrarle sin querer — le mostramos SU QR y la opción de
+                    // comprar otra (p. ej. para alguien más).
+                    const owned = myActivePurchases.find(r => r.promoId === selectedPromo.id);
+                    if (owned) return (
+                      <>
+                        <button
+                          onClick={() => { setSelectedPromo(null); setViewQR(owned); }}
+                          className="w-full py-5 bg-emerald-500 text-white rounded-[24px] font-black text-base uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-emerald-500/30"
+                        >
+                          <CheckCircle2 size={20} />
+                          Ya tienes esta promo — Ver mi QR
+                        </button>
+                        <button
+                          onClick={() => ensureLoggedIn(() => setRedeemPromo(selectedPromo))}
+                          className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-[24px] font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+                        >
+                          <QrCode size={16} />
+                          Comprar otra (para alguien más)
+                        </button>
+                      </>
+                    );
+                    return (
+                      <>
+                        <button
+                          onClick={() => ensureLoggedIn(() => setRedeemPromo(selectedPromo))}
+                          className="w-full py-5 bg-iogga-accent text-white rounded-[24px] font-black text-base uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-iogga-accent/30"
+                        >
+                          <QrCode size={20} />
+                          Obtener promoción
+                        </button>
+                        <p className="text-[10px] text-zinc-500 text-center">Generas tu código QR y lo puedes descargar para presentarlo en el local.</p>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </Modal>
@@ -6812,13 +6992,22 @@ export default function App() {
                 <div className="space-y-2">
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2">Pagos y Negocio</p>
                   <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden">
-                    <SettingsItem 
-                      icon={<CreditCard size={18} />} 
-                      label="Métodos de Pago" 
+                    {/* Historial de compras del cliente (como "Mis compras" de Mercado Pago) */}
+                    <SettingsItem
+                      icon={<Receipt size={18} />}
+                      label="Mis compras"
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        ensureLoggedIn(() => setShowMyPurchases(true));
+                      }}
+                    />
+                    <SettingsItem
+                      icon={<CreditCard size={18} />}
+                      label="Métodos de Pago"
                       onClick={() => {
                         setShowSettingsMenu(false);
                         triggerBeta("Métodos de Pago", "La pasarela de pago segura de iogga en Chihuahua se encuentra en ambiente sandbox de prueba para este MVP. Pronto estará disponible en producción.");
-                      }} 
+                      }}
                     />
                     <SettingsItem 
                       icon={<Wallet size={18} />} 
@@ -7656,10 +7845,88 @@ export default function App() {
         {/* QR real: canje del cliente y validación del negocio */}
         {redeemPromo && (
           <RedeemQRModal
-            promo={{ id: redeemPromo.id, title: redeemPromo.title, businessName: redeemPromo.businessName, uid: redeemPromo.uid || null, price: redeemPromo.price }}
+            promo={{ id: redeemPromo.id, title: redeemPromo.title, businessName: redeemPromo.businessName, uid: redeemPromo.uid || null, price: redeemPromo.price, validTo: redeemPromo.validTo, validToTime: redeemPromo.validToTime, allDay: redeemPromo.allDay }}
             user={currentUser}
             onClose={() => setRedeemPromo(null)}
           />
+        )}
+        {/* Ver un QR YA comprado (desde "Mis promos activas" o "Mis compras"): no cobra de nuevo */}
+        {viewQR && (
+          <RedeemQRModal
+            promo={{ id: viewQR.promoId, title: viewQR.promoTitle, businessName: viewQR.businessName, uid: viewQR.businessUid || null, price: promos.find(p => p.id === viewQR.promoId)?.price }}
+            user={currentUser}
+            existing={viewQR}
+            onClose={() => setViewQR(null)}
+          />
+        )}
+
+        {/* Mis compras: historial completo del cliente (modelo "Mis compras" de Mercado Pago) */}
+        {showMyPurchases && (
+          <Modal onClose={() => setShowMyPurchases(false)} title="Mis compras">
+            <div className="space-y-3">
+              {myUserRedemptions.length === 0 ? (
+                <div className="text-center py-10 space-y-2">
+                  <Receipt size={32} className="mx-auto text-zinc-600" />
+                  <p className="text-sm font-bold text-zinc-400">Aún no tienes compras</p>
+                  <p className="text-[11px] text-zinc-500">Cuando obtengas una promoción, aparecerá aquí con su comprobante.</p>
+                </div>
+              ) : (
+                [...myUserRedemptions].sort((a, b) => b.createdAtMs - a.createdAtMs).map(r => {
+                  const st = r.status === 'redeemed'
+                    ? { txt: 'Canjeado', cls: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' }
+                    : purchaseActive(r)
+                      ? { txt: 'Vigente', cls: 'text-iogga-accent bg-iogga-accent/10 border-iogga-accent/30' }
+                      : { txt: 'Vencido', cls: 'text-zinc-400 bg-white/5 border-white/10' };
+                  return (
+                    <button key={r.code} onClick={() => setPurchaseDetail(r)} className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3 active:scale-[0.98] transition-transform text-left">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white truncate">{r.promoTitle}</p>
+                        <p className="text-[11px] text-zinc-500 truncate">{r.businessName} · {new Date(r.createdAtMs).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                      </div>
+                      <div className="text-right shrink-0 space-y-1">
+                        <p className="text-sm font-black text-white">{r.priceAmount > 0 ? `$${r.priceAmount.toLocaleString('es-MX')}` : 'Gratis'}</p>
+                        <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${st.cls}`}>{st.txt}</span>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </Modal>
+        )}
+
+        {/* Comprobante de UNA compra: todos los datos, como recibo bancario */}
+        {purchaseDetail && (
+          <Modal onClose={() => setPurchaseDetail(null)} title="Comprobante">
+            <div className="space-y-4">
+              <div className="rounded-3xl bg-white/5 border border-white/10 divide-y divide-white/5 overflow-hidden">
+                {[
+                  ['Promoción', purchaseDetail.promoTitle],
+                  ['Negocio', purchaseDetail.businessName],
+                  ['Folio', purchaseDetail.code],
+                  ['Fecha de compra', new Date(purchaseDetail.createdAtMs).toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' })],
+                  purchaseDetail.status === 'redeemed'
+                    ? ['Canjeado el', purchaseDetail.redeemedAtMs ? new Date(purchaseDetail.redeemedAtMs).toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—']
+                    : ['Válido hasta', new Date(purchaseDetail.validUntilMs || purchaseDetail.createdAtMs + 24 * 60 * 60 * 1000).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })],
+                  ['Monto', purchaseDetail.priceAmount > 0 ? `$${purchaseDetail.priceAmount.toLocaleString('es-MX')} MXN` : 'Gratis'],
+                  ['Estado', purchaseDetail.status === 'redeemed' ? 'Canjeado ✓' : purchaseActive(purchaseDetail) ? 'Vigente' : 'Vencido'],
+                ].map(([k, v]) => (
+                  <div key={k as string} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest shrink-0">{k}</span>
+                    <span className="text-sm font-bold text-white text-right truncate">{v}</span>
+                  </div>
+                ))}
+              </div>
+              {purchaseActive(purchaseDetail) && (
+                <button
+                  onClick={() => { const r = purchaseDetail; setPurchaseDetail(null); setShowMyPurchases(false); setViewQR(r); }}
+                  className="w-full py-4 bg-iogga-accent text-white rounded-[20px] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+                >
+                  <QrCode size={16} /> Ver mi QR
+                </button>
+              )}
+            </div>
+          </Modal>
         )}
         {showValidateModal && <ValidateCodeModal validatorUid={currentUser?.uid || null} onClose={() => setShowValidateModal(false)} />}
 
@@ -7960,6 +8227,8 @@ export default function App() {
                       { label: 'Citas concretadas', value: adminData.redemptionsRedeemed, color: 'text-emerald-400' },
                       { label: 'Ventas concretadas', value: `$${adminData.salesTotal.toLocaleString('es-MX')}`, color: 'text-emerald-400' },
                       { label: 'Ingresos iogga', value: `$${adminData.incomeTotal.toLocaleString('es-MX')}`, color: 'text-amber-300' },
+                      { label: 'Compras pagadas (MP)', value: adminData.paidCount, color: 'text-sky-400' },
+                      { label: 'Cobrado por MP', value: `$${adminData.paidAmount.toLocaleString('es-MX')}`, color: 'text-sky-400' },
                     ].map(k => (
                       <div key={k.label} className="p-4 rounded-2xl bg-white/5 border border-white/10">
                         <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{k.label}</p>
@@ -7980,6 +8249,26 @@ export default function App() {
                           <p className="text-[10px] text-zinc-500">Folio {r.code} · {r.userName} · {r.redeemedAtMs ? new Date(r.redeemedAtMs).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</p>
                         </div>
                         <span className="text-sm font-black text-emerald-400 shrink-0">${r.priceAmount || 0}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Últimos pagos por Mercado Pago (los escribe el backend) */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Últimos pagos (Mercado Pago)</p>
+                    {adminData.recentPayments.length === 0 && <p className="text-xs text-zinc-500 px-1">Aún no hay pagos registrados.</p>}
+                    {adminData.recentPayments.map((p, i) => (
+                      <div key={i} className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${p.status === 'approved' ? 'bg-sky-500/15 text-sky-400' : 'bg-white/10 text-zinc-400'}`}><CreditCard size={16} /></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-white truncate">{p.title || 'Pago'} · {p.userName || '—'}</p>
+                          <p className="text-[10px] text-zinc-500 truncate">
+                            {p.status === 'approved' ? 'Aprobado' : p.status === 'created' ? 'Iniciado' : p.status || '—'}
+                            {p.code ? ` · Folio ${p.code}` : ''}
+                            {typeof p.payoutAmount === 'number' ? ` · Neto negocio $${p.payoutAmount.toLocaleString('es-MX')}` : ''}
+                          </p>
+                        </div>
+                        <span className={`text-sm font-black shrink-0 ${p.status === 'approved' ? 'text-sky-400' : 'text-zinc-400'}`}>${(p.amount || 0).toLocaleString('es-MX')}</span>
                       </div>
                     ))}
                   </div>
@@ -8506,6 +8795,23 @@ export default function App() {
                   ))}
                 </div>
               ) : <p className="text-xs text-zinc-500 italic">Sin planes públicos por ahora.</p>; })()}
+              {/* Si esta persona te mandó solicitud, confirmarla desde aquí (como Instagram) */}
+              {followRequests.some(f => f.uid === selectedFriend.uid) && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { if (currentUser) void acceptFollower(currentUser, selectedFriend.uid); }}
+                    className="flex-1 py-3.5 rounded-2xl bg-iogga-primary text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-iogga-primary/20"
+                  >
+                    Confirmar solicitud
+                  </button>
+                  <button
+                    onClick={() => { if (currentUser) void removeFollower(currentUser.uid, selectedFriend.uid); }}
+                    className="px-4 rounded-2xl bg-white/10 text-zinc-400 font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
               <button
                 onClick={() => toggleFollow(selectedFriend)}
                 className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all ${followState(selectedFriend.uid) === 'friends' ? 'bg-white/10 text-zinc-300' : followState(selectedFriend.uid) === 'requested' ? 'bg-white/5 text-zinc-500 border border-white/15' : 'bg-iogga-primary text-white shadow-lg shadow-iogga-primary/20'}`}
@@ -8536,6 +8842,14 @@ export default function App() {
               animate={{ opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 0.61, 0.36, 1] } }}
               className="relative w-full sm:max-w-md bg-zinc-950 border border-iogga-accent/30 rounded-t-[32px] sm:rounded-[32px] p-7 pb-[max(2.5rem,env(safe-area-inset-bottom))] space-y-5 text-center"
             >
+              {/* Tachita para cerrar (misma estructura que todas las hojas de la app) */}
+              <button
+                onClick={() => setShowBizWelcome(false)}
+                className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/5 text-white/60 hover:bg-white/10 active:scale-90 transition-all"
+                aria-label="Cerrar"
+              >
+                <X size={18} />
+              </button>
               <div className="flex justify-center">
                 <div className="p-4 rounded-3xl bg-iogga-accent/15 border border-iogga-accent/30 text-iogga-accent">
                   <Store size={34} />

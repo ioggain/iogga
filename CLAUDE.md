@@ -37,3 +37,18 @@ del móvil y entrar en la vida". Sin chats: solo acción. El fundador no es téc
   `firestore.rules`.
 - Info sensible (WhatsApp, redes, fotos extra, ubicación exacta) solo se muestra
   con confianza (aceptación/seguimiento confirmado). Nunca exponerla en público.
+
+## Limpieza fina PENDIENTE (hacer cuando el MVP esté completo, antes de auditoría)
+
+1. Crear cuenta de servicio dedicada de despliegue (ej. iogga-deployer@) con
+   permisos mínimos; hoy CI usa firebase-adminsdk-fbsvc con Editor + Secret
+   Manager Admin + Service Account User + Cloud Functions Admin (funcional,
+   pero amplio). Rotar la llave y actualizar el secreto FIREBASE_SERVICE_ACCOUNT.
+2. Quitar el rol Editor a firebase@flutterflow.io (acceso externo heredado).
+3. Pagos a producción: cambiar llaves TEST de Mercado Pago por productivas
+   (secreto MP_ACCESS_TOKEN + Public Key en src/lib/payments.ts), validar
+   webhook con firma, y hacer compra real de $10 + reembolso como examen final.
+4. Endurecer flujo: exigir pago aprobado (verificado por webhook) antes de
+   mostrar el QR (hoy el botón "Ya pagué" es de confianza, apto solo para MVP).
+5. Definir % de comisión oficial (hoy 10% por defecto en functions IOGGA_FEE_PCT).
+6. Perfil de pagos Google "Empresa" viejo (2452-0543-7969) quedó sin uso; no tocar.

@@ -115,6 +115,7 @@ import {
   watchNotifications,
   markNotificationRead,
   enablePushNotifications,
+  parsePrice,
   type Redemption,
   type Friend,
   type AppNotif,
@@ -6415,22 +6416,55 @@ export default function App() {
                       value={newPromo.description || ''} 
                       onChange={e => setNewPromo({...newPromo, description: e.target.value})} 
                     />
+                    <p className="text-[11px] font-bold text-zinc-400 px-1 -mb-1">Precio que pagará el cliente (tu precio normal de venta)</p>
                     <div className="grid grid-cols-2 gap-4">
-                      <input 
-                        type="text" 
-                        placeholder="Precio" 
-                        className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-accent outline-none text-base font-medium" 
-                        value={newPromo.price || ''} 
-                        onChange={e => setNewPromo({...newPromo, price: e.target.value})} 
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="Precio $"
+                        className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-accent outline-none text-base font-medium"
+                        value={newPromo.price || ''}
+                        onChange={e => setNewPromo({...newPromo, price: e.target.value})}
                       />
-                      <input 
-                        type="text" 
-                        placeholder="Oferta (Ej. 2x1)" 
-                        className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-accent outline-none text-base font-medium" 
-                        value={newPromo.offer || ''} 
-                        onChange={e => setNewPromo({...newPromo, offer: e.target.value})} 
+                      <input
+                        type="text"
+                        placeholder="Oferta (Ej. 2x1)"
+                        className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-accent outline-none text-base font-medium"
+                        value={newPromo.offer || ''}
+                        onChange={e => setNewPromo({...newPromo, offer: e.target.value})}
                       />
                     </div>
+                    {/* Desglose del dinero EN VIVO (modelo Uber Eats, pero más simple):
+                        al escribir el precio, el negocio ve exactamente qué paga el
+                        cliente, cuánto es de iogga y cuánto recibe él. Cero sorpresas. */}
+                    {(() => {
+                      const p = parsePrice(newPromo.price);
+                      if (p <= 0) return (
+                        <p className="text-[10px] text-zinc-500 px-1">
+                          Escribe el precio que pagará el cliente y aquí verás al instante cuánto recibes tú.
+                        </p>
+                      );
+                      const fee = Math.round(p * 10) / 100;
+                      const money = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                      return (
+                        <div className="rounded-2xl bg-white/5 border border-white/10 divide-y divide-white/5 overflow-hidden">
+                          {[
+                            ['El cliente paga', money(p), 'text-white'],
+                            ['Comisión iogga (10%)', `− ${money(fee)}`, 'text-zinc-400'],
+                            ['Tú recibes en tu cuenta', money(p - fee), 'text-emerald-400'],
+                          ].map(([k, v, cls], i, arr) => (
+                            <div key={k} className={`flex items-center justify-between px-4 py-2.5 ${i === arr.length - 1 ? 'bg-emerald-500/5' : ''}`}>
+                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
+                              <span className={`text-sm font-black ${cls}`}>{v}</span>
+                            </div>
+                          ))}
+                          <p className="px-4 py-2 text-[10px] text-zinc-500 leading-snug">
+                            El cliente paga exactamente este precio, sin cargos extra. Tu neto se
+                            deposita a la cuenta de tu perfil en cada corte.
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="relative">
                     <input
@@ -7210,9 +7244,13 @@ export default function App() {
                           className="w-full py-5 bg-iogga-accent text-white rounded-[24px] font-black text-base uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-iogga-accent/30"
                         >
                           <QrCode size={20} />
-                          Obtener promoción
+                          {parsePrice(selectedPromo.price) > 0 ? `Obtener por $${parsePrice(selectedPromo.price).toLocaleString('es-MX')}` : 'Obtener promoción'}
                         </button>
-                        <p className="text-[10px] text-zinc-500 text-center">Generas tu código QR y lo puedes descargar para presentarlo en el local.</p>
+                        <p className="text-[10px] text-zinc-500 text-center leading-snug">
+                          {parsePrice(selectedPromo.price) > 0
+                            ? 'Pagas exactamente ese precio, sin cargos extra. Recibes tu QR y lo presentas en el local.'
+                            : 'Generas tu código QR y lo puedes descargar para presentarlo en el local.'}
+                        </p>
                       </>
                     );
                   })()}

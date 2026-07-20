@@ -114,6 +114,7 @@ import {
   sendNotification,
   watchNotifications,
   markNotificationRead,
+  enablePushNotifications,
   type Redemption,
   type Friend,
   type AppNotif,
@@ -2241,6 +2242,16 @@ export default function App() {
     if (total > 0) nav.setAppBadge(total).catch(() => {});
     else nav.clearAppBadge?.().catch(() => {});
   }, [unreadNotifs]);
+  // Si el permiso YA está dado, registrar este teléfono para push en cada
+  // inicio de sesión (el token puede cambiar entre visitas; es idempotente).
+  useEffect(() => {
+    if (!currentUser || currentUser.isAnonymous) return;
+    try {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        void enablePushNotifications(currentUser.uid);
+      }
+    } catch { /* navegador sin soporte */ }
+  }, [currentUser?.uid]);
   // Sonido al llegar una notificación nueva (no en la carga inicial).
   const prevNotifCount = useRef<number | null>(null);
   useEffect(() => {
@@ -3318,11 +3329,16 @@ export default function App() {
             <button
               onClick={() => {
                 setActiveTab('notifications');
-                // Primer toque a la campanita: pedir el permiso del sistema para
-                // que suenen y se vean las notificaciones con la app cerrada.
+                // Primer toque a la campanita: pedir el permiso del sistema y,
+                // si lo acepta, registrar este teléfono para recibir push
+                // (notificaciones aunque la app esté cerrada).
                 try {
                   if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-                    void Notification.requestPermission();
+                    void Notification.requestPermission().then(p => {
+                      if (p === 'granted' && currentUser && !currentUser.isAnonymous) {
+                        void enablePushNotifications(currentUser.uid);
+                      }
+                    });
                   }
                 } catch { /* navegador sin soporte */ }
               }}

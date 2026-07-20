@@ -52,3 +52,6 @@ del móvil y entrar en la vida". Sin chats: solo acción. El fundador no es téc
    mostrar el QR (hoy el botón "Ya pagué" es de confianza, apto solo para MVP).
 5. Definir % de comisión oficial (hoy 10% por defecto en functions IOGGA_FEE_PCT).
 6. Perfil de pagos Google "Empresa" viejo (2452-0543-7969) quedó sin uso; no tocar.
+7. Rotar el par de claves de push web (Cloud Messaging → Certificados push web):
+   la clave privada se compartió por chat durante el MVP. Al rotar, actualizar
+   PUSH_PUBLIC_KEY en src/lib/firebase.ts (los teléfonos se re-registran solos).

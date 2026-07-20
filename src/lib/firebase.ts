@@ -44,6 +44,7 @@ import {
   serverTimestamp,
   type Firestore,
 } from 'firebase/firestore';
+import { getMessaging, getToken, isSupported as pushSupported } from 'firebase/messaging';
 
 // Configuración del proyecto Firebase "iogga". Estas claves web son públicas
 // por diseño (la seguridad real está en las reglas de Firestore).
@@ -83,6 +84,33 @@ export interface AuthUser {
   name: string;
   email: string;
   isAnonymous?: boolean; // invitado con sesión silenciosa: puede publicar, no ver datos premium
+}
+
+// ---------- Notificaciones PUSH (con la app cerrada) ----------
+// Clave PÚBLICA de push web (certificado de Cloud Messaging). Es pública por
+// diseño, como las claves web de Firebase. La privada vive solo en Firebase.
+const PUSH_PUBLIC_KEY = 'BNw7jDiml9Cf2MtqsvG85Wm4zxDiviYETiUpGwSgpNSZCZBdEgOluB-3Pnh4aUEL-mXi4ljCaZCkXj2FlQFyAU0';
+
+// Activar push para este usuario/dispositivo: pide el token a Firebase Cloud
+// Messaging (usando nuestro service worker) y lo guarda en su perfil. El
+// backend usa esos tokens para avisarle aunque la app esté cerrada.
+export async function enablePushNotifications(uid: string): Promise<boolean> {
+  try {
+    if (!app || !db || !uid) return false;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return false;
+    if (!(await pushSupported().catch(() => false))) return false;
+    const reg = await navigator.serviceWorker?.ready;
+    if (!reg) return false;
+    const token = await getToken(getMessaging(app), {
+      vapidKey: PUSH_PUBLIC_KEY,
+      serviceWorkerRegistration: reg,
+    });
+    if (!token) return false;
+    await setDoc(doc(db, 'users', uid), { fcmTokens: arrayUnion(token) }, { merge: true });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function watchAuth(callback: (user: AuthUser | null) => void): () => void {

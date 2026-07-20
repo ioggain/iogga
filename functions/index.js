@@ -3,6 +3,7 @@
 //   firebase functions:secrets:set MP_ACCESS_TOKEN
 // La comisión de iogga se configura con la variable IOGGA_FEE_PCT (porcentaje).
 const { onRequest } = require('firebase-functions/v2/https');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 
@@ -142,5 +143,35 @@ exports.mpWebhook = onRequest({ secrets: [MP_ACCESS_TOKEN], region: 'us-central1
     res.sendStatus(200);
   } catch {
     res.sendStatus(200); // MP reintenta si no respondemos 200
+  }
+});
+
+// 3) Push al teléfono: cada notificación nueva en la app se manda también como
+//    notificación del sistema (aunque la app esté cerrada), a todos los
+//    dispositivos donde el usuario aceptó recibirlas.
+exports.sendPush = onDocumentCreated({ document: 'notifications/{id}', region: 'us-central1' }, async (event) => {
+  try {
+    const n = event.data ? event.data.data() : null;
+    if (!n || !n.to) return;
+    const userRef = admin.firestore().collection('users').doc(String(n.to));
+    const snap = await userRef.get();
+    const tokens = (snap.data() || {}).fcmTokens || [];
+    if (!Array.isArray(tokens) || tokens.length === 0) return;
+    const res = await admin.messaging().sendEachForMulticast({
+      tokens,
+      notification: { title: n.title || 'iogga', body: n.message || '' },
+      webpush: {
+        fcmOptions: { link: 'https://iogga.com/' },
+        notification: { icon: '/icons/icon-192.png', badge: '/icons/icon-192.png' },
+      },
+    });
+    // Limpiar tokens de dispositivos que ya no existen (app desinstalada, etc.)
+    const dead = [];
+    res.responses.forEach((r, i) => { if (!r.success) dead.push(tokens[i]); });
+    if (dead.length > 0) {
+      await userRef.update({ fcmTokens: admin.firestore.FieldValue.arrayRemove(...dead) }).catch(() => {});
+    }
+  } catch (e) {
+    console.error('sendPush', e);
   }
 });

@@ -2249,6 +2249,23 @@ export default function App() {
     }
     prevNotifCount.current = realNotifs.length;
   }, [realNotifs.length]);
+  // Notificación DEL SISTEMA (banner del teléfono) cuando llega algo nuevo y la
+  // app está en segundo plano. Requiere el permiso que se pide en la campanita.
+  const lastSysNotifId = useRef<string | null>(null);
+  useEffect(() => {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    const newest = visibleRealNotifs.find(n => !n.read);
+    if (!newest || newest.id === lastSysNotifId.current) return;
+    if (prevNotifCount.current === null) { lastSysNotifId.current = newest.id; return; } // no en la carga inicial
+    lastSysNotifId.current = newest.id;
+    if (!document.hidden) return; // con la app abierta ya suena la campanita
+    void navigator.serviceWorker?.ready.then(reg => reg.showNotification(newest.title, {
+      body: newest.message,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: newest.id,
+    })).catch(() => {});
+  }, [realNotifs]);
 
   // Ventas REALES del negocio (canjes validados) para las gráficas
   const [myRedemptions, setMyRedemptions] = useState<Redemption[]>([]);
@@ -2283,6 +2300,13 @@ export default function App() {
   const [purchaseDetail, setPurchaseDetail] = useState<Redemption | null>(null);
   // "Mis ventas" del negocio: mismos movimientos pero del lado vendedor
   const [showMySales, setShowMySales] = useState(false);
+  // Filtros de los movimientos del negocio (modelo estado de cuenta BBVA)
+  const [salesPromoFilter, setSalesPromoFilter] = useState<string>('all');
+  const [salesMonthOnly, setSalesMonthOnly] = useState(false);
+  // Billetera (modelo Uber): persona = formas de pago; negocio = cuentas de depósito
+  const [showWallet, setShowWallet] = useState(false);
+  // "Ver más" de las cuadrículas del perfil (máximo 2 filas al inicio)
+  const [gridExpanded, setGridExpanded] = useState(false);
   useEffect(() => {
     const check = () => {
       if (pendingEval) return;
@@ -3291,8 +3315,17 @@ export default function App() {
             >
               <Plus size={20} />
             </button>
-            <button 
-              onClick={() => setActiveTab('notifications')}
+            <button
+              onClick={() => {
+                setActiveTab('notifications');
+                // Primer toque a la campanita: pedir el permiso del sistema para
+                // que suenen y se vean las notificaciones con la app cerrada.
+                try {
+                  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+                    void Notification.requestPermission();
+                  }
+                } catch { /* navegador sin soporte */ }
+              }}
               className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors relative active:scale-90 ${activeTab === 'notifications' ? (mode === 'person' ? 'bg-iogga-primary/20 text-iogga-primary' : 'bg-iogga-accent/20 text-iogga-accent') : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
             >
               <Bell size={20} />
@@ -4767,17 +4800,27 @@ export default function App() {
                               {promoTxExpanded ? 'Ver menos' : 'Ver más (este mes)'}
                             </button>
                           )}
-                          <button
-                            disabled={all.length === 0}
-                            onClick={() => downloadTxt(
-                              `iogga-estado-de-cuenta-${selectedProductAnalytics.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30)}-${new Date().toISOString().slice(0, 10)}.txt`,
-                              buildStatementTxt(all, { negocio: businessProfile.name || selectedProductAnalytics.businessName, promo: selectedProductAnalytics.title })
-                            )}
-                            className="w-full py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
-                          >
-                            <FileDown size={14} />
-                            Estado de cuenta de esta promo
-                          </button>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              disabled={all.length === 0}
+                              onClick={() => downloadTxt(
+                                `iogga-estado-de-cuenta-${selectedProductAnalytics.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30)}-${new Date().toISOString().slice(0, 10)}.txt`,
+                                buildStatementTxt(all, { negocio: businessProfile.name || selectedProductAnalytics.businessName, promo: selectedProductAnalytics.title })
+                              )}
+                              className="py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
+                            >
+                              <FileDown size={13} />
+                              Descargar
+                            </button>
+                            <button
+                              disabled={all.length === 0}
+                              onClick={() => openExternal(`https://wa.me/?text=${encodeURIComponent(buildStatementTxt(all, { negocio: businessProfile.name || selectedProductAnalytics.businessName, promo: selectedProductAnalytics.title }))}`)}
+                              className="py-3 rounded-2xl bg-green-500/15 border border-green-500/30 text-green-400 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
+                            >
+                              <Send size={13} />
+                              Por WhatsApp
+                            </button>
+                          </div>
                         </div>
                       );
                     })()}
@@ -4953,17 +4996,27 @@ export default function App() {
                                 </div>
                               ))}
                             </div>
-                            <button
-                              disabled={rows.length === 0}
-                              onClick={() => downloadTxt(
-                                `iogga-estado-de-cuenta-${new Date().toISOString().slice(0, 10)}.txt`,
-                                buildStatementTxt(rows, { negocio: businessProfile.name || 'Mi negocio' })
-                              )}
-                              className="w-full py-4 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
-                            >
-                              <FileDown size={16} />
-                              Descargar estado de cuenta
-                            </button>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                disabled={rows.length === 0}
+                                onClick={() => downloadTxt(
+                                  `iogga-estado-de-cuenta-${new Date().toISOString().slice(0, 10)}.txt`,
+                                  buildStatementTxt(rows, { negocio: businessProfile.name || 'Mi negocio' })
+                                )}
+                                className="py-4 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
+                              >
+                                <FileDown size={14} />
+                                Descargar
+                              </button>
+                              <button
+                                disabled={rows.length === 0}
+                                onClick={() => openExternal(`https://wa.me/?text=${encodeURIComponent(buildStatementTxt(rows, { negocio: businessProfile.name || 'Mi negocio' }))}`)}
+                                className="py-4 bg-green-500/15 border border-green-500/30 text-green-400 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
+                              >
+                                <Send size={14} />
+                                Por WhatsApp
+                              </button>
+                            </div>
                             <p className="text-[10px] text-zinc-500 leading-snug">
                               Lo que vendes pagado en iogga se te deposita por transferencia (SPEI) a la
                               cuenta de tu perfil de negocio en cada corte. El archivo trae cada venta como
@@ -5077,7 +5130,7 @@ export default function App() {
                             <span className="text-[10px] font-black text-zinc-500">({myPromos.filter(pr => promoLive(pr)).length})</span>
                           </div>
                           <div className="grid grid-cols-3 gap-1">
-                            {myPromos.filter(pr => promoLive(pr)).map(pr => (
+                            {(gridExpanded ? myPromos.filter(pr => promoLive(pr)) : myPromos.filter(pr => promoLive(pr)).slice(0, 6)).map(pr => (
                               <button
                                 key={pr.id}
                                 onClick={() => { setSelectedProductAnalytics(pr); setPromoTxExpanded(false); setActiveTab('analytics'); }}
@@ -5089,6 +5142,11 @@ export default function App() {
                               </button>
                             ))}
                           </div>
+                          {myPromos.filter(pr => promoLive(pr)).length > 6 && (
+                            <button onClick={() => setGridExpanded(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                              {gridExpanded ? 'Ver menos' : `Ver más (${myPromos.filter(pr => promoLive(pr)).length - 6})`}
+                            </button>
+                          )}
                         </div>
                       )}
 
@@ -5179,24 +5237,6 @@ export default function App() {
                       </button>
                     </div>
 
-                    {/* Dinero a la mano: Mis compras (morado) y, con negocio, Mis ventas (verde) */}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => ensureLoggedIn(() => setShowMyPurchases(true))}
-                        className="flex-1 py-2.5 rounded-xl bg-iogga-primary/10 border border-iogga-primary/25 text-iogga-primary text-xs font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <Receipt size={14} /> Mis compras
-                      </button>
-                      {hasBusiness && (
-                        <button
-                          onClick={() => ensureLoggedIn(() => setShowMySales(true))}
-                          className="flex-1 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                        >
-                          <TrendingUp size={14} /> Mis ventas
-                        </button>
-                      )}
-                    </div>
-
                     {/* Sin sesión: acceso siempre visible también en el perfil */}
                     {!isLoggedIn && (
                       <button
@@ -5237,7 +5277,7 @@ export default function App() {
                           <span className="text-[10px] font-black text-zinc-500">({myActivePurchases.length})</span>
                         </div>
                         <div className="grid grid-cols-3 gap-1">
-                          {myActivePurchases.map(r => (
+                          {(gridExpanded ? myActivePurchases : myActivePurchases.slice(0, 6)).map(r => (
                             <button key={r.code} onClick={() => setViewQR(r)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
                               <img src={promos.find(p => p.id === r.promoId)?.image || 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=300&q=80'} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
@@ -5246,6 +5286,11 @@ export default function App() {
                             </button>
                           ))}
                         </div>
+                        {myActivePurchases.length > 6 && (
+                          <button onClick={() => setGridExpanded(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                            {gridExpanded ? 'Ver menos' : `Ver más (${myActivePurchases.length - 6})`}
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -5374,10 +5419,12 @@ export default function App() {
                     {hasBusiness ? <ChevronRight size={20} /> : <ShieldAlert size={20} className="text-red-500/80 animate-pulse shrink-0" />}
                   </button>
 
+                  {/* Los 4 accesos VIVOS (modelo Uber): Billetera y Movimientos cambian
+                      según el modo — persona ve sus pagos/compras, negocio sus cuentas/ventas */}
                   <div className="grid grid-cols-2 gap-3">
-                    <ProfileButton icon={<Wallet size={20} />} label="Billetera" onClick={() => comingSoon('Billetera')} />
+                    <ProfileButton icon={<Wallet size={20} />} label="Billetera" onClick={() => ensureLoggedIn(() => setShowWallet(true))} />
                     <ProfileButton icon={<Users size={20} />} label="Amigos" onClick={() => setShowFriends('following')} />
-                    <ProfileButton icon={<TrendingUp size={20} />} label="Actividad" onClick={() => comingSoon('Actividad')} />
+                    <ProfileButton icon={<TrendingUp size={20} />} label="Movimientos" onClick={() => ensureLoggedIn(() => { if (mode === 'business') setShowMySales(true); else setShowMyPurchases(true); })} />
                     <ProfileButton icon={<Bell size={20} />} label="Ajustes" onClick={() => setShowSettingsMenu(true)} />
                   </div>
 
@@ -7202,15 +7249,6 @@ export default function App() {
                 <div className="space-y-2">
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2">Pagos y Negocio</p>
                   <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden">
-                    {/* Historial de compras del cliente (como "Mis compras" de Mercado Pago) */}
-                    <SettingsItem
-                      icon={<Receipt size={18} />}
-                      label="Mis compras"
-                      onClick={() => {
-                        setShowSettingsMenu(false);
-                        ensureLoggedIn(() => setShowMyPurchases(true));
-                      }}
-                    />
                     <SettingsItem
                       icon={<CreditCard size={18} />}
                       label="Métodos de Pago"
@@ -7219,12 +7257,12 @@ export default function App() {
                         triggerBeta("Métodos de Pago", "Tus pagos van protegidos por Mercado Pago: tarjeta, dinero en cuenta, transferencia u OXXO. Consejo: si entras con tu cuenta de Mercado Pago, tu tarjeta queda guardada ahí y pagas en un toque. iogga nunca ve ni guarda tu tarjeta.");
                       }}
                     />
-                    <SettingsItem 
-                      icon={<Wallet size={18} />} 
-                      label="Billetera iogga" 
+                    <SettingsItem
+                      icon={<Wallet size={18} />}
+                      label="Billetera iogga"
                       onClick={() => {
                         setShowSettingsMenu(false);
-                        triggerBeta("Billetera iogga", "La Billetera Inteligente iogga está vinculada a tu cuenta de demostración. Saldos y comisiones reales de negocio se habilitarán en la versión final de lanzamiento.");
+                        ensureLoggedIn(() => setShowWallet(true));
                       }}
                     />
                     <SettingsItem
@@ -8070,9 +8108,9 @@ export default function App() {
           />
         )}
 
-        {/* Mis compras: historial completo del cliente (modelo "Mis compras" de Mercado Pago) */}
+        {/* Movimientos del cliente: sus compras (modelo "Mis compras" de Mercado Pago) */}
         {showMyPurchases && (
-          <Modal onClose={() => setShowMyPurchases(false)} title="Mis compras">
+          <Modal onClose={() => setShowMyPurchases(false)} title="Movimientos">
             <div className="space-y-3">
               {myUserRedemptions.length === 0 ? (
                 <div className="text-center py-10 space-y-2">
@@ -8105,30 +8143,148 @@ export default function App() {
           </Modal>
         )}
 
-        {/* Mis ventas (negocio): movimientos como en el banco, verde = entrada */}
+        {/* Movimientos del NEGOCIO (modelo BBVA): filtro por promoción y por mes,
+            total del periodo, y el estado de cuenta para descargar o mandar por WhatsApp */}
         {showMySales && (
-          <Modal onClose={() => setShowMySales(false)} title="Mis ventas">
-            <div className="space-y-3">
-              {myRedemptions.filter(r => r.status === 'redeemed').length === 0 ? (
-                <div className="text-center py-10 space-y-2">
-                  <TrendingUp size={32} className="mx-auto text-zinc-600" />
-                  <p className="text-sm font-bold text-zinc-400">Aún no tienes ventas canjeadas</p>
-                  <p className="text-[11px] text-zinc-500">Cada QR que valides con tu cámara aparecerá aquí como una venta.</p>
-                </div>
-              ) : (
-                [...myRedemptions.filter(r => r.status === 'redeemed')]
-                  .sort((a, b) => (b.redeemedAtMs || 0) - (a.redeemedAtMs || 0))
-                  .map(r => (
-                    <button key={r.code} onClick={() => setPurchaseDetail(r)} className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3 active:scale-[0.98] transition-transform text-left">
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-white truncate">{r.promoTitle}</p>
-                        <p className="text-[11px] text-zinc-500 truncate">{r.userName} · {new Date(r.redeemedAtMs || r.createdAtMs).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                      </div>
-                      <span className="text-sm font-black text-emerald-400 shrink-0">+${(r.priceAmount || 0).toLocaleString('es-MX')}</span>
+          <Modal onClose={() => setShowMySales(false)} title="Movimientos">
+            {(() => {
+              const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+              const promoIds: string[] = Array.from(new Set(myRedemptions.filter(r => r.status === 'redeemed').map(r => r.promoId)));
+              const rows = myRedemptions
+                .filter(r => r.status === 'redeemed')
+                .filter(r => salesPromoFilter === 'all' || r.promoId === salesPromoFilter)
+                .filter(r => !salesMonthOnly || (r.redeemedAtMs || r.createdAtMs) >= monthStart.getTime())
+                .sort((a, b) => (b.redeemedAtMs || 0) - (a.redeemedAtMs || 0));
+              const total = rows.reduce((s, r) => s + (r.priceAmount || 0), 0);
+              const promoName = (id: string) => myRedemptions.find(r => r.promoId === id)?.promoTitle || 'Promo';
+              const txt = () => buildStatementTxt(rows, {
+                negocio: businessProfile.name || 'Mi negocio',
+                promo: salesPromoFilter === 'all' ? undefined : promoName(salesPromoFilter),
+              });
+              return (
+                <div className="space-y-4">
+                  {/* Filtros: por promoción y por mes (chips, como el banco) */}
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                    <button onClick={() => setSalesPromoFilter('all')} className={`px-4 py-2 rounded-full text-[11px] font-bold whitespace-nowrap border transition-all ${salesPromoFilter === 'all' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}>Todas</button>
+                    {promoIds.map(id => (
+                      <button key={id} onClick={() => setSalesPromoFilter(id)} className={`px-4 py-2 rounded-full text-[11px] font-bold whitespace-nowrap border transition-all max-w-[160px] truncate ${salesPromoFilter === id ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}>{promoName(id)}</button>
+                    ))}
+                    <button onClick={() => setSalesMonthOnly(v => !v)} className={`px-4 py-2 rounded-full text-[11px] font-bold whitespace-nowrap border transition-all ${salesMonthOnly ? 'bg-white text-zinc-900 border-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}>Este mes</button>
+                  </div>
+                  {/* Total del periodo (arriba, como el saldo del banco) */}
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
+                    <span className="text-[10px] font-black text-emerald-300/80 uppercase tracking-widest">{rows.length} {rows.length === 1 ? 'venta' : 'ventas'}</span>
+                    <span className="text-xl font-black text-emerald-400">+${total.toLocaleString('es-MX')}</span>
+                  </div>
+                  {rows.length === 0 ? (
+                    <div className="text-center py-8 space-y-2">
+                      <TrendingUp size={32} className="mx-auto text-zinc-600" />
+                      <p className="text-sm font-bold text-zinc-400">Sin ventas en este filtro</p>
+                      <p className="text-[11px] text-zinc-500">Cada QR que valides con tu cámara aparecerá aquí como una venta.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {rows.map(r => (
+                        <button key={r.code} onClick={() => setPurchaseDetail(r)} className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3 active:scale-[0.98] transition-transform text-left">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-white truncate">{r.promoTitle}</p>
+                            <p className="text-[11px] text-zinc-500 truncate">{r.userName} · Folio {r.code} · {new Date(r.redeemedAtMs || r.createdAtMs).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                          </div>
+                          <span className="text-sm font-black text-emerald-400 shrink-0">+${(r.priceAmount || 0).toLocaleString('es-MX')}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {/* Estado de cuenta de lo filtrado: bajarlo o mandarlo por WhatsApp */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      disabled={rows.length === 0}
+                      onClick={() => downloadTxt(`iogga-estado-de-cuenta-${new Date().toISOString().slice(0, 10)}.txt`, txt())}
+                      className="py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
+                    >
+                      <FileDown size={13} /> Descargar
                     </button>
-                  ))
-              )}
-            </div>
+                    <button
+                      disabled={rows.length === 0}
+                      onClick={() => openExternal(`https://wa.me/?text=${encodeURIComponent(txt())}`)}
+                      className="py-3 rounded-2xl bg-green-500/15 border border-green-500/30 text-green-400 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
+                    >
+                      <Send size={13} /> Por WhatsApp
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </Modal>
+        )}
+
+        {/* Billetera (modelo Uber): persona = cómo pagas; negocio = dónde te cae el dinero */}
+        {showWallet && (
+          <Modal onClose={() => setShowWallet(false)} title={mode === 'business' ? 'Cuentas de tu empresa' : 'Billetera'}>
+            {mode === 'business' ? (
+              <div className="space-y-4">
+                <p className="text-[11px] text-zinc-400 leading-snug">Aquí es donde te depositamos el dinero de tus ventas en cada corte (transferencia SPEI).</p>
+                <div className="rounded-3xl bg-white/5 border border-white/10 divide-y divide-white/5 overflow-hidden">
+                  {[
+                    ['Titular', businessProfile.payoutHolder || '—'],
+                    ['Banco', businessProfile.payoutBank || '—'],
+                    ['CLABE', businessProfile.payoutClabe ? `•••• ${businessProfile.payoutClabe.slice(-4)}` : '—'],
+                  ].map(([k, v]) => (
+                    <div key={k} className="flex items-center justify-between gap-3 px-4 py-3">
+                      <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
+                      <span className="text-sm font-bold text-white truncate">{v}</span>
+                    </div>
+                  ))}
+                </div>
+                {businessProfile.payoutDocImage && (
+                  <div className="rounded-2xl overflow-hidden border border-white/10">
+                    <img src={businessProfile.payoutDocImage} className="w-full max-h-36 object-cover" />
+                  </div>
+                )}
+                {!businessProfile.payoutClabe && !businessProfile.payoutDocImage && (
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25">
+                    <p className="text-[11px] font-bold text-amber-300 leading-snug">Aún no tienes cuenta registrada: agrégala para poder recibir tus depósitos.</p>
+                  </div>
+                )}
+                <button
+                  onClick={() => { setShowWallet(false); setShowEditBusinessProfile(true); }}
+                  className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  {businessProfile.payoutClabe || businessProfile.payoutDocImage ? 'Editar cuenta de depósito' : 'Agregar cuenta de depósito'}
+                </button>
+                <button
+                  onClick={() => { setShowWallet(false); setShowMySales(true); }}
+                  className="w-full py-3 bg-white/5 border border-white/10 text-zinc-300 rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  Ver movimientos
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Forma de pago (como la billetera de Uber): hoy, Mercado Pago */}
+                <div className="p-4 rounded-3xl bg-white/5 border border-white/10 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#009EE3]/15 text-[#009EE3] flex items-center justify-center shrink-0"><CreditCard size={18} /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white">Mercado Pago</p>
+                    <p className="text-[10px] text-zinc-500 leading-snug">Tarjeta, dinero en cuenta, transferencia u OXXO</p>
+                  </div>
+                  <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                </div>
+                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                  <p className="text-[11px] text-zinc-400 leading-snug">
+                    Para pagar en un toque: en la pantalla de pago entra con tu cuenta de Mercado Pago
+                    una vez, y tu tarjeta queda guardada ahí para todas tus compras. iogga nunca ve ni
+                    guarda tu tarjeta: así tus datos siempre están protegidos.
+                  </p>
+                </div>
+                <button
+                  onClick={() => { setShowWallet(false); setShowMyPurchases(true); }}
+                  className="w-full py-3 bg-white/5 border border-white/10 text-zinc-300 rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  Ver mis movimientos
+                </button>
+              </div>
+            )}
           </Modal>
         )}
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
-import { QrCode, X, CheckCircle2, XCircle, Camera, Loader2, Download, Keyboard, Lock } from 'lucide-react';
+import { QrCode, X, CheckCircle2, XCircle, Camera, Loader2, Download, Keyboard, Lock, Send } from 'lucide-react';
 import {
   createRedemption,
   validateRedemption,
@@ -153,6 +153,32 @@ export function RedeemQRModal({
     link.click();
   };
 
+  // Mandar el QR por WhatsApp: la imagen si el teléfono lo permite (hoja de
+  // compartir del sistema); si no, el folio y la promo en texto.
+  const shareQR = async () => {
+    if (!canvasRef.current || !redemption) return;
+    const text = `Mi QR de iogga: ${promo.title} en ${promo.businessName}. Folio ${redemption.code}.` +
+      (redemption.validUntilMs ? ` Válido hasta el ${formatUntil(redemption.validUntilMs)}.` : '');
+    try {
+      const blob: Blob | null = await new Promise((res) => canvasRef.current!.toBlob(res, 'image/png'));
+      if (blob) {
+        const file = new File([blob], `iogga-${redemption.code}.png`, { type: 'image/png' });
+        const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
+        if (nav.canShare && nav.canShare({ files: [file] })) {
+          await (nav as any).share({ files: [file], text });
+          return;
+        }
+      }
+    } catch { /* cae al texto */ }
+    const a = document.createElement('a');
+    a.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
   return (
     <Overlay onClose={onClose} title="Tu código de canje">
       <div className="flex flex-col items-center gap-4 text-center">
@@ -254,13 +280,22 @@ export function RedeemQRModal({
               <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Código único</p>
               <p className="text-3xl font-black text-white tracking-[0.4em]">{redemption.code}</p>
             </div>
-            <button
-              onClick={downloadQR}
-              className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-[20px] font-bold text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              <Download size={16} />
-              Descargar QR
-            </button>
+            <div className="w-full grid grid-cols-2 gap-2">
+              <button
+                onClick={downloadQR}
+                className="py-4 bg-white/5 border border-white/10 text-white rounded-[20px] font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
+              >
+                <Download size={15} />
+                Descargar
+              </button>
+              <button
+                onClick={() => void shareQR()}
+                className="py-4 bg-green-500/15 border border-green-500/30 text-green-400 rounded-[20px] font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
+              >
+                <Send size={15} />
+                Por WhatsApp
+              </button>
+            </div>
             <p className="text-[11px] text-zinc-500 leading-relaxed max-w-[260px]">
               Muestra este QR en el negocio: lo escanean con su cámara iogga y listo.
               Válido hasta el{' '}

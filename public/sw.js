@@ -1,5 +1,5 @@
 // Service worker de IOGGA: permite instalar la app y abrirla aunque falle la red.
-const CACHE = 'iogga-v22';
+const CACHE = 'iogga-v23';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -11,6 +11,31 @@ self.addEventListener('install', (event) => {
 // La app pide activar la nueva versión cuando el usuario toca "Actualizar".
 self.addEventListener('message', (event) => {
   if (event.data === 'skipWaiting') self.skipWaiting();
+});
+
+// Tocar una notificación del sistema abre (o trae al frente) la app.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const c of list) { if ('focus' in c) return c.focus(); }
+      return self.clients.openWindow('/');
+    })
+  );
+});
+
+// Push desde el servidor (se activará al conectar Firebase Cloud Messaging):
+// muestra la notificación aunque la app esté cerrada.
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch {}
+  const title = data.title || (data.notification && data.notification.title) || 'iogga';
+  const body = data.body || (data.notification && data.notification.body) || '';
+  event.waitUntil(self.registration.showNotification(title, {
+    body,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+  }));
 });
 
 self.addEventListener('activate', (event) => {

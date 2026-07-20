@@ -23,6 +23,20 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Configuración del Marketplace de Mercado Pago (client_id y client_secret de
+    // iogga). Solo un admin la escribe desde el panel; NADIE la lee desde la app
+    // (el backend la lee con permisos de servidor). Así el secreto no queda expuesto.
+    match /config/{doc} {
+      allow write: if isAdmin();
+      allow read: if false;
+    }
+
+    // Cuentas de Mercado Pago conectadas por cada negocio (tokens del vendedor
+    // obtenidos por OAuth). SOLO el backend las escribe/lee; nunca el cliente.
+    match /mp_sellers/{uid} {
+      allow read, write: if false;
+    }
+
     // Perfiles de usuarios: cada quien puede leer perfiles,
     // pero solo editar el suyo.
     match /users/{userId} {

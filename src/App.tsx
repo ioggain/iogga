@@ -116,6 +116,8 @@ import {
   markNotificationRead,
   enablePushNotifications,
   parsePrice,
+  saveMpMarketplaceConfig,
+  MP_CONNECT_URL,
   type Redemption,
   type Friend,
   type AppNotif,
@@ -1866,6 +1868,14 @@ export default function App() {
       if (local) { setSelectedPromo(local); setIsIntro(false); }
       else fetchDocIn<Promotion>('promos', promoId).then(pr => { if (pr) { setSelectedPromo(pr); setIsIntro(false); } });
     }
+    // Regreso de conectar Mercado Pago (negocio): avisar cómo salió.
+    const mp = params.get('mp');
+    if (mp === 'conectado') { setIsIntro(false); setTimeout(() => triggerBeta('Mercado Pago conectado', 'Tu negocio quedó vinculado. Desde ahora, tus ventas pagadas en iogga se te depositan solas (iogga solo retiene su comisión).'), 400); }
+    else if (mp === 'error') { setTimeout(() => triggerBeta('No se pudo conectar', 'No se completó la conexión con Mercado Pago. Vuelve a intentarlo desde tu perfil de negocio.'), 400); }
+    // Limpiar los parámetros de pago/mp de la URL para que no reaparezcan al recargar.
+    if (mp || params.get('pago')) {
+      try { window.history.replaceState({}, '', window.location.pathname); } catch {}
+    }
   }, []);
   // Al abrir "Editar Perfil", precargar lo que ya tiene guardado
   useEffect(() => {
@@ -1994,6 +2004,8 @@ export default function App() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [adminData, setAdminData] = useState<AdminData | null>(null);
   const [adminNewEmail, setAdminNewEmail] = useState('');
+  const [mpClientId, setMpClientId] = useState('');
+  const [mpClientSecret, setMpClientSecret] = useState('');
   useEffect(() => {
     if (!currentUser?.email) { setIsAdmin(false); return; }
     void checkIsAdmin(currentUser.email).then(setIsAdmin);
@@ -6759,12 +6771,45 @@ export default function App() {
                   />
                 </div>
 
-                {/* Cobros: a dónde le depositamos sus ventas (SPEI). Privado. */}
+                {/* Cobro AUTOMÁTICO (recomendado): el negocio conecta su propia
+                    cuenta de Mercado Pago y sus ventas se le depositan solas; iogga
+                    solo retiene su comisión. Es el modelo Marketplace. */}
                 <div className="space-y-3">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Cobros (dónde recibes tus ventas)</label>
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Cobro automático (recomendado)</label>
+                  {userProfile.mpConnected ? (
+                    <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0"><CheckCircle2 size={18} /></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-black text-emerald-400">Mercado Pago conectado</p>
+                        <p className="text-[10px] text-emerald-200/80 leading-snug">Tus ventas se te depositan solas. iogga solo retiene su comisión.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <a
+                        href={currentUser ? `${MP_CONNECT_URL}?uid=${currentUser.uid}` : undefined}
+                        onClick={(e) => { if (!currentUser) { e.preventDefault(); ensureLoggedIn(() => {}); } }}
+                        target="_blank" rel="noopener noreferrer"
+                        className="w-full py-4 bg-[#009EE3] text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+                      >
+                        <Wallet size={16} /> Conectar Mercado Pago
+                      </a>
+                      <p className="text-[10px] text-zinc-500 leading-snug">
+                        Conecta tu cuenta de Mercado Pago (gratis) y recibe el dinero de tus ventas
+                        al instante, ya con la comisión de iogga descontada. Si no la conectas, te
+                        depositamos por transferencia con los datos de abajo.
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                {/* Cobro por transferencia (respaldo): a dónde le depositamos si no
+                    conecta Mercado Pago. Privado. */}
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Cobro por transferencia (respaldo)</label>
                   <div className="flex items-start gap-2 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
                     <Shield size={14} className="text-emerald-400 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-emerald-200/90 leading-snug">Tus ventas en iogga se te depositan por <span className="font-black">transferencia SPEI</span>. Estos datos son privados: solo los ves tú y el administrador de iogga.</p>
+                    <p className="text-[11px] text-emerald-200/90 leading-snug">Si no conectas Mercado Pago, tus ventas se te depositan por <span className="font-black">transferencia SPEI</span> en cada corte. Estos datos son privados: solo los ves tú y el administrador de iogga.</p>
                   </div>
                   <input
                     type="text"
@@ -8767,6 +8812,34 @@ export default function App() {
                         Agregar
                       </button>
                     </div>
+                  </div>
+
+                  {/* Marketplace de Mercado Pago: credenciales de la app de iogga
+                      (client_id y client_secret). Se guardan cifradas en el backend
+                      para el reparto automático; solo el admin las pega aquí. */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Marketplace de Mercado Pago (reparto automático)</p>
+                    <p className="text-[10px] text-zinc-500 px-1 leading-snug">Pega el client_id y client_secret de tu app de Mercado Pago (Tus integraciones → tu app → Credenciales). Con esto los negocios podrán conectar su cuenta y cobrar solos.</p>
+                    <input
+                      value={mpClientId}
+                      onChange={e => setMpClientId(e.target.value)}
+                      placeholder="client_id"
+                      className="w-full h-12 px-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm outline-none focus:ring-2 focus:ring-iogga-primary"
+                    />
+                    <input
+                      value={mpClientSecret}
+                      onChange={e => setMpClientSecret(e.target.value)}
+                      placeholder="client_secret"
+                      type="password"
+                      className="w-full h-12 px-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm outline-none focus:ring-2 focus:ring-iogga-primary"
+                    />
+                    <button
+                      disabled={mpClientId.trim().length < 3 || mpClientSecret.trim().length < 3}
+                      onClick={() => { void saveMpMarketplaceConfig(mpClientId, mpClientSecret).then(ok => { if (ok) { setMpClientId(''); setMpClientSecret(''); triggerBeta('Guardado', 'Credenciales del Marketplace guardadas. Los negocios ya pueden conectar su Mercado Pago.'); } else triggerBeta('No se guardó', 'Revisa tu conexión e intenta de nuevo.'); }); }}
+                      className="w-full h-12 rounded-2xl bg-[#009EE3] text-white text-xs font-black uppercase tracking-widest active:scale-95 disabled:opacity-40"
+                    >
+                      Guardar credenciales
+                    </button>
                   </div>
 
                   {/* Control de versiones */}

@@ -344,6 +344,7 @@ export interface UserProfile {
   blocked?: string[]; // uids de usuarios/negocios bloqueados por este usuario
   groups?: IoggaGroup[]; // grupos de amigos (como WhatsApp) para invitar de un toque
   business?: BusinessProfile; // perfil de negocio del usuario (mismo modelo que Facebook: una cuenta, dos caras)
+  mpConnected?: boolean; // el negocio ya conectó su cuenta de Mercado Pago (reparto automático)
 }
 
 // Grupo de amigos (como WhatsApp): nombre + personas de iogga. Vive dentro del
@@ -823,6 +824,26 @@ export async function fetchAdminData(): Promise<AdminData> {
       .slice(0, 20),
   };
 }
+
+// Guardar las credenciales del Marketplace de Mercado Pago de iogga (client_id y
+// client_secret de la app). Solo un admin puede escribirlas (reglas). El backend
+// las lee con permisos de servidor; nadie más las ve.
+export async function saveMpMarketplaceConfig(clientId: string, clientSecret: string): Promise<boolean> {
+  if (!db) return false;
+  try {
+    await setDoc(doc(db, 'config', 'mp'), {
+      clientId: clientId.trim(),
+      clientSecret: clientSecret.trim(),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// URL a la que se manda al negocio para conectar su cuenta de Mercado Pago.
+export const MP_CONNECT_URL = 'https://us-central1-iogga-b932b.cloudfunctions.net/mpConnect';
 
 export async function addAdmin(email: string): Promise<void> {
   if (!db) return;

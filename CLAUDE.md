@@ -55,3 +55,9 @@ del móvil y entrar en la vida". Sin chats: solo acción. El fundador no es téc
 7. Rotar el par de claves de push web (Cloud Messaging → Certificados push web):
    la clave privada se compartió por chat durante el MVP. Al rotar, actualizar
    PUSH_PUBLIC_KEY en src/lib/firebase.ts (los teléfonos se re-registran solos).
+8. Marketplace de Mercado Pago (reparto automático): hoy el client_secret de la
+   app se guarda en Firestore (config/mp, solo lectura del backend) por
+   simplicidad del MVP. Para producción, moverlo a Secret Manager y rotar el
+   client_secret que se haya pegado en el panel. Los tokens de los negocios
+   (mp_sellers/{uid}) también son sensibles: server-only, y conviene refrescarlos
+   (refresh_token) antes de los ~180 días de vigencia.

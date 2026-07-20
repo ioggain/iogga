@@ -22,22 +22,42 @@ exports.createPreference = onRequest({ secrets: [MP_ACCESS_TOKEN], cors: true, r
     const price = Number(amount);
     if (!title || !price || price <= 0) { res.status(400).json({ error: 'Faltan datos del pago' }); return; }
 
+    const fee = Math.round(price * FEE_PCT) / 100;
+
+    // ¿El negocio ya conectó SU cuenta de Mercado Pago (modelo Marketplace)?
+    // Si sí, el pago se REPARTE solo: el negocio recibe su parte y iogga la
+    // comisión (marketplace_fee), sin intermediarios. Si no, se usa la cuenta
+    // única de iogga (flujo actual) y la dispersión se hace por corte.
+    let seller = null;
+    if (businessUid) {
+      try {
+        const snap = await admin.firestore().collection('mp_sellers').doc(String(businessUid)).get();
+        if (snap.exists && snap.data() && snap.data().access_token) seller = snap.data();
+      } catch { seller = null; }
+    }
+    const split = !!seller;
+    const accessToken = split ? seller.access_token : MP_ACCESS_TOKEN.value();
+
+    const body = {
+      items: [{ title: `${title} — ${businessName || 'iogga'}`, quantity: 1, unit_price: price, currency_id: 'MXN' }],
+      external_reference: code || promoId || '',
+      metadata: { promoId, code, userName, businessUid, uid, feePct: FEE_PCT, split },
+      statement_descriptor: 'IOGGA',
+      back_urls: {
+        success: 'https://iogga.com/?pago=ok',
+        failure: 'https://iogga.com/?pago=error',
+        pending: 'https://iogga.com/?pago=pendiente',
+      },
+      auto_return: 'approved',
+      notification_url: 'https://us-central1-iogga-b932b.cloudfunctions.net/mpWebhook',
+    };
+    // marketplace_fee = lo que iogga retiene automáticamente de esta venta.
+    if (split) body.marketplace_fee = fee;
+
     const r = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN.value()}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        items: [{ title: `${title} — ${businessName || 'iogga'}`, quantity: 1, unit_price: price, currency_id: 'MXN' }],
-        external_reference: code || promoId || '',
-        metadata: { promoId, code, userName, businessUid, uid, feePct: FEE_PCT },
-        statement_descriptor: 'IOGGA',
-        back_urls: {
-          success: 'https://iogga.com/?pago=ok',
-          failure: 'https://iogga.com/?pago=error',
-          pending: 'https://iogga.com/?pago=pendiente',
-        },
-        auto_return: 'approved',
-        notification_url: 'https://us-central1-iogga-b932b.cloudfunctions.net/mpWebhook',
-      }),
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     });
     const data = await r.json();
     if (!data.id) { res.status(502).json({ error: 'Mercado Pago rechazó la solicitud', detail: data }); return; }
@@ -45,18 +65,84 @@ exports.createPreference = onRequest({ secrets: [MP_ACCESS_TOKEN], cors: true, r
     await admin.firestore().collection('payments').doc(String(data.id)).set({
       preferenceId: data.id,
       status: 'created',
+      split, // true = repartido automático; false = cuenta única de iogga
       title, amount: price, promoId: promoId || null, code: code || null,
       userName: userName || null, uid: uid || null,
       businessName: businessName || null, businessUid: businessUid || null,
       feePct: FEE_PCT,
-      feeAmount: Math.round(price * FEE_PCT) / 100,
-      payoutAmount: price - Math.round(price * FEE_PCT) / 100,
+      feeAmount: fee,
+      payoutAmount: price - fee,
       createdAtMs: Date.now(),
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
     res.json({ id: data.id, init_point: data.init_point, sandbox_init_point: data.sandbox_init_point });
   } catch (e) {
     res.status(500).json({ error: 'Error interno', detail: String(e) });
+  }
+});
+
+// ---- Conexión del negocio con Mercado Pago (OAuth, para el reparto automático) ----
+// Lee client_id/client_secret de iogga desde Firestore (config/mp), que el
+// administrador pega una sola vez en el panel. Así el secreto no vive en el
+// código ni en el repo. (En la limpieza final se moverá a Secret Manager.)
+async function mpConfig() {
+  try {
+    const snap = await admin.firestore().collection('config').doc('mp').get();
+    return snap.exists ? (snap.data() || {}) : {};
+  } catch { return {}; }
+}
+const OAUTH_REDIRECT = 'https://us-central1-iogga-b932b.cloudfunctions.net/mpOAuthCallback';
+
+// El negocio toca "Conectar Mercado Pago": lo mandamos a autorizar a iogga.
+exports.mpConnect = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  const uid = String(req.query.uid || '');
+  const cfg = await mpConfig();
+  if (!cfg.clientId) { res.status(200).send('iogga aún no tiene configurado el Marketplace de Mercado Pago. Avísale al administrador.'); return; }
+  if (!uid) { res.status(400).send('Falta el identificador del negocio.'); return; }
+  const url = 'https://auth.mercadopago.com.mx/authorization'
+    + `?client_id=${encodeURIComponent(cfg.clientId)}`
+    + '&response_type=code&platform_id=mp'
+    + `&state=${encodeURIComponent(uid)}`
+    + `&redirect_uri=${encodeURIComponent(OAUTH_REDIRECT)}`;
+  res.redirect(url);
+});
+
+// Mercado Pago regresa aquí con un código: lo cambiamos por el token del
+// negocio y lo guardamos (server-only) para poder repartirle sus ventas.
+exports.mpOAuthCallback = onRequest({ region: 'us-central1' }, async (req, res) => {
+  try {
+    const code = String(req.query.code || '');
+    const uid = String(req.query.state || '');
+    const cfg = await mpConfig();
+    if (!code || !uid || !cfg.clientId || !cfg.clientSecret) {
+      res.redirect('https://iogga.com/?mp=error'); return;
+    }
+    const r = await fetch('https://api.mercadopago.com/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: cfg.clientId,
+        client_secret: cfg.clientSecret,
+        code,
+        grant_type: 'authorization_code',
+        redirect_uri: OAUTH_REDIRECT,
+      }),
+    });
+    const tok = await r.json();
+    if (!tok.access_token) { res.redirect('https://iogga.com/?mp=error'); return; }
+    // Guardar el token del vendedor (privado, solo backend) y marcar conectado.
+    await admin.firestore().collection('mp_sellers').doc(uid).set({
+      access_token: tok.access_token,
+      refresh_token: tok.refresh_token || null,
+      mpUserId: tok.user_id || null,
+      publicKey: tok.public_key || null,
+      expiresInMs: tok.expires_in ? Date.now() + tok.expires_in * 1000 : null,
+      connectedAtMs: Date.now(),
+    }, { merge: true });
+    await admin.firestore().collection('users').doc(uid).set({ mpConnected: true }, { merge: true }).catch(() => {});
+    res.redirect('https://iogga.com/?mp=conectado');
+  } catch {
+    res.redirect('https://iogga.com/?mp=error');
   }
 });
 

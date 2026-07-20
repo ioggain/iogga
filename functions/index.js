@@ -110,16 +110,21 @@ exports.mpConnect = onRequest({ cors: true, region: 'us-central1' }, async (req,
 // Mercado Pago regresa aquí con un código: lo cambiamos por el token del
 // negocio y lo guardamos (server-only) para poder repartirle sus ventas.
 exports.mpOAuthCallback = onRequest({ region: 'us-central1' }, async (req, res) => {
+  // Redirigir a iogga con el MOTIVO del error (para poder diagnosticar sin logs).
+  const fail = (reason) => res.redirect('https://iogga.com/?mp=error&reason=' + encodeURIComponent(String(reason || 'desconocido').slice(0, 140)));
   try {
     const code = String(req.query.code || '');
     const uid = String(req.query.state || '');
+    // Mercado Pago puede regresar un error directo en la URL (p. ej. permiso denegado)
+    if (req.query.error) { fail(`mp:${req.query.error}${req.query.error_description ? ' - ' + req.query.error_description : ''}`); return; }
+    if (!code) { fail('sin_codigo'); return; }
+    if (!uid) { fail('sin_negocio'); return; }
     const cfg = await mpConfig();
-    if (!code || !uid || !cfg.clientId || !cfg.clientSecret) {
-      res.redirect('https://iogga.com/?mp=error'); return;
-    }
+    if (!cfg.clientId || !cfg.clientSecret) { fail('sin_credenciales'); return; }
+
     const r = await fetch('https://api.mercadopago.com/oauth/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({
         client_id: cfg.clientId,
         client_secret: cfg.clientSecret,
@@ -128,8 +133,17 @@ exports.mpOAuthCallback = onRequest({ region: 'us-central1' }, async (req, res) 
         redirect_uri: OAUTH_REDIRECT,
       }),
     });
-    const tok = await r.json();
-    if (!tok.access_token) { res.redirect('https://iogga.com/?mp=error'); return; }
+    const tok = await r.json().catch(() => ({}));
+    if (!tok.access_token) {
+      // Guardar el detalle para el panel de admin y devolver el motivo en la URL.
+      const motivo = tok.message || tok.error || tok.error_description || `http_${r.status}`;
+      await admin.firestore().collection('config').doc('mp_last_error').set({
+        status: r.status, message: tok.message || null, error: tok.error || null,
+        cause: tok.cause || null, at: Date.now(),
+      }, { merge: true }).catch(() => {});
+      fail(motivo);
+      return;
+    }
     // Guardar el token del vendedor (privado, solo backend) y marcar conectado.
     await admin.firestore().collection('mp_sellers').doc(uid).set({
       access_token: tok.access_token,
@@ -141,8 +155,8 @@ exports.mpOAuthCallback = onRequest({ region: 'us-central1' }, async (req, res) 
     }, { merge: true });
     await admin.firestore().collection('users').doc(uid).set({ mpConnected: true }, { merge: true }).catch(() => {});
     res.redirect('https://iogga.com/?mp=conectado');
-  } catch {
-    res.redirect('https://iogga.com/?mp=error');
+  } catch (e) {
+    fail('excepcion:' + String(e && e.message ? e.message : e));
   }
 });
 

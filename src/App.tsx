@@ -1871,7 +1871,10 @@ export default function App() {
     // Regreso de conectar Mercado Pago (negocio): avisar cómo salió.
     const mp = params.get('mp');
     if (mp === 'conectado') { setIsIntro(false); setTimeout(() => triggerBeta('Mercado Pago conectado', 'Tu negocio quedó vinculado. Desde ahora, tus ventas pagadas en iogga se te depositan solas (iogga solo retiene su comisión).'), 400); }
-    else if (mp === 'error') { setTimeout(() => triggerBeta('No se pudo conectar', 'No se completó la conexión con Mercado Pago. Vuelve a intentarlo desde tu perfil de negocio.'), 400); }
+    else if (mp === 'error') {
+      const reason = params.get('reason') || '';
+      setTimeout(() => triggerBeta('No se pudo conectar', reason ? `Motivo: ${reason}` : 'No se completó la conexión con Mercado Pago. Vuelve a intentarlo desde tu perfil de negocio.'), 400);
+    }
     // Limpiar los parámetros de pago/mp de la URL para que no reaparezcan al recargar.
     if (mp || params.get('pago')) {
       try { window.history.replaceState({}, '', window.location.pathname); } catch {}

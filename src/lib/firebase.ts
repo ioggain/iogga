@@ -345,6 +345,7 @@ export interface UserProfile {
   groups?: IoggaGroup[]; // grupos de amigos (como WhatsApp) para invitar de un toque
   business?: BusinessProfile; // perfil de negocio del usuario (mismo modelo que Facebook: una cuenta, dos caras)
   mpConnected?: boolean; // el negocio ya conectó su cuenta de Mercado Pago (reparto automático)
+  mpAccount?: string | null; // nombre/usuario visible de la cuenta de Mercado Pago conectada
 }
 
 // Grupo de amigos (como WhatsApp): nombre + personas de iogga. Vive dentro del
@@ -844,6 +845,22 @@ export async function saveMpMarketplaceConfig(clientId: string, clientSecret: st
 
 // URL a la que se manda al negocio para conectar su cuenta de Mercado Pago.
 export const MP_CONNECT_URL = 'https://us-central1-iogga-b932b.cloudfunctions.net/mpConnect';
+
+// ¿A qué cuenta de Mercado Pago quedó conectado el negocio? Devuelve la etiqueta
+// visible (usuario/correo enmascarado) y la guarda en el perfil.
+export async function fetchMpAccount(uid: string): Promise<string | null> {
+  try {
+    const r = await fetch('https://us-central1-iogga-b932b.cloudfunctions.net/mpWhoami', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid }),
+    });
+    const d = await r.json().catch(() => ({}));
+    return d.label || null;
+  } catch {
+    return null;
+  }
+}
 
 // Desvincular la cuenta de Mercado Pago del negocio (para cambiarla por otra).
 export async function disconnectMercadoPago(uid: string): Promise<boolean> {

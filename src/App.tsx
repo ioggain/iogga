@@ -119,6 +119,7 @@ import {
   saveMpMarketplaceConfig,
   MP_CONNECT_URL,
   disconnectMercadoPago,
+  fetchMpAccount,
   type Redemption,
   type Friend,
   type AppNotif,
@@ -2269,6 +2270,15 @@ export default function App() {
       }
     } catch { /* navegador sin soporte */ }
   }, [currentUser?.uid]);
+  // Si el negocio ya conectó Mercado Pago pero aún no sabemos a qué cuenta,
+  // preguntarle a Mercado Pago y mostrar el nombre/usuario en el perfil.
+  useEffect(() => {
+    if (!currentUser || currentUser.isAnonymous) return;
+    if (!userProfile.mpConnected || userProfile.mpAccount) return;
+    void fetchMpAccount(currentUser.uid).then(label => {
+      if (label) setUserProfile(prev => ({ ...prev, mpAccount: label }));
+    });
+  }, [currentUser?.uid, userProfile.mpConnected, userProfile.mpAccount]);
   // Sonido al llegar una notificación nueva (no en la carga inicial).
   const prevNotifCount = useRef<number | null>(null);
   useEffect(() => {
@@ -6786,6 +6796,9 @@ export default function App() {
                         <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0"><CheckCircle2 size={18} /></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-black text-emerald-400">Mercado Pago conectado</p>
+                          {userProfile.mpAccount
+                            ? <p className="text-[11px] text-white font-bold truncate">Cuenta: {userProfile.mpAccount}</p>
+                            : <p className="text-[10px] text-emerald-200/60 leading-snug">Verificando cuenta…</p>}
                           <p className="text-[10px] text-emerald-200/80 leading-snug">Tus ventas se te depositan solas. iogga solo retiene su comisión.</p>
                         </div>
                       </div>
@@ -6795,9 +6808,9 @@ export default function App() {
                           if (!currentUser) return;
                           const ok = await disconnectMercadoPago(currentUser.uid);
                           if (ok) {
-                            setUserProfile({ ...userProfile, mpConnected: false });
-                            void saveProfile(currentUser.uid, { mpConnected: false } as any).catch(() => {});
-                            triggerBeta('Cuenta desvinculada', 'Ya puedes conectar otra cuenta de Mercado Pago (una cuenta REAL, no de prueba).');
+                            setUserProfile({ ...userProfile, mpConnected: false, mpAccount: null });
+                            void saveProfile(currentUser.uid, { mpConnected: false, mpAccount: null } as any).catch(() => {});
+                            triggerBeta('Cuenta desvinculada', 'Ya puedes conectar otra cuenta de Mercado Pago (una cuenta REAL, no de prueba). Tip: si quieres cambiar a OTRA cuenta, primero cierra sesión de Mercado Pago o usa una ventana de incógnito, para que te pida iniciar sesión de nuevo.');
                           } else {
                             triggerBeta('No se pudo desvincular', 'Revisa tu conexión e intenta de nuevo.');
                           }

@@ -85,6 +85,27 @@ exports.createPreference = onRequest({ secrets: [MP_ACCESS_TOKEN], cors: true, r
   }
 });
 
+// Etiqueta visible de una cuenta de Mercado Pago (para que el negocio vea a cuál
+// quedó conectado): usuario público, o correo enmascarado, o el número de cuenta.
+function maskEmail(e) {
+  if (!e || typeof e !== 'string' || e.indexOf('@') < 0) return null;
+  const [u, d] = e.split('@');
+  const shown = u.length <= 2 ? u.slice(0, 1) : u.slice(0, 2);
+  return `${shown}${'*'.repeat(Math.max(1, u.length - shown.length))}@${d}`;
+}
+function mpLabel(me) {
+  if (!me) return null;
+  return me.nickname || maskEmail(me.email) || (me.first_name || (me.id ? `Cuenta ${me.id}` : null));
+}
+// Consultar a Mercado Pago "¿quién es esta cuenta?" con el token del vendedor.
+async function mpFetchLabel(token) {
+  try {
+    const meR = await fetch('https://api.mercadopago.com/users/me', { headers: { Authorization: `Bearer ${token}` } });
+    const me = await meR.json().catch(() => ({}));
+    return mpLabel(me);
+  } catch { return null; }
+}
+
 // ---- Conexión del negocio con Mercado Pago (OAuth, para el reparto automático) ----
 // Lee client_id/client_secret de iogga desde Firestore (config/mp), que el
 // administrador pega una sola vez en el panel. Así el secreto no vive en el
@@ -157,10 +178,29 @@ exports.mpOAuthCallback = onRequest({ region: 'us-central1' }, async (req, res) 
       expiresInMs: tok.expires_in ? Date.now() + tok.expires_in * 1000 : null,
       connectedAtMs: Date.now(),
     }, { merge: true });
-    await admin.firestore().collection('users').doc(uid).set({ mpConnected: true }, { merge: true }).catch(() => {});
+    // Guardar el nombre/usuario de la cuenta conectada (para mostrarlo en la app).
+    const label = await mpFetchLabel(tok.access_token);
+    await admin.firestore().collection('users').doc(uid).set({ mpConnected: true, mpAccount: label || null }, { merge: true }).catch(() => {});
     res.redirect('https://iogga.com/?mp=conectado');
   } catch (e) {
     fail('excepcion:' + String(e && e.message ? e.message : e));
+  }
+});
+
+// ¿A qué cuenta de Mercado Pago está conectado este negocio? Lee el token
+// guardado (server-only), pregunta a Mercado Pago y guarda la etiqueta visible.
+exports.mpWhoami = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  try {
+    const uid = String((req.body && req.body.uid) || req.query.uid || '');
+    if (!uid) { res.status(400).json({ error: 'Falta el negocio' }); return; }
+    const snap = await admin.firestore().collection('mp_sellers').doc(uid).get();
+    const token = snap.exists && snap.data() ? snap.data().access_token : null;
+    if (!token) { res.json({ label: null, connected: false }); return; }
+    const label = await mpFetchLabel(token);
+    await admin.firestore().collection('users').doc(uid).set({ mpAccount: label || null }, { merge: true }).catch(() => {});
+    res.json({ label: label || null, connected: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error interno' });
   }
 });
 
@@ -172,7 +212,7 @@ exports.mpDisconnect = onRequest({ cors: true, region: 'us-central1' }, async (r
     const uid = String((req.body && req.body.uid) || req.query.uid || '');
     if (!uid) { res.status(400).json({ error: 'Falta el negocio' }); return; }
     await admin.firestore().collection('mp_sellers').doc(uid).delete().catch(() => {});
-    await admin.firestore().collection('users').doc(uid).set({ mpConnected: false }, { merge: true }).catch(() => {});
+    await admin.firestore().collection('users').doc(uid).set({ mpConnected: false, mpAccount: null }, { merge: true }).catch(() => {});
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Error interno', detail: String(e) });

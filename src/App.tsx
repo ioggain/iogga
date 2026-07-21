@@ -120,6 +120,7 @@ import {
   MP_CONNECT_URL,
   disconnectMercadoPago,
   fetchMpAccount,
+  deleteMyAccount,
   type Redemption,
   type Friend,
   type AppNotif,
@@ -252,7 +253,7 @@ const renderPlanTechnicalDetails = (plan: Plan, onEditSection?: (step: number) =
 
   const getTransportLabel = (transport: string) => {
     switch (transport) {
-      case 'has-transport': return 'Tengo transporte';
+      case 'has-transport': return 'Yo paso por ti';
       case 'each-arrives': return 'Cada quien llega';
       case 'no-transport': return 'Sin transporte';
       case 'not-needed': return 'No se necesita';
@@ -1872,7 +1873,12 @@ export default function App() {
     }
     // Regreso de conectar Mercado Pago (negocio): avisar cómo salió.
     const mp = params.get('mp');
-    if (mp === 'conectado') { setIsIntro(false); setTimeout(() => triggerBeta('Mercado Pago conectado', 'Tu negocio quedó vinculado. Desde ahora, tus ventas pagadas en iogga se te depositan solas (iogga solo retiene su comisión).'), 400); }
+    if (mp === 'conectado') {
+      // Regresar a donde estaba: el perfil de negocio, para ver la cuenta vinculada.
+      setIsIntro(false);
+      setMode('business');
+      setTimeout(() => { setShowEditBusinessProfile(true); triggerBeta('Mercado Pago conectado', 'Tu negocio quedó vinculado. Abajo, en "Cobro automático", puedes ver a qué cuenta quedó conectado.'); }, 500);
+    }
     else if (mp === 'error') {
       const reason = params.get('reason') || '';
       setTimeout(() => triggerBeta('No se pudo conectar', reason ? `Motivo: ${reason}` : 'No se completó la conexión con Mercado Pago. Vuelve a intentarlo desde tu perfil de negocio.'), 400);
@@ -2011,6 +2017,10 @@ export default function App() {
   const [adminNewEmail, setAdminNewEmail] = useState('');
   const [mpClientId, setMpClientId] = useState('');
   const [mpClientSecret, setMpClientSecret] = useState('');
+  // Panel admin: "ver más" por bloque (grandes datos) y detalle de un movimiento
+  const [adminPayAll, setAdminPayAll] = useState(false);
+  const [adminFbAll, setAdminFbAll] = useState(false);
+  const [adminPayDetail, setAdminPayDetail] = useState<import('./lib/firebase').PaymentRecord | null>(null);
   useEffect(() => {
     if (!currentUser?.email) { setIsAdmin(false); return; }
     void checkIsAdmin(currentUser.email).then(setIsAdmin);
@@ -2331,6 +2341,9 @@ export default function App() {
   const purchaseActive = (r: Redemption) =>
     r.status === 'pending' && (r.validUntilMs || r.createdAtMs + 24 * 60 * 60 * 1000) > Date.now();
   const myActivePurchases = myUserRedemptions.filter(purchaseActive).sort((a, b) => b.createdAtMs - a.createdAtMs);
+  // Promos ya usadas o caducadas: se muestran en gris al tocar "Ver más".
+  const myPastPurchases = myUserRedemptions.filter(r => !purchaseActive(r)).sort((a, b) => (b.redeemedAtMs || b.createdAtMs) - (a.redeemedAtMs || a.createdAtMs));
+  const [showPastPromos, setShowPastPromos] = useState(false);
   // Ver un QR ya comprado (sin generar ni cobrar otro)
   const [viewQR, setViewQR] = useState<Redemption | null>(null);
   // "Mis compras": historial completo (modelo Mercado Pago) + comprobante al tocar
@@ -2338,6 +2351,10 @@ export default function App() {
   const [purchaseDetail, setPurchaseDetail] = useState<Redemption | null>(null);
   // "Mis ventas" del negocio: mismos movimientos pero del lado vendedor
   const [showMySales, setShowMySales] = useState(false);
+  // Eliminar cuenta: modal con motivo (modelo Instagram) + confirmación
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
   // Filtros de los movimientos del negocio (modelo estado de cuenta BBVA)
   const [salesPromoFilter, setSalesPromoFilter] = useState<string>('all');
   const [salesMonthOnly, setSalesMonthOnly] = useState(false);
@@ -5310,29 +5327,48 @@ export default function App() {
                       </div>
                     )}
 
-                    {/* Mis promos activas: QRs comprados aún vigentes, mismo formato.
-                        Tocar una abre SU QR (sin volver a cobrar). */}
-                    {myActivePurchases.length > 0 && (
+                    {/* Mis promos activas: SOLO las vigentes (con QR usable). Tocar
+                        una abre SU QR. "Ver más" muestra las caducadas/usadas en gris. */}
+                    {(myActivePurchases.length > 0 || myPastPurchases.length > 0) && (
                       <div className="pt-3 space-y-2">
                         <div className="flex items-center gap-2 px-1">
                           <QrCode size={14} className="text-iogga-accent" />
                           <h3 className="text-xs font-black text-white uppercase tracking-widest">Mis promos activas</h3>
                           <span className="text-[10px] font-black text-zinc-500">({myActivePurchases.length})</span>
                         </div>
-                        <div className="grid grid-cols-3 gap-1">
-                          {(gridExpanded ? myActivePurchases : myActivePurchases.slice(0, 6)).map(r => (
-                            <button key={r.code} onClick={() => setViewQR(r)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
-                              <img src={promos.find(p => p.id === r.promoId)?.image || 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=300&q=80'} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                              <span className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white"><QrCode size={10} /></span>
-                              <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{r.promoTitle}</span>
+                        {myActivePurchases.length > 0 ? (
+                          <div className="grid grid-cols-3 gap-1">
+                            {myActivePurchases.map(r => (
+                              <button key={r.code} onClick={() => setViewQR(r)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
+                                <img src={promos.find(p => p.id === r.promoId)?.image || 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=300&q=80'} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                                <span className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white"><QrCode size={10} /></span>
+                                <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{r.promoTitle}</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-zinc-500 px-1">No tienes promos activas ahora.</p>
+                        )}
+                        {/* Caducadas / usadas: en gris, al tocar "Ver más" (modelo perfil) */}
+                        {myPastPurchases.length > 0 && (
+                          <>
+                            {showPastPromos && (
+                              <div className="grid grid-cols-3 gap-1 pt-1">
+                                {myPastPurchases.map(r => (
+                                  <button key={r.code} onClick={() => setPurchaseDetail(r)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
+                                    <img src={promos.find(p => p.id === r.promoId)?.image || 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=300&q=80'} className="w-full h-full object-cover grayscale opacity-60" referrerPolicy="no-referrer" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                                    <span className="absolute top-1 right-1 text-[7px] font-black text-zinc-300 bg-zinc-800/90 px-1.5 py-0.5 rounded-full uppercase tracking-widest">{r.status === 'redeemed' ? 'Usada' : 'Caducó'}</span>
+                                    <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{r.promoTitle}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            <button onClick={() => setShowPastPromos(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                              {showPastPromos ? 'Ver menos' : `Ver más — caducadas y usadas (${myPastPurchases.length})`}
                             </button>
-                          ))}
-                        </div>
-                        {myActivePurchases.length > 6 && (
-                          <button onClick={() => setGridExpanded(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
-                            {gridExpanded ? 'Ver menos' : `Ver más (${myActivePurchases.length - 6})`}
-                          </button>
+                          </>
                         )}
                       </div>
                     )}
@@ -5958,8 +5994,8 @@ export default function App() {
                           onClick={() => setNewPlan({...newPlan, transport: 'has-transport'})}
                           className={`p-4 rounded-2xl border text-left transition-all ${newPlan.transport === 'has-transport' ? 'bg-iogga-primary/20 border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
                         >
-                          <p className="font-bold">Tengo carro</p>
-                          <p className="text-xs opacity-60">Puedo pasar por alguien</p>
+                          <p className="font-bold">Yo paso por ti</p>
+                          <p className="text-xs opacity-60">Yo llevo a quien se una</p>
                         </button>
                         <button 
                           onClick={() => setNewPlan({...newPlan, transport: 'each-arrives'})}
@@ -7364,15 +7400,29 @@ export default function App() {
                 <div className="space-y-2">
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2">Cuenta y Seguridad</p>
                   <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden">
-                    <SettingsItem
-                      icon={<User size={18} />}
-                      label="Editar Perfil"
-                      tone="personal"
-                      onClick={() => {
-                        setShowSettingsMenu(false);
-                        setShowEditProfile(true);
-                      }}
-                    />
+                    {/* Cada modo edita SU perfil (para no confundir): en persona el
+                        personal, en negocio el del negocio. */}
+                    {mode === 'person' ? (
+                      <SettingsItem
+                        icon={<User size={18} />}
+                        label="Editar Perfil"
+                        tone="personal"
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          setShowEditProfile(true);
+                        }}
+                      />
+                    ) : (
+                      <SettingsItem
+                        icon={<Store size={18} />}
+                        label="Editar Perfil de Negocio"
+                        tone="business"
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          setShowEditBusinessProfile(true);
+                        }}
+                      />
+                    )}
                     <SettingsItem icon={<Download size={18} />} label="Instalar la app en tu celular" onClick={() => { setShowSettingsMenu(false); setShowInstall(true); }} />
                     <SettingsItem icon={<Shield size={18} />} label="Aviso de Privacidad" onClick={() => { setShowSettingsMenu(false); setShowLegal('privacy'); }} />
                     <SettingsItem icon={<CheckCircle2 size={18} />} label="Términos y Condiciones" onClick={() => { setShowSettingsMenu(false); setShowLegal('terms'); }} />
@@ -7401,17 +7451,8 @@ export default function App() {
                       }}
                     />
                     <SettingsItem
-                      icon={<Store size={18} />}
-                      label="Editar Perfil de Negocio"
-                      tone="business"
-                      onClick={() => {
-                        setShowSettingsMenu(false);
-                        setShowEditBusinessProfile(true);
-                      }}
-                    />
-                    <SettingsItem 
-                      icon={<TrendingUp size={18} />} 
-                      label="Suscripción Premium" 
+                      icon={<TrendingUp size={18} />}
+                      label="Suscripción Premium"
                       onClick={() => {
                         setShowSettingsMenu(false);
                         triggerBeta("Suscripción Premium", "La suscripción iogga Business Premium te dará visibilidad X10 y estadísticas predictivas por IA. Tu suscripción de MVP ya está pre-activada gratis para pruebas.");
@@ -7499,7 +7540,17 @@ export default function App() {
                     <LogOut size={20} />
                     Cerrar Sesión
                   </button>
-                ) : (
+                ) : null}
+                {isLoggedIn && (
+                  /* Eliminar cuenta: acción destructiva, discreta y con confirmación */
+                  <button
+                    onClick={() => { setShowSettingsMenu(false); setDeleteReason(''); setShowDeleteAccount(true); }}
+                    className="w-full py-3 text-zinc-500 text-[11px] font-bold uppercase tracking-widest active:scale-95 transition-transform"
+                  >
+                    Eliminar mi cuenta
+                  </button>
+                )}
+                {!isLoggedIn && (
                   /* Sin sesión: aquí va el acceso, no "cerrar sesión" */
                   <button
                     onClick={() => { setShowSettingsMenu(false); setShowLoginModal(true); }}
@@ -8354,6 +8405,99 @@ export default function App() {
         )}
 
         {/* Billetera (modelo Uber): persona = cómo pagas; negocio = dónde te cae el dinero */}
+        {/* Eliminar cuenta (modelo Instagram/Apple): pide motivo y confirma que es permanente */}
+        {showDeleteAccount && (
+          <Modal onClose={() => setShowDeleteAccount(false)} title="Eliminar mi cuenta">
+            <div className="space-y-5">
+              <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/25">
+                <p className="text-sm font-black text-red-400 mb-1">Esta acción es permanente</p>
+                <p className="text-[12px] text-red-200/90 leading-snug">
+                  Se eliminará tu cuenta y toda tu información (perfil, planes, promociones)
+                  de forma permanente. No se puede deshacer.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[11px] font-bold text-zinc-400">¿Por qué te vas? (nos ayuda a mejorar)</p>
+                <div className="flex flex-wrap gap-2">
+                  {['Ya no la uso', 'No encontré planes', 'Problemas técnicos', 'Privacidad', 'Otra razón'].map(op => (
+                    <button
+                      key={op}
+                      onClick={() => setDeleteReason(op)}
+                      className={`px-3 py-2 rounded-full text-[11px] font-bold border transition-all ${deleteReason === op ? 'bg-white text-zinc-900 border-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
+                    >
+                      {op}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  disabled={!deleteReason || deletingAccount}
+                  onClick={async () => {
+                    if (!currentUser) return;
+                    setDeletingAccount(true);
+                    const res = await deleteMyAccount(currentUser.uid, deleteReason);
+                    setDeletingAccount(false);
+                    if (res.ok) {
+                      // Limpiar toda la sesión local (igual que cerrar sesión).
+                      setShowDeleteAccount(false);
+                      setIsLoggedIn(false);
+                      setCurrentUser(null);
+                      setUserProfile({});
+                      setHasBusiness(false);
+                      setMode('person');
+                      setFollowing([]); setFollowers([]); setAcceptedPlanIds([]);
+                      setActiveTab('home');
+                      setIsIntro(true);
+                      try { localStorage.clear(); } catch {}
+                      triggerBeta('Cuenta eliminada', res.needsRelogin
+                        ? 'Tu información fue borrada y tu sesión cerrada. Por seguridad, el cierre final de la cuenta se completa en breve.'
+                        : 'Tu cuenta y tu información se eliminaron. Gracias por haber usado iogga.');
+                    } else {
+                      triggerBeta('No se pudo eliminar', 'Vuelve a iniciar sesión e inténtalo de nuevo (por seguridad, borrar la cuenta requiere una sesión reciente).');
+                    }
+                  }}
+                  className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  {deletingAccount ? <RefreshCw size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  {deletingAccount ? 'Eliminando…' : 'Eliminar mi cuenta permanentemente'}
+                </button>
+                <button
+                  onClick={() => setShowDeleteAccount(false)}
+                  className="w-full py-3.5 bg-white/5 border border-white/10 text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
+
+        {/* Detalle de un movimiento (admin): todos los datos del pago */}
+        {adminPayDetail && (
+          <Modal onClose={() => setAdminPayDetail(null)} title="Detalle del movimiento">
+            <div className="rounded-3xl bg-white/5 border border-white/10 divide-y divide-white/5 overflow-hidden">
+              {[
+                ['Promoción', adminPayDetail.title || '—'],
+                ['Cliente', adminPayDetail.userName || '—'],
+                ['Negocio', adminPayDetail.businessName || '—'],
+                ['Folio', adminPayDetail.code || '—'],
+                ['Estado', adminPayDetail.status || '—'],
+                ['Método', adminPayDetail.method || '—'],
+                ['Fecha', new Date(adminPayDetail.approvedAtMs || adminPayDetail.createdAtMs || Date.now()).toLocaleString('es-MX')],
+                ['Ingreso', `$${(adminPayDetail.amount || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`],
+                ['Comisión iogga', `$${(adminPayDetail.feeAmount || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`],
+                ['Neto al negocio', `$${(adminPayDetail.payoutAmount || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`],
+              ].map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest shrink-0">{k}</span>
+                  <span className="text-sm font-bold text-white text-right truncate">{v}</span>
+                </div>
+              ))}
+            </div>
+          </Modal>
+        )}
+
         {showWallet && (
           <Modal onClose={() => setShowWallet(false)} title={mode === 'business' ? 'Cuentas de tu empresa' : 'Billetera'}>
             {mode === 'business' ? (
@@ -8766,6 +8910,25 @@ export default function App() {
                       </div>
                     ))}
                   </div>
+                  {/* Exportar la analítica principal (para el equipo/inversionistas) */}
+                  <button
+                    onClick={() => downloadTxt(`iogga-analitica-${new Date().toISOString().slice(0, 10)}.txt`, [
+                      'IOGGA · ANALÍTICA', `CORTE: ${new Date().toLocaleString('es-MX')}`, '='.repeat(42), '',
+                      `USUARIOS REGISTRADOS:   ${adminData.userCount}`,
+                      `PLANES CREADOS:         ${adminData.planCount}`,
+                      `OFERTAS PUBLICADAS:     ${adminData.promoCount}`,
+                      `CITAS CONCRETADAS:      ${adminData.redemptionsRedeemed}`,
+                      `VENTAS CONCRETADAS:     $${adminData.salesTotal.toLocaleString('es-MX')}`,
+                      `INGRESOS IOGGA:         $${adminData.incomeTotal.toLocaleString('es-MX')}`,
+                      `COMPRAS PAGADAS (MP):   ${adminData.paidCount}`,
+                      `COBRADO POR MP:         $${adminData.paidAmount.toLocaleString('es-MX')}`,
+                      `COMISIÓN IOGGA (MP):    $${adminData.paidFees.toLocaleString('es-MX')}`,
+                      `COMENTARIOS/SOPORTE:    ${adminData.feedback.length}`,
+                    ].join('\n'))}
+                    className="w-full py-3 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+                  >
+                    <FileDown size={14} /> Exportar analítica (texto)
+                  </button>
 
                   {/* Últimos canjes concretados */}
                   <div className="space-y-2">
@@ -8783,39 +8946,125 @@ export default function App() {
                     ))}
                   </div>
 
-                  {/* Últimos pagos por Mercado Pago (los escribe el backend) */}
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Últimos pagos (Mercado Pago)</p>
-                    {adminData.recentPayments.length === 0 && <p className="text-xs text-zinc-500 px-1">Aún no hay pagos registrados.</p>}
-                    {adminData.recentPayments.map((p, i) => (
-                      <div key={i} className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${p.status === 'approved' ? 'bg-sky-500/15 text-sky-400' : 'bg-white/10 text-zinc-400'}`}><CreditCard size={16} /></div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-white truncate">{p.title || 'Pago'} · {p.userName || '—'}</p>
-                          <p className="text-[10px] text-zinc-500 truncate">
-                            {p.status === 'approved' ? 'Aprobado' : p.status === 'created' ? 'Iniciado' : p.status || '—'}
-                            {p.code ? ` · Folio ${p.code}` : ''}
-                            {typeof p.payoutAmount === 'number' ? ` · Neto negocio $${p.payoutAmount.toLocaleString('es-MX')}` : ''}
-                          </p>
+                  {/* Movimientos (modelo banco/ecommerce): ingreso, comisiones y
+                      traspaso al negocio, con totales, "ver más" y detalle al tocar. */}
+                  {(() => {
+                    const MP_FEE_RATE = 0.0349; // comisión aprox. de Mercado Pago (referencia)
+                    const money = (n: number) => `$${(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    const totIngreso = adminData.paidAmount;
+                    const totIogga = adminData.paidFees;
+                    const totMpEst = Math.round(totIngreso * MP_FEE_RATE * 100) / 100;
+                    const totNegocio = adminData.recentPayments.filter(p => p.status === 'approved').reduce((s, p) => s + (Number(p.payoutAmount) || 0), 0);
+                    const list = adminData.recentPayments;
+                    const shown = adminPayAll ? list : list.slice(0, 5);
+                    const exportTxt = () => {
+                      const lines = ['IOGGA · MOVIMIENTOS (MERCADO PAGO)', `CORTE: ${new Date().toLocaleString('es-MX')}`, '='.repeat(42), ''];
+                      lines.push('RESUMEN', '-'.repeat(42),
+                        `INGRESO TOTAL:        ${money(totIngreso)}`,
+                        `COMISION IOGGA:       ${money(totIogga)}`,
+                        `COMISION MP (aprox):  ${money(totMpEst)}`,
+                        `TRASPASO A NEGOCIOS:  ${money(totNegocio)}`, '', '='.repeat(42), '');
+                      list.forEach((p, i) => {
+                        lines.push(`MOVIMIENTO ${i + 1}`, '-'.repeat(42),
+                          `FECHA:    ${new Date(p.approvedAtMs || p.createdAtMs || Date.now()).toLocaleString('es-MX')}`,
+                          `ESTADO:   ${p.status || '—'}`,
+                          `PROMO:    ${p.title || '—'}`,
+                          `CLIENTE:  ${p.userName || '—'}`,
+                          `FOLIO:    ${p.code || '—'}`,
+                          `INGRESO:  ${money(p.amount || 0)}`,
+                          `COMISION IOGGA: ${money(p.feeAmount || 0)}`,
+                          `NETO NEGOCIO:   ${money(p.payoutAmount || 0)}`, '');
+                      });
+                      downloadTxt(`iogga-movimientos-${new Date().toISOString().slice(0, 10)}.txt`, lines.join('\n'));
+                    };
+                    return (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Movimientos</p>
+                          <button onClick={exportTxt} disabled={list.length === 0} className="text-[9px] font-black text-iogga-primary uppercase tracking-widest flex items-center gap-1 disabled:opacity-40"><FileDown size={11} /> Exportar</button>
                         </div>
-                        <span className={`text-sm font-black shrink-0 ${p.status === 'approved' ? 'text-sky-400' : 'text-zinc-400'}`}>${(p.amount || 0).toLocaleString('es-MX')}</span>
+                        {/* Totales financieros (lo principal de un vistazo) */}
+                        <div className="rounded-2xl bg-white/5 border border-white/10 divide-y divide-white/5 overflow-hidden">
+                          {[
+                            ['Ingreso total', money(totIngreso), 'text-white'],
+                            ['Comisión iogga', money(totIogga), 'text-amber-300'],
+                            ['Comisión Mercado Pago (aprox.)', money(totMpEst), 'text-zinc-400'],
+                            ['Traspaso a negocios', money(totNegocio), 'text-emerald-400'],
+                          ].map(([k, v, cls]) => (
+                            <div key={k} className="flex items-center justify-between px-4 py-2.5">
+                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
+                              <span className={`text-sm font-black ${cls}`}>{v}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[9px] text-zinc-600 px-1 leading-snug">La comisión de iogga cae en la cuenta de Mercado Pago dueña de la app. La comisión de Mercado Pago es referencia (~3.49%); el monto exacto lo define Mercado Pago.</p>
+                        {list.length === 0 && <p className="text-xs text-zinc-500 px-1">Aún no hay movimientos.</p>}
+                        {shown.map((p, i) => (
+                          <button key={i} onClick={() => setAdminPayDetail(p)} className="w-full p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-3 active:scale-[0.99] transition-transform text-left">
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${p.status === 'approved' ? 'bg-sky-500/15 text-sky-400' : 'bg-white/10 text-zinc-400'}`}><CreditCard size={16} /></div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-white truncate">{p.title || 'Pago'} · {p.userName || '—'}</p>
+                              <p className="text-[10px] text-zinc-500 truncate">
+                                {p.status === 'approved' ? 'Aprobado' : p.status === 'created' ? 'Iniciado' : p.status || '—'}
+                                {p.code ? ` · Folio ${p.code}` : ''}
+                                {typeof p.payoutAmount === 'number' ? ` · Neto $${p.payoutAmount.toLocaleString('es-MX')}` : ''}
+                              </p>
+                            </div>
+                            <span className={`text-sm font-black shrink-0 ${p.status === 'approved' ? 'text-sky-400' : 'text-zinc-400'}`}>${(p.amount || 0).toLocaleString('es-MX')}</span>
+                          </button>
+                        ))}
+                        {list.length > 5 && (
+                          <button onClick={() => setAdminPayAll(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                            {adminPayAll ? 'Ver menos' : `Ver más (${list.length - 5})`}
+                          </button>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })()}
 
-                  {/* Comentarios y fallas reportadas */}
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Comentarios y fallas ({adminData.feedback.length})</p>
-                    {adminData.feedback.length === 0 && <p className="text-xs text-zinc-500 px-1">Sin comentarios todavía.</p>}
-                    <div className="space-y-2 max-h-56 overflow-y-auto no-scrollbar">
-                      {adminData.feedback.map((f, i) => (
-                        <div key={i} className="p-3 rounded-2xl bg-white/5 border border-white/5">
-                          <p className="text-xs text-zinc-200 leading-snug">"{f.text}"</p>
-                          <p className="text-[10px] text-zinc-500 mt-1">{f.userName}{f.email ? ` · ${f.email}` : ''} · {f.context}{f.createdAtMs ? ` · ${new Date(f.createdAtMs).toLocaleDateString('es-MX')}` : ''}</p>
+                  {/* Comentarios y soporte: quién, cuándo, correo — con responder y exportar */}
+                  {(() => {
+                    const fb = adminData.feedback;
+                    const shown = adminFbAll ? fb : fb.slice(0, 5);
+                    const exportTxt = () => {
+                      const lines = ['IOGGA · COMENTARIOS Y SOPORTE', `TOTAL: ${fb.length}`, '='.repeat(42), ''];
+                      fb.forEach((f, i) => lines.push(`MENSAJE ${i + 1}`, '-'.repeat(42),
+                        `DE:      ${f.userName || '—'}`,
+                        `CORREO:  ${f.email || '—'}`,
+                        `FECHA:   ${f.createdAtMs ? new Date(f.createdAtMs).toLocaleString('es-MX') : '—'}`,
+                        `PANTALLA: ${f.context || '—'}`,
+                        `MENSAJE: ${f.text || ''}`, ''));
+                      downloadTxt(`iogga-comentarios-${new Date().toISOString().slice(0, 10)}.txt`, lines.join('\n'));
+                    };
+                    return (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Comentarios y soporte ({fb.length})</p>
+                          <button onClick={exportTxt} disabled={fb.length === 0} className="text-[9px] font-black text-iogga-primary uppercase tracking-widest flex items-center gap-1 disabled:opacity-40"><FileDown size={11} /> Exportar</button>
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                        {fb.length === 0 && <p className="text-xs text-zinc-500 px-1">Sin comentarios todavía.</p>}
+                        {shown.map((f, i) => (
+                          <div key={i} className="p-3 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+                            <p className="text-xs text-zinc-200 leading-snug">"{f.text}"</p>
+                            <p className="text-[10px] text-zinc-500">{f.userName}{f.email ? ` · ${f.email}` : ''} · {f.context}{f.createdAtMs ? ` · ${new Date(f.createdAtMs).toLocaleDateString('es-MX')}` : ''}</p>
+                            {f.email && (
+                              <a
+                                href={`mailto:${f.email}?subject=${encodeURIComponent('iogga — respuesta a tu comentario')}&body=${encodeURIComponent(`Hola ${f.userName || ''},\n\nSobre tu mensaje: "${f.text}"\n\n`)}`}
+                                className="inline-flex items-center gap-1.5 text-[10px] font-black text-iogga-primary uppercase tracking-widest bg-iogga-primary/10 border border-iogga-primary/25 px-3 py-1.5 rounded-full active:scale-95 transition-all"
+                              >
+                                <Send size={11} /> Responder por correo
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                        {fb.length > 5 && (
+                          <button onClick={() => setAdminFbAll(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                            {adminFbAll ? 'Ver menos' : `Ver más (${fb.length - 5})`}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* Administradores: agregar/quitar por correo */}
                   <div className="space-y-2">

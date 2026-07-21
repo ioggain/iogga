@@ -21,6 +21,7 @@ import {
   EmailAuthProvider,
   GoogleAuthProvider,
   signOut,
+  deleteUser,
   onAuthStateChanged,
   updateProfile,
   type Auth,
@@ -884,6 +885,39 @@ export async function addAdmin(email: string): Promise<void> {
 export async function removeAdmin(email: string): Promise<void> {
   if (!db) return;
   await deleteDoc(doc(db, 'admins', email));
+}
+
+// Eliminar la cuenta y TODA la información de la persona (modelo Instagram/Apple):
+// guarda el motivo (para el equipo), borra sus datos y cierra la cuenta de acceso.
+export async function deleteMyAccount(uid: string, reason: string): Promise<{ ok: boolean; needsRelogin?: boolean }> {
+  if (!db || !auth) return { ok: false };
+  // Registrar el motivo de la baja (analítica de retención, sin datos sensibles).
+  try {
+    await setDoc(doc(collection(db, 'deletions')), { uid, reason: reason || '', createdAtMs: Date.now(), createdAt: serverTimestamp() });
+  } catch { /* no bloquear la baja por esto */ }
+  // Borrar sus datos (mejor esfuerzo): perfil, planes y promociones propias.
+  try { await deleteDoc(doc(db, 'users', uid)); } catch { /* reglas o red */ }
+  try {
+    const mine = await getDocs(query(collection(db, 'plans'), where('uid', '==', uid)));
+    await Promise.all(mine.docs.map((d) => deleteDoc(d.ref).catch(() => {})));
+  } catch { /* ignore */ }
+  try {
+    const myPromos = await getDocs(query(collection(db, 'promos'), where('uid', '==', uid)));
+    await Promise.all(myPromos.docs.map((d) => deleteDoc(d.ref).catch(() => {})));
+  } catch { /* ignore */ }
+  // Cerrar la cuenta de acceso.
+  try {
+    if (auth.currentUser) await deleteUser(auth.currentUser);
+    return { ok: true };
+  } catch (e) {
+    // Firebase pide reingreso reciente para borrar la cuenta: cerramos sesión
+    // (los datos ya se borraron) y quedará la solicitud registrada.
+    if (String((e as { code?: string })?.code || '').includes('requires-recent-login')) {
+      await signOut(auth).catch(() => {});
+      return { ok: true, needsRelogin: true };
+    }
+    return { ok: false };
+  }
 }
 
 export function authErrorMessage(err: unknown): string {

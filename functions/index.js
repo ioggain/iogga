@@ -38,6 +38,23 @@ exports.createPreference = onRequest({ secrets: [MP_ACCESS_TOKEN], cors: true, r
     const split = !!seller;
     const accessToken = split ? seller.access_token : MP_ACCESS_TOKEN.value();
 
+    // ¿La cuenta del negocio es de PRUEBA (sandbox) o real? Se recuerda para
+    // mandar el pago al checkout correcto (sandbox con cuentas de prueba, real
+    // con cuentas reales). Así no se mezclan y no truena "una parte es de prueba".
+    let isTest = false;
+    if (split) {
+      if (typeof seller.isTest === 'boolean') {
+        isTest = seller.isTest;
+      } else {
+        try {
+          const meR = await fetch('https://api.mercadopago.com/users/me', { headers: { Authorization: `Bearer ${seller.access_token}` } });
+          const me = await meR.json().catch(() => ({}));
+          isTest = /^TEST/i.test(String(me.nickname || '')) || /test_user|testuser/i.test(String(me.email || ''));
+          await admin.firestore().collection('mp_sellers').doc(String(businessUid)).set({ isTest }, { merge: true }).catch(() => {});
+        } catch { isTest = false; }
+      }
+    }
+
     const body = {
       items: [{ title: `${title} — ${businessName || 'iogga'}`, quantity: 1, unit_price: price, currency_id: 'MXN' }],
       external_reference: code || promoId || '',
@@ -61,10 +78,11 @@ exports.createPreference = onRequest({ secrets: [MP_ACCESS_TOKEN], cors: true, r
     });
     const data = await r.json();
     if (!data.id) { res.status(502).json({ error: 'Mercado Pago rechazó la solicitud', detail: data }); return; }
-    // Con reparto (negocio con cuenta real conectada) se usa el checkout REAL
-    // (init_point). Sin reparto (cuenta única de iogga en pruebas) se usa el de
-    // sandbox. Así una venta repartida no cae por error en el ambiente de prueba.
-    const payUrl = split ? (data.init_point || data.sandbox_init_point) : (data.sandbox_init_point || data.init_point);
+    // Elegir el checkout correcto: REAL (init_point) para cuentas reales; de
+    // PRUEBA (sandbox_init_point) cuando el negocio o iogga están en modo prueba.
+    // Así una cuenta de prueba paga en sandbox y una real paga de verdad.
+    const useSandbox = !split || isTest;
+    const payUrl = useSandbox ? (data.sandbox_init_point || data.init_point) : (data.init_point || data.sandbox_init_point);
     // Registrar el intento de pago (queda ligado al folio del QR)
     await admin.firestore().collection('payments').doc(String(data.id)).set({
       preferenceId: data.id,

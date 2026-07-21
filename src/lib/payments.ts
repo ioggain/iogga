@@ -21,8 +21,9 @@ export async function createPaymentLink(input: {
       body: JSON.stringify(input),
     });
     const d = await r.json();
-    // En pruebas Mercado Pago da un init_point sandbox; en producción el normal
-    return d.sandbox_init_point || d.init_point || null;
+    // El backend ya elige el checkout correcto: real cuando hay reparto (negocio
+    // con cuenta conectada), sandbox cuando es la cuenta de iogga en pruebas.
+    return d.pay_url || d.sandbox_init_point || d.init_point || null;
   } catch {
     return null;
   }

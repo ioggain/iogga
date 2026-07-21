@@ -845,6 +845,21 @@ export async function saveMpMarketplaceConfig(clientId: string, clientSecret: st
 // URL a la que se manda al negocio para conectar su cuenta de Mercado Pago.
 export const MP_CONNECT_URL = 'https://us-central1-iogga-b932b.cloudfunctions.net/mpConnect';
 
+// Desvincular la cuenta de Mercado Pago del negocio (para cambiarla por otra).
+export async function disconnectMercadoPago(uid: string): Promise<boolean> {
+  try {
+    const r = await fetch('https://us-central1-iogga-b932b.cloudfunctions.net/mpDisconnect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid }),
+    });
+    const d = await r.json().catch(() => ({}));
+    return !!d.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function addAdmin(email: string): Promise<void> {
   if (!db) return;
   await setDoc(doc(db, 'admins', email.trim().toLowerCase()), { addedAt: serverTimestamp() });

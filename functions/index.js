@@ -61,6 +61,10 @@ exports.createPreference = onRequest({ secrets: [MP_ACCESS_TOKEN], cors: true, r
     });
     const data = await r.json();
     if (!data.id) { res.status(502).json({ error: 'Mercado Pago rechazó la solicitud', detail: data }); return; }
+    // Con reparto (negocio con cuenta real conectada) se usa el checkout REAL
+    // (init_point). Sin reparto (cuenta única de iogga en pruebas) se usa el de
+    // sandbox. Así una venta repartida no cae por error en el ambiente de prueba.
+    const payUrl = split ? (data.init_point || data.sandbox_init_point) : (data.sandbox_init_point || data.init_point);
     // Registrar el intento de pago (queda ligado al folio del QR)
     await admin.firestore().collection('payments').doc(String(data.id)).set({
       preferenceId: data.id,
@@ -75,7 +79,7 @@ exports.createPreference = onRequest({ secrets: [MP_ACCESS_TOKEN], cors: true, r
       createdAtMs: Date.now(),
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
-    res.json({ id: data.id, init_point: data.init_point, sandbox_init_point: data.sandbox_init_point });
+    res.json({ id: data.id, pay_url: payUrl, init_point: data.init_point, sandbox_init_point: data.sandbox_init_point });
   } catch (e) {
     res.status(500).json({ error: 'Error interno', detail: String(e) });
   }
@@ -157,6 +161,21 @@ exports.mpOAuthCallback = onRequest({ region: 'us-central1' }, async (req, res) 
     res.redirect('https://iogga.com/?mp=conectado');
   } catch (e) {
     fail('excepcion:' + String(e && e.message ? e.message : e));
+  }
+});
+
+// Desvincular la cuenta de Mercado Pago del negocio (para cambiarla por otra).
+// Borra el token guardado y marca el perfil como no conectado, para que pueda
+// volver a conectar la cuenta correcta.
+exports.mpDisconnect = onRequest({ cors: true, region: 'us-central1' }, async (req, res) => {
+  try {
+    const uid = String((req.body && req.body.uid) || req.query.uid || '');
+    if (!uid) { res.status(400).json({ error: 'Falta el negocio' }); return; }
+    await admin.firestore().collection('mp_sellers').doc(uid).delete().catch(() => {});
+    await admin.firestore().collection('users').doc(uid).set({ mpConnected: false }, { merge: true }).catch(() => {});
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error interno', detail: String(e) });
   }
 });
 

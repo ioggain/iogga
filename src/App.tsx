@@ -118,6 +118,7 @@ import {
   parsePrice,
   saveMpMarketplaceConfig,
   MP_CONNECT_URL,
+  disconnectMercadoPago,
   type Redemption,
   type Friend,
   type AppNotif,
@@ -6780,13 +6781,32 @@ export default function App() {
                 <div className="space-y-3">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Cobro automático (recomendado)</label>
                   {userProfile.mpConnected ? (
-                    <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0"><CheckCircle2 size={18} /></div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-black text-emerald-400">Mercado Pago conectado</p>
-                        <p className="text-[10px] text-emerald-200/80 leading-snug">Tus ventas se te depositan solas. iogga solo retiene su comisión.</p>
+                    <>
+                      <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0"><CheckCircle2 size={18} /></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-black text-emerald-400">Mercado Pago conectado</p>
+                          <p className="text-[10px] text-emerald-200/80 leading-snug">Tus ventas se te depositan solas. iogga solo retiene su comisión.</p>
+                        </div>
                       </div>
-                    </div>
+                      {/* Cambiar de cuenta: desvincula la actual para conectar otra */}
+                      <button
+                        onClick={async () => {
+                          if (!currentUser) return;
+                          const ok = await disconnectMercadoPago(currentUser.uid);
+                          if (ok) {
+                            setUserProfile({ ...userProfile, mpConnected: false });
+                            void saveProfile(currentUser.uid, { mpConnected: false } as any).catch(() => {});
+                            triggerBeta('Cuenta desvinculada', 'Ya puedes conectar otra cuenta de Mercado Pago (una cuenta REAL, no de prueba).');
+                          } else {
+                            triggerBeta('No se pudo desvincular', 'Revisa tu conexión e intenta de nuevo.');
+                          }
+                        }}
+                        className="w-full py-3 bg-white/5 border border-white/10 text-zinc-300 rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all"
+                      >
+                        Desvincular / cambiar de cuenta
+                      </button>
+                    </>
                   ) : (
                     <>
                       <a

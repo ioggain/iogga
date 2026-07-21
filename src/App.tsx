@@ -670,6 +670,65 @@ function openExternal(url: string): void {
   a.remove();
 }
 
+// Sugerencias de dirección MIENTRAS escribes (misma experiencia que el buscador
+// de Google Maps): tocas una y se llena el campo. Usa OpenStreetMap (gratuito).
+function AddressSuggest({ query, onPick, accent = 'primary' }: { query: string; onPick: (text: string) => void; accent?: 'primary' | 'accent' }) {
+  const [items, setItems] = React.useState<{ id: string; main: string; detail: string }[]>([]);
+  const pickedRef = React.useRef('');
+  React.useEffect(() => {
+    const q = (query || '').trim();
+    if (q.length < 4 || q === pickedRef.current) { setItems([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=4&countrycodes=mx&accept-language=es&q=${encodeURIComponent(q)}`);
+        const list = await r.json();
+        if (!Array.isArray(list)) { setItems([]); return; }
+        setItems(list.map((x: any) => {
+          const parts = String(x.display_name || '').split(',').map((s: string) => s.trim());
+          return { id: String(x.place_id), main: parts.slice(0, 2).join(', '), detail: parts.slice(2, 5).join(', ') };
+        }));
+      } catch { setItems([]); }
+    }, 450); // espera a que termine de teclear (no saturar el servicio)
+    return () => clearTimeout(t);
+  }, [query]);
+  if (items.length === 0) return null;
+  return (
+    <div className="rounded-2xl bg-zinc-900 border border-white/10 divide-y divide-white/5 overflow-hidden">
+      {items.map(it => (
+        <button key={it.id} type="button" onClick={() => { pickedRef.current = it.main; setItems([]); onPick(it.main); }} className="w-full px-4 py-3 flex items-start gap-2.5 text-left active:bg-white/5">
+          <MapPin size={14} className={`shrink-0 mt-0.5 ${accent === 'accent' ? 'text-iogga-accent' : 'text-iogga-primary'}`} />
+          <span className="min-w-0">
+            <span className="block text-sm font-bold text-white truncate">{it.main}</span>
+            {it.detail && <span className="block text-[10px] text-zinc-500 truncate">{it.detail}</span>}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Detecta de qué red social es un link copiado y saca el usuario, para
+// autollenar la caja correcta (Instagram, TikTok, Facebook, LinkedIn o sitio web).
+function parseSocialLink(raw: string): { network: 'instagram' | 'tiktok' | 'facebook' | 'linkedin' | 'website'; value: string } | null {
+  const t = (raw || '').trim();
+  if (!t) return null;
+  const m = t.match(/(?:https?:\/\/)?(?:www\.)?([a-z0-9.-]+)\/+([^\s/?#]+)/i);
+  const host = m ? m[1].toLowerCase() : '';
+  const first = m ? decodeURIComponent(m[2]) : '';
+  if (host.includes('instagram.com')) return { network: 'instagram', value: first.replace(/^@/, '') };
+  if (host.includes('tiktok.com')) return { network: 'tiktok', value: first.replace(/^@/, '') };
+  if (host.includes('linkedin.com')) {
+    const mm = t.match(/linkedin\.com\/(?:in|company)\/([^\s/?#]+)/i);
+    return { network: 'linkedin', value: mm ? decodeURIComponent(mm[1]) : t };
+  }
+  if (host.includes('facebook.com') || host.includes('fb.com') || host.includes('fb.me')) {
+    return { network: 'facebook', value: first === 'share' ? t : first };
+  }
+  if (/^(https?:\/\/)?[a-z0-9-]+(\.[a-z0-9-]+)+/i.test(t)) return { network: 'website', value: t };
+  return null;
+}
+const SOCIAL_NAME: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', linkedin: 'LinkedIn', website: 'Sitio web' };
+
 // Mini "video" animado (sin peso de video real): muestra en bucle cómo instalar
 // iogga en iPhone — tocar Compartir, subir el menú y Agregar a inicio.
 function InstallAnimationIOS() {
@@ -6067,6 +6126,8 @@ export default function App() {
                         />
                         <FieldVoice step={4} onDicta={t => setNewPlan(p => ({ ...p, location: t }))} />
                       </div>
+                      {/* Direcciones sugeridas al escribir (como en Google Maps) */}
+                      <AddressSuggest query={newPlan.location || ''} onPick={t => setNewPlan(p => ({ ...p, location: t }))} />
                       <div className="flex gap-2">
                         <a
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(newPlan.location || '')}`}
@@ -6283,32 +6344,40 @@ export default function App() {
                           </button>
                         )}
                       </div>
-                      {/* Pegar una imagen copiada (sin descargarla): del portapapeles */}
-                      <button
-                        onClick={async () => {
-                          try {
-                            const items = await (navigator as any).clipboard?.read?.();
-                            if (items) {
-                              for (const it of items) {
-                                const t = it.types.find((x: string) => x.startsWith('image/'));
-                                if (t) {
-                                  const blob = await it.getType(t);
-                                  const url: string = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(blob); });
-                                  setNewPlan(p => ({ ...p, image: url }));
-                                  return;
+                      {/* Los DOS pasos JUNTOS (pokayoke): 1. Copiar de Google → 2. Pegar copiada */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => openExternal(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(newPlan.activity || 'plan con amigos')}`)}
+                          className="py-3 bg-white/5 border border-white/10 text-zinc-300 rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <Search size={13} /> 1. Copiar de Google
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const items = await (navigator as any).clipboard?.read?.();
+                              if (items) {
+                                for (const it of items) {
+                                  const t = it.types.find((x: string) => x.startsWith('image/'));
+                                  if (t) {
+                                    const blob = await it.getType(t);
+                                    const url: string = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(blob); });
+                                    setNewPlan(p => ({ ...p, image: url }));
+                                    return;
+                                  }
                                 }
                               }
+                              triggerBeta('Copia una imagen primero', 'En Google mantén presionada la imagen, toca "Copiar imagen", y vuelve aquí a "Pegar copiada".');
+                            } catch {
+                              triggerBeta('No se pudo pegar', 'Tu navegador no permitió leer el portapapeles. Usa "Subir foto".');
                             }
-                            triggerBeta('Copia una imagen primero', 'Mantén presionada una foto (por ejemplo de tu galería o del navegador), toca "Copiar", y luego "Pegar imagen".');
-                          } catch {
-                            triggerBeta('No se pudo pegar', 'Tu navegador no permitió leer el portapapeles. Usa "Subir foto".');
-                          }
-                        }}
-                        className="w-full py-3 bg-white/5 border border-white/10 text-zinc-300 rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
-                      >
-                        <PlusCircle size={14} /> Pegar imagen copiada
-                      </button>
-                      <p className="text-[10px] text-zinc-500 text-center leading-snug">1. Busca en Google y <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen". 2. Vuelve y toca <span className="text-white font-bold">"Pegar imagen copiada"</span>.</p>
+                          }}
+                          className="py-3 bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <PlusCircle size={13} /> 2. Pegar copiada
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-zinc-500 text-center leading-snug">En Google <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen" → vuelve y toca <span className="text-white font-bold">"Pegar copiada"</span>.</p>
                       {newPlan.image && (
                         <button
                           onClick={() => setNewPlan({...newPlan, image: undefined})}
@@ -6332,14 +6401,7 @@ export default function App() {
                           ))}
                         </div>
                       </div>
-                      <button
-                        onClick={() => window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(newPlan.activity || 'plan con amigos')}`, '_blank')}
-                        className="w-full py-3 bg-white/5 border border-white/10 text-zinc-400 rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
-                      >
-                        <Search size={14} />
-                        Buscar imagen en Google
-                      </button>
-                      <p className="text-[10px] text-zinc-600 text-center">Elige una sugerencia, sube la tuya, o busca en Google (guárdala y súbela).</p>
+                      <p className="text-[10px] text-zinc-600 text-center">Elige una sugerencia, sube la tuya, o cópiala de Google con los 2 pasos de arriba.</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -6410,40 +6472,41 @@ export default function App() {
                     <span className="text-xs font-bold text-white uppercase tracking-widest">Cambiar Foto</span>
                   </div>
                 </button>
-                {/* Pegar imagen copiada + guía de Google, clarísimo en 2 pasos */}
+                {/* Los DOS pasos JUNTOS (pokayoke): 1. Copiar de Google → 2. Pegar copiada */}
                 <div className="space-y-2">
-                  <button
-                    onClick={async () => {
-                      try {
-                        const items = await (navigator as any).clipboard?.read?.();
-                        if (items) {
-                          for (const it of items) {
-                            const t = it.types.find((x: string) => x.startsWith('image/'));
-                            if (t) {
-                              const blob = await it.getType(t);
-                              const url: string = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(blob); });
-                              setPromoImage(url);
-                              return;
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => openExternal(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(newPromo.title || 'comida promoción')}`)}
+                      className="py-3 bg-white/5 border border-white/10 text-zinc-300 rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Search size={13} /> 1. Copiar de Google
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const items = await (navigator as any).clipboard?.read?.();
+                          if (items) {
+                            for (const it of items) {
+                              const t = it.types.find((x: string) => x.startsWith('image/'));
+                              if (t) {
+                                const blob = await it.getType(t);
+                                const url: string = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(blob); });
+                                setPromoImage(url);
+                                return;
+                              }
                             }
                           }
+                          triggerBeta('Copia una imagen primero', 'En Google mantén presionada la imagen, toca "Copiar imagen", y vuelve aquí a "Pegar copiada".');
+                        } catch {
+                          triggerBeta('No se pudo pegar', 'Tu navegador no permitió leer el portapapeles. Usa "Subir Foto Real".');
                         }
-                        triggerBeta('Copia una imagen primero', 'Mantén presionada una imagen (en Google, tu galería o donde sea), toca "Copiar imagen", y vuelve aquí a "Pegar imagen copiada".');
-                      } catch {
-                        triggerBeta('No se pudo pegar', 'Tu navegador no permitió leer el portapapeles. Usa "Subir Foto Real".');
-                      }
-                    }}
-                    className="w-full py-3 bg-white/5 border border-white/10 text-zinc-300 rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
-                  >
-                    <PlusCircle size={14} /> Pegar imagen copiada
-                  </button>
-                  <a
-                    href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(newPromo.title || 'comida promoción')}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="w-full py-3 bg-white/5 border border-dashed border-white/15 text-zinc-400 rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Search size={14} /> Buscar imagen en Google
-                  </a>
-                  <p className="text-[10px] text-zinc-500 text-center leading-snug">1. Busca en Google y <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen".<br />2. Vuelve aquí y toca <span className="text-white font-bold">"Pegar imagen copiada"</span>. Listo.</p>
+                      }}
+                      className="py-3 bg-iogga-accent/15 border border-iogga-accent/30 text-iogga-accent rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <PlusCircle size={13} /> 2. Pegar copiada
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 text-center leading-snug">En Google <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen" → vuelve y toca <span className="text-white font-bold">"Pegar copiada"</span>.</p>
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -6544,6 +6607,8 @@ export default function App() {
                       <MapPin size={13} /> Maps
                     </a>
                   </div>
+                  {/* Direcciones sugeridas al escribir (como en Google Maps) */}
+                  <AddressSuggest accent="accent" query={newPromo.location || ''} onPick={t => setNewPromo(pr => ({ ...pr, location: t }))} />
                   <button
                     type="button"
                     disabled={gettingLocation}
@@ -6673,6 +6738,27 @@ export default function App() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Sitios y redes (opcional)</label>
+                    {/* Autollenado pokayoke: pega el link de "Compartir perfil" de tu app
+                        y iogga detecta la red y llena la caja correcta sola. */}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const txt = await navigator.clipboard.readText();
+                          const p = parseSocialLink(txt || '');
+                          if (!p) { triggerBeta('Copia tu link primero', 'En tu app (Instagram, TikTok, Facebook…): Perfil → Compartir perfil → Copiar link. Vuelve aquí y toca "Pegar mi link".'); return; }
+                          if (p.network === 'instagram') setEditInstagram(p.value);
+                          else setEditLinks(prev => ({ ...prev, [p.network]: p.value }));
+                          triggerBeta('¡Listo!', `Se llenó ${SOCIAL_NAME[p.network]} automáticamente con lo que copiaste.`);
+                        } catch {
+                          triggerBeta('No se pudo leer', 'Tu navegador no permitió leer el portapapeles. Escribe tu usuario a mano.');
+                        }
+                      }}
+                      className="w-full py-3 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/25 text-iogga-primary font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <PlusCircle size={13} /> Pegar mi link copiado
+                    </button>
+                    <p className="text-[10px] text-zinc-600 ml-4 leading-snug">En tu app: Perfil → <span className="text-zinc-400 font-bold">Compartir perfil</span> → Copiar link → vuelve y toca "Pegar". iogga detecta la red y la llena sola.</p>
                     {[{k:'website',ph:'Sitio web (https://…)'},{k:'facebook',ph:'Facebook'},{k:'tiktok',ph:'TikTok'},{k:'linkedin',ph:'LinkedIn'}].map(({k,ph}) => (
                       <input key={k} type="text" value={(editLinks as any)[k]} onChange={e => setEditLinks({...editLinks, [k]: e.target.value})} placeholder={ph} className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-medium outline-none focus:ring-2 focus:ring-iogga-primary transition-all text-sm" />
                     ))}
@@ -6943,6 +7029,26 @@ export default function App() {
 
                 <div className="space-y-3">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Sitios y redes</label>
+                  {/* Mismo autollenado que en el perfil personal: pega el link de
+                      "Compartir perfil" de tu app y se llena la caja correcta sola. */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const txt = await navigator.clipboard.readText();
+                        const p = parseSocialLink(txt || '');
+                        if (!p) { triggerBeta('Copia tu link primero', 'En la app de tu red (Instagram, TikTok, Facebook…): Perfil → Compartir perfil → Copiar link. Vuelve aquí y toca "Pegar mi link".'); return; }
+                        setBusinessProfile({ ...businessProfile, [p.network]: p.value });
+                        triggerBeta('¡Listo!', `Se llenó ${SOCIAL_NAME[p.network]} automáticamente con lo que copiaste.`);
+                      } catch {
+                        triggerBeta('No se pudo leer', 'Tu navegador no permitió leer el portapapeles. Escribe tu usuario a mano.');
+                      }
+                    }}
+                    className="w-full py-3 rounded-2xl bg-iogga-accent/10 border border-iogga-accent/25 text-iogga-accent font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <PlusCircle size={13} /> Pegar mi link copiado
+                  </button>
+                  <p className="text-[10px] text-zinc-600 leading-snug">En la app de tu red: Perfil → <span className="text-zinc-400 font-bold">Compartir perfil</span> → Copiar link → vuelve y toca "Pegar". iogga detecta la red y la llena sola.</p>
                   {[
                     { k: 'website', ph: 'Sitio web (https://…)' },
                     { k: 'facebook', ph: 'Facebook (usuario o link)' },
@@ -8021,7 +8127,23 @@ export default function App() {
                         if (!suggestionText.trim()) { setShowBetaModal(false); return; }
                         let u = currentUser;
                         if (isFirebaseEnabled && !u) u = await ensureAnonSession();
-                        const ok = await saveFeedback(suggestionText.trim(), betaMessage.title || 'general', u);
+                        // Contexto para que el equipo pueda responder y diagnosticar,
+                        // aunque quien escriba no tenga cuenta (dispositivo, versión…).
+                        const device = (() => {
+                          try {
+                            const ua = navigator.userAgent;
+                            const os = /iPhone|iPad/.test(ua) ? 'iPhone' : /Android/.test(ua) ? 'Android' : 'Escritorio';
+                            const inst = window.matchMedia('(display-mode: standalone)').matches ? 'app instalada' : 'navegador';
+                            return `${os} · ${inst}`;
+                          } catch { return ''; }
+                        })();
+                        const ok = await saveFeedback(suggestionText.trim(), betaMessage.title || 'general', u, {
+                          whatsapp: userProfile.whatsapp || undefined,
+                          location: userProfile.location || undefined,
+                          device,
+                          version: APP_VERSION,
+                          mode,
+                        });
                         if (ok) { setSuggestionSent(true); setSuggestionText(''); }
                         else { setShowBetaModal(false); }
                       }}
@@ -9029,11 +9151,14 @@ export default function App() {
                     const exportTxt = () => {
                       const lines = ['IOGGA · COMENTARIOS Y SOPORTE', `TOTAL: ${fb.length}`, '='.repeat(42), ''];
                       fb.forEach((f, i) => lines.push(`MENSAJE ${i + 1}`, '-'.repeat(42),
-                        `DE:      ${f.userName || '—'}`,
-                        `CORREO:  ${f.email || '—'}`,
-                        `FECHA:   ${f.createdAtMs ? new Date(f.createdAtMs).toLocaleString('es-MX') : '—'}`,
+                        `DE:       ${f.userName || '—'}`,
+                        `CORREO:   ${f.email || '—'}`,
+                        `WHATSAPP: ${f.whatsapp || '—'}`,
+                        `UBICACIÓN: ${f.location || '—'}`,
+                        `EQUIPO:   ${f.device || '—'}${f.version ? ` · v${f.version}` : ''}`,
+                        `FECHA:    ${f.createdAtMs ? new Date(f.createdAtMs).toLocaleString('es-MX') : '—'}`,
                         `PANTALLA: ${f.context || '—'}`,
-                        `MENSAJE: ${f.text || ''}`, ''));
+                        `MENSAJE:  ${f.text || ''}`, ''));
                       downloadTxt(`iogga-comentarios-${new Date().toISOString().slice(0, 10)}.txt`, lines.join('\n'));
                     };
                     return (
@@ -9047,14 +9172,28 @@ export default function App() {
                           <div key={i} className="p-3 rounded-2xl bg-white/5 border border-white/5 space-y-2">
                             <p className="text-xs text-zinc-200 leading-snug">"{f.text}"</p>
                             <p className="text-[10px] text-zinc-500">{f.userName}{f.email ? ` · ${f.email}` : ''} · {f.context}{f.createdAtMs ? ` · ${new Date(f.createdAtMs).toLocaleDateString('es-MX')}` : ''}</p>
-                            {f.email && (
-                              <a
-                                href={`mailto:${f.email}?subject=${encodeURIComponent('iogga — respuesta a tu comentario')}&body=${encodeURIComponent(`Hola ${f.userName || ''},\n\nSobre tu mensaje: "${f.text}"\n\n`)}`}
-                                className="inline-flex items-center gap-1.5 text-[10px] font-black text-iogga-primary uppercase tracking-widest bg-iogga-primary/10 border border-iogga-primary/25 px-3 py-1.5 rounded-full active:scale-95 transition-all"
-                              >
-                                <Send size={11} /> Responder por correo
-                              </a>
+                            {(f.device || f.location || f.version) && (
+                              <p className="text-[10px] text-zinc-600">{[f.device, f.location, f.version ? `v${f.version}` : ''].filter(Boolean).join(' · ')}</p>
                             )}
+                            <div className="flex flex-wrap gap-2">
+                              {f.email && (
+                                <a
+                                  href={`mailto:${f.email}?subject=${encodeURIComponent('iogga — respuesta a tu comentario')}&body=${encodeURIComponent(`Hola ${f.userName || ''},\n\nSobre tu mensaje: "${f.text}"\n\n`)}`}
+                                  className="inline-flex items-center gap-1.5 text-[10px] font-black text-iogga-primary uppercase tracking-widest bg-iogga-primary/10 border border-iogga-primary/25 px-3 py-1.5 rounded-full active:scale-95 transition-all"
+                                >
+                                  <Send size={11} /> Correo
+                                </a>
+                              )}
+                              {f.whatsapp && (
+                                <a
+                                  href={`https://wa.me/52${String(f.whatsapp).replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${f.userName || ''}, somos el equipo de iogga. Sobre tu mensaje: "${f.text}"`)}`}
+                                  target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 text-[10px] font-black text-green-400 uppercase tracking-widest bg-green-500/10 border border-green-500/25 px-3 py-1.5 rounded-full active:scale-95 transition-all"
+                                >
+                                  <Send size={11} /> WhatsApp
+                                </a>
+                              )}
+                            </div>
                           </div>
                         ))}
                         {fb.length > 5 && (

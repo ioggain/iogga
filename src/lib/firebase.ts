@@ -681,8 +681,15 @@ export async function saveBusinessProfile(uid: string, business: BusinessProfile
   await setDoc(doc(db, 'users', uid), { business: sanitize(business), updatedAt: serverTimestamp() }, { merge: true });
 }
 
-// Guardar sugerencias/ideas del usuario (se ven luego en el panel de administración)
-export async function saveFeedback(text: string, context: string, user: AuthUser | null): Promise<boolean> {
+// Guardar sugerencias/ideas del usuario (se ven luego en el panel de administración).
+// extra: datos de contexto para que el EQUIPO pueda responder y diagnosticar
+// (WhatsApp y ubicación del perfil, dispositivo, versión de la app, modo).
+export async function saveFeedback(
+  text: string,
+  context: string,
+  user: AuthUser | null,
+  extra?: { whatsapp?: string; location?: string; device?: string; version?: string; mode?: string }
+): Promise<boolean> {
   if (!db) return false;
   try {
     await setDoc(doc(collection(db, 'feedback')), {
@@ -691,6 +698,7 @@ export async function saveFeedback(text: string, context: string, user: AuthUser
       uid: user?.uid || null,
       userName: user?.name || 'Anónimo',
       email: user?.email || '',
+      ...sanitize(extra || {}),
       createdAt: serverTimestamp(),
       createdAtMs: Date.now(),
     });
@@ -763,7 +771,7 @@ export interface AdminData {
   redemptionsRedeemed: number;
   incomeTotal: number; // suma del libro contable (comisiones/ingresos de iogga)
   salesTotal: number;  // ventas concretadas (montos de canjes)
-  feedback: { text: string; context: string; userName: string; email?: string; createdAtMs?: number }[];
+  feedback: { text: string; context: string; userName: string; email?: string; whatsapp?: string; location?: string; device?: string; version?: string; createdAtMs?: number }[];
   admins: string[];
   recentRedemptions: Redemption[];
   // Compras pagadas por Mercado Pago (escritas por el backend de pagos)

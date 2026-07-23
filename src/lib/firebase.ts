@@ -779,6 +779,8 @@ export interface AdminData {
   paidAmount: number;
   paidFees: number;
   recentPayments: PaymentRecord[];
+  // Lista de usuarios (para exportar: nombre, correo, WhatsApp, ubicación, negocio)
+  usersList: { name?: string; email?: string; whatsapp?: string; location?: string; business?: string }[];
 }
 
 // Un pago registrado por el backend (colección /payments)
@@ -798,7 +800,7 @@ export interface PaymentRecord {
 
 // Todo lo del panel en una sola llamada (conteos y listas recientes)
 export async function fetchAdminData(): Promise<AdminData> {
-  const empty: AdminData = { userCount: 0, planCount: 0, promoCount: 0, redemptionsTotal: 0, redemptionsRedeemed: 0, incomeTotal: 0, salesTotal: 0, feedback: [], admins: [], recentRedemptions: [], paidCount: 0, paidAmount: 0, paidFees: 0, recentPayments: [] };
+  const empty: AdminData = { userCount: 0, planCount: 0, promoCount: 0, redemptionsTotal: 0, redemptionsRedeemed: 0, incomeTotal: 0, salesTotal: 0, feedback: [], admins: [], recentRedemptions: [], paidCount: 0, paidAmount: 0, paidFees: 0, recentPayments: [], usersList: [] };
   if (!db) return empty;
   const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => { try { return await fn(); } catch { return fallback; } };
   const [users, plansSnap, promosSnap, reds, ledger, fb, adminsSnap, paysSnap] = await Promise.all([
@@ -832,6 +834,18 @@ export async function fetchAdminData(): Promise<AdminData> {
     recentPayments: paysList
       .sort((a, b) => (b.approvedAtMs || b.createdAtMs || 0) - (a.approvedAtMs || a.createdAtMs || 0))
       .slice(0, 20),
+    usersList: users
+      ? users.docs.map((d: any) => {
+          const x = d.data() || {};
+          return {
+            name: x.name || '',
+            email: x.email || '',
+            whatsapp: x.whatsapp || '',
+            location: x.location || '',
+            business: (x.business && x.business.name) || '',
+          };
+        })
+      : [],
   };
 }
 

@@ -516,7 +516,7 @@ export function ValidateCodeModal({ onClose, validatorUid }: { onClose: () => vo
         )}
 
         <p className="text-[10px] text-zinc-600 leading-relaxed text-center border-t border-white/5 pt-3">
-          ⭐ Tu negocio vive de sus calificaciones: cada canje validado aquí construye tu reputación.
+          Tu negocio vive de sus calificaciones: cada canje validado aquí construye tu reputación.
           Las transacciones fuera de iogga no cuentan, no están protegidas y se consideran mala práctica.
         </p>
 

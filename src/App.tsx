@@ -54,7 +54,8 @@ import {
   Mic,
   AudioLines,
   Receipt,
-  FileDown
+  FileDown,
+  CalendarPlus
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -520,7 +521,7 @@ function DateTimeRange({ value, onChange, dateOptions, customDateLabel, accent =
         }}
         className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap border cursor-pointer relative ${selected && !dateOptions.some(o => o.iso === selected) ? selOn : 'bg-white/5 border-white/10 text-zinc-400'}`}
       >
-        📅 Otra
+        Otra fecha
         <input type="date" className="absolute inset-0 opacity-0 cursor-pointer" min={dateOptions[0]?.iso} value={selected || ''} onChange={e => e.target.value && onPick(e.target.value)} />
       </label>
     </div>
@@ -728,6 +729,18 @@ function parseSocialLink(raw: string): { network: 'instagram' | 'tiktok' | 'face
   return null;
 }
 const SOCIAL_NAME: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', linkedin: 'LinkedIn', website: 'Sitio web' };
+
+// Ofertas típicas para sugerir al negocio (como LinkedIn sugiere puestos):
+// escribe la suya o toca una. Cubre descuentos, 2x1, días y regalos.
+const OFFER_IDEAS = [
+  '2x1', '3x2', '50% de descuento', '40% de descuento', '30% de descuento',
+  '25% de descuento', '20% de descuento', '15% de descuento', '10% de descuento',
+  'Segundo al 50%', 'Compra 1 y llévate 2', 'Envío gratis', 'Bebida gratis',
+  'Postre gratis', 'Café gratis', 'Entrada gratis', 'Combo especial',
+  'Precio especial', 'Paquete para 2', 'Paquete familiar', 'Lunes de descuento',
+  'Martes 2x1', 'Miércoles de 30%', 'Jueves de promoción', 'Viernes 2x1',
+  'Fin de semana especial', 'Happy hour', 'Primera visita con 20%',
+];
 
 // Mini "video" animado (sin peso de video real): muestra en bucle cómo instalar
 // iogga en iPhone — tocar Compartir, subir el menú y Agregar a inicio.
@@ -974,20 +987,24 @@ export default function App() {
   const [isWiggleMode, setIsWiggleMode] = useState(false);
   const [showEditBusinessProfile, setShowEditBusinessProfile] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const [businessProfile, setBusinessProfile] = useState<import('./lib/firebase').BusinessProfile>({
-    name: '',
-    bio: '',
-    logo: 'https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=150&q=80',
-    cover: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80',
-    location: '',
-    phone: '',
-    email: '',
-    website: '',
-    instagram: '',
-    facebook: '',
-    tiktok: '',
-    linkedin: '',
-    photos: [] as string[], // hasta 5 fotos del negocio (galería)
+  const [businessProfile, setBusinessProfile] = useState<import('./lib/firebase').BusinessProfile>(() => {
+    const base = {
+      name: '',
+      bio: '',
+      logo: 'https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=150&q=80',
+      cover: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80',
+      location: '',
+      phone: '',
+      email: '',
+      website: '',
+      instagram: '',
+      facebook: '',
+      tiktok: '',
+      linkedin: '',
+      photos: [] as string[], // hasta 5 fotos del negocio (galería)
+    };
+    // Caché local: al recargar, el negocio aparece al instante (sin parpadeo)
+    try { return { ...base, ...JSON.parse(localStorage.getItem('iogga_cache_biz') || '{}') }; } catch { return base; }
   });
   // Al actualizar con "jalar hacia abajo" la app se recarga pero REGRESA a la
   // misma pantalla y modo donde estaba (como Instagram): lo recordamos aquí.
@@ -1012,6 +1029,9 @@ export default function App() {
       return next;
     });
   };
+  // Banner "hay datos de prueba": recuerda cada cierto número de aperturas que
+  // los ejemplos se pueden quitar aquí mismo, con el interruptor a la mano.
+  const [showSeedBanner, setShowSeedBanner] = useState(false);
   // Elementos de prueba BORRADOS uno a uno (persisten borrados para siempre)
   const [deletedSeedIds, setDeletedSeedIds] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('iogga_deleted_seed') || '[]'); } catch { return []; }
@@ -2091,7 +2111,25 @@ export default function App() {
   };
 
   // Perfil extendido del usuario (bio, ubicación, foto) para el medidor de perfil
-  const [userProfile, setUserProfile] = useState<UserProfile>({});
+  // Perfil con caché local: al recargar, la foto y los datos aparecen AL INSTANTE
+  // (desde el caché) mientras llega lo fresco de la nube — sin parpadeos.
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    try { return JSON.parse(localStorage.getItem('iogga_cache_profile') || '{}'); } catch { return {}; }
+  });
+  useEffect(() => {
+    try {
+      if (currentUser && !currentUser.isAnonymous && Object.keys(userProfile).length > 0) {
+        localStorage.setItem('iogga_cache_profile', JSON.stringify(userProfile));
+      }
+    } catch { /* sin storage */ }
+  }, [userProfile, currentUser?.uid]);
+  useEffect(() => {
+    try {
+      if (currentUser && !currentUser.isAnonymous && businessProfile.name) {
+        localStorage.setItem('iogga_cache_biz', JSON.stringify(businessProfile));
+      }
+    } catch { /* sin storage */ }
+  }, [businessProfile, currentUser?.uid]);
   useEffect(() => {
     if (!currentUser) {
       setUserProfile({});
@@ -2508,6 +2546,36 @@ export default function App() {
     a.download = name;
     a.click();
     URL.revokeObjectURL(a.href);
+  };
+
+  // Agregar un plan al calendario del teléfono (archivo .ics universal: lo abren
+  // Calendario de iPhone, Google Calendar y Outlook con toda la información).
+  const addPlanToCalendar = (p: Plan) => {
+    const toICS = (d: Date) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}00`;
+    const day = p.date || new Date(p.timestamp || Date.now()).toISOString().slice(0, 10);
+    const start = new Date(`${day}T${(!p.allDay && p.startTime && p.startTime !== '00:00') ? p.startTime : '09:00'}:00`);
+    const endMs = planEndMs(p);
+    const end = new Date(endMs > start.getTime() ? endMs : start.getTime() + 2 * 60 * 60 * 1000);
+    const esc = (s: string) => String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+    const ics = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//iogga//ES', 'BEGIN:VEVENT',
+      `UID:${p.id}@iogga.com`,
+      `DTSTART:${toICS(start)}`,
+      `DTEND:${toICS(end)}`,
+      `SUMMARY:${esc(p.activity)}`,
+      `LOCATION:${esc(shownPlace(p))}`,
+      `DESCRIPTION:${esc(`Plan de ${p.userName} en iogga. ${window.location.origin}/?inv=${p.id}`)}`,
+      'END:VEVENT', 'END:VCALENDAR',
+    ].join('\r\n');
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `iogga-${(p.activity || 'plan').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30)}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+    triggerBeta('Listo para tu calendario', 'Abre el archivo que se descargó y tu teléfono lo agrega al calendario con toda la información del plan.');
   };
 
   // Serie de ventas por día (últimos 7 días) a partir de canjes reales
@@ -3202,6 +3270,19 @@ export default function App() {
 
   const [showBizWelcome, setShowBizWelcome] = useState(false);
   const [showPersonWelcome, setShowPersonWelcome] = useState(false);
+
+  // Mostrar el banner de datos de prueba cada ~3 aperturas (mientras estén visibles)
+  useEffect(() => {
+    if (showSplash || showTutorial || hideSeed || isIntro || showPersonWelcome || showBizWelcome) return;
+    try {
+      const v = Number(localStorage.getItem('iogga_visits') || '0');
+      const last = Number(localStorage.getItem('iogga_seed_banner_v') || '-9');
+      if (v - last < 3) return;
+      localStorage.setItem('iogga_seed_banner_v', String(v));
+      const t = setTimeout(() => setShowSeedBanner(true), 3000);
+      return () => clearTimeout(t);
+    } catch { /* sin storage */ }
+  }, [showSplash, showTutorial, hideSeed, isIntro, showPersonWelcome, showBizWelcome]);
 
   // Al terminar el splash, mostrar la bienvenida de persona (una sola vez).
   // Si el usuario nuevo verá el recorrido (tutorial), ese ya lo da la bienvenida.
@@ -5196,9 +5277,11 @@ export default function App() {
                           <span className="text-lg font-black text-white">{myPromos.length}</span>
                           <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Ofertas</span>
                         </button>
-                        <button onClick={() => setShowFriends('followers')} className="flex flex-col items-center active:scale-95 transition-transform">
-                          <span className="text-lg font-black text-white">{followersAll.length}</span>
-                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Seguidores</span>
+                        {/* Los negocios no tienen "seguidores" (modelo Uber Eats):
+                            aquí importan las VENTAS canjeadas. */}
+                        <button onClick={() => { setShowMySales(true); }} className="flex flex-col items-center active:scale-95 transition-transform">
+                          <span className="text-lg font-black text-white">{bizTotals.sales}</span>
+                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Canjes</span>
                         </button>
                         <div className="flex flex-col items-center">
                           <span className="text-lg font-black text-white">{(businessProfile.name ? 4.8 : 5).toFixed(1)}</span>
@@ -5463,7 +5546,7 @@ export default function App() {
                         />
                       </div>
                       <p className="text-[11px] text-zinc-400 font-medium">
-                        Siguiente paso: <span className="text-white font-bold">{profileSteps.find(s => !s.done)?.label}</span> · Un perfil completo recibe más invitaciones ✨
+                        Siguiente paso: <span className="text-white font-bold">{profileSteps.find(s => !s.done)?.label}</span> · Un perfil completo recibe más invitaciones.
                       </p>
                     </button>
                   </div>
@@ -5561,7 +5644,11 @@ export default function App() {
                       según el modo — persona ve sus pagos/compras, negocio sus cuentas/ventas */}
                   <div className="grid grid-cols-2 gap-3">
                     <ProfileButton icon={<Wallet size={20} />} label="Billetera" onClick={() => ensureLoggedIn(() => setShowWallet(true))} />
-                    <ProfileButton icon={<Users size={20} />} label="Amigos" onClick={() => setShowFriends('following')} />
+                    {/* Negocio: sin "Amigos" (nadie sigue negocios, modelo Uber Eats);
+                        en su lugar, escanear canjes que es su acción de todos los días. */}
+                    {mode === 'business'
+                      ? <ProfileButton icon={<QrCode size={20} />} label="Escanear QR" onClick={() => ensureLoggedIn(() => setShowValidateModal(true))} />
+                      : <ProfileButton icon={<Users size={20} />} label="Amigos" onClick={() => setShowFriends('following')} />}
                     <ProfileButton icon={<TrendingUp size={20} />} label="Movimientos" onClick={() => ensureLoggedIn(() => { if (mode === 'business') setShowMySales(true); else setShowMyPurchases(true); })} />
                     <ProfileButton icon={<Bell size={20} />} label="Ajustes" onClick={() => setShowSettingsMenu(true)} />
                   </div>
@@ -5728,7 +5815,7 @@ export default function App() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     className="relative w-full max-w-sm bg-zinc-900 border border-white/15 rounded-[28px] p-6 space-y-4 shadow-2xl"
                   >
-                    <p className="text-lg font-black text-white text-center leading-tight">3 formas de crear tu plan ✨</p>
+                    <p className="text-lg font-black text-white text-center leading-tight">3 formas de crear tu plan</p>
                     {/* Mini video animado (mismo formato que los demás tutoriales) */}
                     <VoiceAnimation />
                     <div className="space-y-3">
@@ -6542,22 +6629,38 @@ export default function App() {
                       onChange={e => setNewPromo({...newPromo, description: e.target.value})} 
                     />
                     <p className="text-[11px] font-bold text-zinc-400 px-1 -mb-1">Precio que pagará el cliente (tu precio normal de venta)</p>
-                    <div className="grid grid-cols-2 gap-4">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="Precio $"
-                        className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-accent outline-none text-base font-medium"
-                        value={newPromo.price || ''}
-                        onChange={e => setNewPromo({...newPromo, price: e.target.value})}
-                      />
-                      <input
-                        type="text"
-                        placeholder="Oferta (Ej. 2x1)"
-                        className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-accent outline-none text-base font-medium"
-                        value={newPromo.offer || ''}
-                        onChange={e => setNewPromo({...newPromo, offer: e.target.value})}
-                      />
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="Precio $"
+                      className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-accent outline-none text-base font-medium"
+                      value={newPromo.price || ''}
+                      onChange={e => setNewPromo({...newPromo, price: e.target.value})}
+                    />
+                    {/* Oferta: escribe la tuya o toca una sugerida (como LinkedIn
+                        sugiere puestos). Es opcional: si no aplica, se deja vacía. */}
+                    <p className="text-[11px] font-bold text-zinc-400 px-1 -mb-1 pt-1">Oferta (opcional) — así se anuncia tu promo</p>
+                    <input
+                      type="text"
+                      placeholder="Escribe tu oferta o elige una de abajo"
+                      className="w-full h-16 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-accent outline-none text-base font-medium"
+                      value={newPromo.offer || ''}
+                      onChange={e => setNewPromo({...newPromo, offer: e.target.value})}
+                    />
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                      {OFFER_IDEAS
+                        .filter(o => !newPromo.offer || o.toLowerCase().includes((newPromo.offer || '').toLowerCase()) || (newPromo.offer || '').length < 2)
+                        .slice(0, 10)
+                        .map(o => (
+                          <button
+                            key={o}
+                            type="button"
+                            onClick={() => setNewPromo({ ...newPromo, offer: o })}
+                            className={`px-3.5 py-2 rounded-full text-[11px] font-bold whitespace-nowrap border transition-all ${newPromo.offer === o ? 'bg-iogga-accent border-iogga-accent text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
+                          >
+                            {o}
+                          </button>
+                        ))}
                     </div>
                     {/* Desglose del dinero EN VIVO (modelo Uber Eats, pero más simple):
                         al escribir el precio, el negocio ve exactamente qué paga el
@@ -7075,6 +7178,19 @@ export default function App() {
                     }
                     if (owner) {
                       await saveBusinessProfile(owner.uid, businessProfile).catch(() => {});
+                      // Reflejar los cambios en TODAS sus ofertas publicadas, en
+                      // tiempo real: nombre, logo y teléfono viven en cada promo.
+                      const ownerUid = owner.uid;
+                      promos.filter(pr => pr.uid === ownerUid && !pr.isSeed).forEach(pr => {
+                        const patch = {
+                          businessName: businessProfile.name || pr.businessName,
+                          businessLogo: businessProfile.logo || pr.businessLogo,
+                          businessBio: businessProfile.bio || pr.businessBio,
+                          phone: businessProfile.phone || pr.phone,
+                        };
+                        void saveDocIn('promos', pr.id, patch);
+                        setPromos(ps => ps.map(x => x.id === pr.id ? { ...x, ...patch } : x));
+                      });
                     }
                     setHasBusiness(true);
                     setShowEditBusinessProfile(false);
@@ -7235,7 +7351,7 @@ export default function App() {
                               const plan = selectedPlanForDetails;
                               // Avisar solo a los NUEVOS aceptados (no a los que ya lo estaban)
                               const already = plan.confirmedUids || [];
-                              confirmSel.filter(uid => !already.includes(uid)).forEach(uid => sendNotification({ type:'accepted', to: uid, fromName: plan.userName, title: `${plan.userName.split(' ')[0]} te está esperando 🎉`, message: `Decidió hacer su plan contigo. Ya puedes ver la ubicación exacta y su WhatsApp para coordinar. ${buildInviteMessage(plan, true)}`, planId: plan.id }));
+                              confirmSel.filter(uid => !already.includes(uid)).forEach(uid => sendNotification({ type:'accepted', to: uid, fromName: plan.userName, title: `${plan.userName.split(' ')[0]} te está esperando`, message: `Decidió hacer su plan contigo. Ya puedes ver la ubicación exacta y su WhatsApp para coordinar. ${buildInviteMessage(plan, true)}`, planId: plan.id }));
                               // Guardar la selección para que quede con palomita al volver
                               const updated = { ...plan, confirmedUids: confirmSel };
                               void saveDocIn('plans', plan.id, updated);
@@ -7263,6 +7379,17 @@ export default function App() {
                         setCurrentPlanStep(step);
                       }, shownPlace(selectedPlanForDetails))
                     : renderPlanTechnicalDetails(selectedPlanForDetails, undefined, shownPlace(selectedPlanForDetails))}
+
+                  {/* Guardarlo en el calendario del teléfono con toda la información
+                      (para el anfitrión y para quien ya se unió) */}
+                  {(isMyPlan(selectedPlanForDetails) || acceptedPlanIds.includes(selectedPlanForDetails.id)) && (
+                    <button
+                      onClick={() => addPlanToCalendar(selectedPlanForDetails)}
+                      className="w-full py-3.5 rounded-2xl bg-white/5 border border-white/10 text-zinc-300 font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                      <CalendarPlus size={15} /> Agregar a mi calendario
+                    </button>
+                  )}
 
                   {/* Aviso de privacidad de ubicación: aún no eres aceptado */}
                   {!canSeeExactPlace(selectedPlanForDetails) && (
@@ -7402,26 +7529,36 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex items-center gap-3 bg-white/5 p-3 rounded-2xl border border-white/5">
-                      <div className="p-2 bg-iogga-primary/10 rounded-xl">
-                        <MapPin size={16} className="text-iogga-primary" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Ubicación</span>
-                        <span className="text-xs font-bold text-white truncate max-w-[100px]">{selectedPromo.location}</span>
-                      </div>
+                  {/* Descripción COMPLETA de la oferta (sin cortar) */}
+                  {selectedPromo.description && (
+                    <p className="text-sm text-zinc-300 leading-relaxed">{selectedPromo.description}</p>
+                  )}
+
+                  {/* Ubicación (modelo Uber Eats): dirección completa, tocable.
+                      "Cómo llegar" abre el mapa con la ruta. Sin datos inventados. */}
+                  {selectedPromo.location && (
+                    <div className="rounded-2xl bg-white/5 border border-white/5 overflow-hidden">
+                      <button
+                        onClick={() => openExternal(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedPromo.businessName} ${selectedPromo.location}`)}`)}
+                        className="w-full flex items-center gap-3 p-3 text-left active:bg-white/5 transition-colors"
+                      >
+                        <div className="p-2 bg-iogga-primary/10 rounded-xl shrink-0">
+                          <MapPin size={16} className="text-iogga-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block">Ubicación</span>
+                          <span className="text-xs font-bold text-white leading-snug block">{selectedPromo.location}</span>
+                        </div>
+                        <ChevronRight size={16} className="text-zinc-500 shrink-0" />
+                      </button>
+                      <button
+                        onClick={() => openExternal(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${selectedPromo.businessName} ${selectedPromo.location}`)}`)}
+                        className="w-full py-2.5 border-t border-white/5 text-iogga-accent text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 active:bg-white/5 transition-colors"
+                      >
+                        <Navigation size={13} /> Cómo llegar
+                      </button>
                     </div>
-                    <div className="flex items-center gap-3 bg-white/5 p-3 rounded-2xl border border-white/5">
-                      <div className="p-2 bg-iogga-accent/10 rounded-xl">
-                        <Navigation size={16} className="text-iogga-accent" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Distancia</span>
-                        <span className="text-xs font-bold text-white">0.8 km</span>
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Acciones: obtener la promo genera el QR real (descargable) */}
@@ -7639,7 +7776,11 @@ export default function App() {
                       setShowSettingsMenu(false);
                       setActiveTab('home');
                       setIsIntro(true);
-                      try { localStorage.removeItem('iogga_visits'); } catch {}
+                      try {
+                        localStorage.removeItem('iogga_visits');
+                        localStorage.removeItem('iogga_cache_profile');
+                        localStorage.removeItem('iogga_cache_biz');
+                      } catch {}
                     }}
                     className="w-full p-5 rounded-3xl bg-red-500/10 text-red-500 flex items-center justify-center gap-2 font-bold border border-red-500/20 active:scale-95 transition-transform"
                   >
@@ -7948,7 +8089,7 @@ export default function App() {
                           <div className="flex-1 min-w-0">
                             <span className="font-bold text-xs text-white block">{mPlan.userName}</span>
                             <p className="text-[10px] text-zinc-400 truncate font-semibold italic mt-0.5">"Planea: {mPlan.activity}"</p>
-                            <p className="text-[9px] text-zinc-500 mt-0.5">{mPlan.isPublic ? 'Toca para ver el plan completo →' : '🔒 Plan privado entre amigos: solo ves la actividad.'}</p>
+                            <p className="text-[9px] text-zinc-500 mt-0.5">{mPlan.isPublic ? 'Toca para ver el plan completo →' : 'Plan privado entre amigos: solo ves la actividad.'}</p>
                           </div>
                           {picked && <span className="shrink-0 px-2 py-1 rounded-full bg-iogga-accent text-zinc-950 text-[8px] font-black uppercase tracking-widest">Te eligió</span>}
                         </button>
@@ -8112,7 +8253,7 @@ export default function App() {
 
                 {suggestionSent ? (
                   <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/25 text-green-400 text-sm font-bold flex items-center justify-center gap-2">
-                    <CheckCircle2 size={18} /> ¡Gracias! Recibimos tu idea 💜
+                    <CheckCircle2 size={18} /> ¡Gracias! Recibimos tu idea
                   </div>
                 ) : (
                   <div className="space-y-3 text-left">
@@ -8177,6 +8318,40 @@ export default function App() {
                   <p className="text-xs text-zinc-400 font-medium leading-relaxed font-sans">
                     {isRegistering ? "Únete a la comunidad de planes espejo en Chihuahua." : "Inicia sesión para crear planes, guardar coincidencias y conectar."}
                   </p>
+                </div>
+
+                {/* Google PRIMERO (como las apps famosas): un toque y adentro */}
+                {isFirebaseEnabled && (
+                  <button
+                    type="button"
+                    disabled={authBusy}
+                    onClick={async () => {
+                      setAuthError('');
+                      setAuthBusy(true);
+                      try {
+                        const user = await loginWithGoogle();
+                        setCurrentUser(user);
+                        setIsLoggedIn(true);
+                        setShowLoginModal(false);
+                        triggerBeta("Sesión iniciada", `Bienvenido${user.name ? `, ${user.name}` : ''} a iogga Chihuahua.`);
+                        if (loginActionToResume) { loginActionToResume(); setLoginActionToResume(null); }
+                      } catch (err) {
+                        const code = (err as { code?: string })?.code || '';
+                        if (!code.includes('popup-closed') && !code.includes('cancelled')) setAuthError(authErrorMessage(err));
+                      } finally {
+                        setAuthBusy(false);
+                      }
+                    }}
+                    className="w-full py-4 bg-white text-zinc-900 rounded-[20px] font-black text-sm tracking-wide active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 40.4 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+                    Continuar con Google
+                  </button>
+                )}
+                <div className="relative flex items-center">
+                  <div className="flex-grow border-t border-white/5"></div>
+                  <span className="flex-shrink mx-4 text-zinc-600 text-[10px] font-bold uppercase tracking-widest font-sans">o con tu correo</span>
+                  <div className="flex-grow border-t border-white/5"></div>
                 </div>
 
                 <form onSubmit={async (e) => {
@@ -8338,45 +8513,6 @@ export default function App() {
                   >
                     {isRegistering ? "¿Ya tienes cuenta? Inicia Sesión" : ""}
                   </button>
-
-                  <div className="relative flex py-2 items-center">
-                    <div className="flex-grow border-t border-white/5"></div>
-                    <span className="flex-shrink mx-4 text-zinc-600 text-[10px] font-bold uppercase tracking-widest font-sans">o</span>
-                    <div className="flex-grow border-t border-white/5"></div>
-                  </div>
-
-                  {isFirebaseEnabled && (
-                    <button
-                      type="button"
-                      disabled={authBusy}
-                      onClick={async () => {
-                        setAuthError('');
-                        setAuthBusy(true);
-                        try {
-                          const user = await loginWithGoogle();
-                          setCurrentUser(user);
-                          setIsLoggedIn(true);
-                          setShowLoginModal(false);
-                          triggerBeta("¡Sesión Iniciada!", `Bienvenido${user.name ? `, ${user.name}` : ''} a iogga Chihuahua.`);
-                          if (loginActionToResume) {
-                            loginActionToResume();
-                            setLoginActionToResume(null);
-                          }
-                        } catch (err) {
-                          const code = (err as { code?: string })?.code || '';
-                          if (!code.includes('popup-closed') && !code.includes('cancelled')) {
-                            setAuthError(authErrorMessage(err));
-                          }
-                        } finally {
-                          setAuthBusy(false);
-                        }
-                      }}
-                      className="w-full py-4 bg-white text-zinc-900 rounded-[20px] font-black text-sm tracking-wide active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                    >
-                      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 40.4 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
-                      Continuar con Google
-                    </button>
-                  )}
 
                   <button
                     type="button"
@@ -8746,13 +8882,13 @@ export default function App() {
                     <img src={invitationPlan.userAvatar} className="w-16 h-16 rounded-full border-4 border-iogga-primary shadow-xl object-cover" referrerPolicy="no-referrer" />
                   </div>
                   <div>
-                    <h3 className="font-black text-2xl text-white mt-1">Intención compartida ✨</h3>
+                    <h3 className="font-black text-2xl text-white mt-1">Intención compartida</h3>
                   </div>
                   <p className="text-sm text-white/90 leading-relaxed px-2">
                     {buildInviteMessage(invitationPlan)}
                   </p>
                   <p className="text-xs font-bold text-iogga-primary/90 leading-relaxed px-4">
-                    Deja el scroll. Vive la sorpresa. Los mejores recuerdos empiezan con un "me apunto". ✨
+                    Deja el scroll. Vive la sorpresa. Los mejores recuerdos empiezan con un "me apunto".
                   </p>
                 </div>
 
@@ -8792,8 +8928,8 @@ export default function App() {
                 </div>
 
                 <p className="text-[10px] text-zinc-600 text-center leading-relaxed">
-                  🔒 Al aceptar solo se comparte tu nombre — nada más. iogga es web:
-                  no se descarga, no ocupa espacio y tus datos están protegidos. ✨
+                  Al aceptar solo se comparte tu nombre — nada más. iogga es web:
+                  no se descarga, no ocupa espacio y tus datos están protegidos.
                 </p>
               </div>
             </motion.div>
@@ -8807,7 +8943,7 @@ export default function App() {
             <motion.div
               initial={{ opacity: 0, y: 60 }}
               animate={{ opacity: 1, y: 0 }}
-              className="relative w-full sm:max-w-md bg-zinc-950 border border-iogga-primary/30 rounded-t-[32px] sm:rounded-[32px] p-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] space-y-5 text-center"
+              className="relative w-full sm:max-w-md bg-zinc-950 border border-iogga-primary/30 rounded-t-[32px] sm:rounded-[32px] p-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] space-y-5 text-center max-h-[88vh] overflow-y-auto no-scrollbar"
             >
               <div className="flex justify-center">
                 <div className="p-4 rounded-3xl bg-gradient-to-br from-iogga-primary/30 to-iogga-accent/20 border border-iogga-primary/30">
@@ -8867,7 +9003,7 @@ export default function App() {
                       y luego <span className="font-black text-white">Agregar</span> arriba a la derecha.
                     </p>
                   </div>
-                  <p className="text-xs text-zinc-500 text-center pt-1">✨ Listo. iogga aparecerá en tu pantalla de inicio, con su ícono.</p>
+                  <p className="text-xs text-zinc-500 text-center pt-1">Listo. iogga aparecerá en tu pantalla de inicio, con su ícono.</p>
                   <p className="text-[11px] text-amber-300/80 text-center">Debe ser en <span className="font-black">Safari</span> (no en Chrome ni desde Instagram/Facebook).</p>
                 </div>
               ) : (
@@ -8889,7 +9025,7 @@ export default function App() {
                       Dentro, toca <span className="font-black text-white">{installGuide.action}</span>.
                     </p>
                   </div>
-                  <p className="text-xs text-zinc-500 text-center pt-1">✨ Listo. iogga aparecerá en tu pantalla de inicio. Si no ves la opción, busca ahí mismo el botón de <span className="font-bold text-zinc-300">Compartir</span>.</p>
+                  <p className="text-xs text-zinc-500 text-center pt-1">Listo. iogga aparecerá en tu pantalla de inicio. Si no ves la opción, busca ahí mismo el botón de <span className="font-bold text-zinc-300">Compartir</span>.</p>
                 </div>
               )}
 
@@ -9050,6 +9186,24 @@ export default function App() {
                     className="w-full py-3 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
                   >
                     <FileDown size={14} /> Exportar analítica (texto)
+                  </button>
+                  <button
+                    onClick={() => {
+                      const lines = ['IOGGA · USUARIOS REGISTRADOS', `TOTAL: ${adminData.usersList.length}`, '='.repeat(42), ''];
+                      adminData.usersList.forEach((u, i) => lines.push(
+                        `USUARIO ${i + 1}`, '-'.repeat(42),
+                        `NOMBRE:   ${u.name || '—'}`,
+                        `CORREO:   ${u.email || '—'}`,
+                        `WHATSAPP: ${u.whatsapp || '—'}`,
+                        `UBICACIÓN: ${u.location || '—'}`,
+                        `NEGOCIO:  ${u.business || '—'}`, ''
+                      ));
+                      downloadTxt(`iogga-usuarios-${new Date().toISOString().slice(0, 10)}.txt`, lines.join('\n'));
+                    }}
+                    disabled={adminData.usersList.length === 0}
+                    className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
+                  >
+                    <FileDown size={14} /> Exportar usuarios (texto)
                   </button>
 
                   {/* Últimos canjes concretados */}
@@ -9280,7 +9434,7 @@ export default function App() {
         {/* ¡Te uniste! — avisar por iogga o WhatsApp (mismo patrón que Invitar).
             Pokayoke: al cerrar, el aviso en iogga se envía solo si no lo tocó. */}
         {joinedFlow && (
-          <Modal onClose={() => { notifyHostJoined(joinedFlow); setJoinedFlow(null); }} title="¡Te uniste! 🎉">
+          <Modal onClose={() => { notifyHostJoined(joinedFlow); setJoinedFlow(null); }} title="¡Te uniste!">
             <div className="space-y-5">
               <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-3">
                 <img src={joinedFlow.userAvatar} className="w-11 h-11 rounded-full object-cover" referrerPolicy="no-referrer" />
@@ -9306,6 +9460,14 @@ export default function App() {
               >
                 <UserPlus size={16} /> Avisar por WhatsApp
               </a>
+
+              {/* Que el plan quede en SU calendario con toda la información */}
+              <button
+                onClick={() => addPlanToCalendar(joinedFlow)}
+                className="w-full py-3.5 rounded-[20px] bg-white/5 border border-white/10 text-zinc-300 font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <CalendarPlus size={15} /> Agregar a mi calendario
+              </button>
 
               <p className="text-[11px] text-zinc-500 text-center leading-snug">Cuando {joinedFlow.userName.split(' ')[0]} te elija, te avisaremos y podrás ver la ubicación exacta{joinedFlow.whatsapp ? '' : ' y su WhatsApp'}.</p>
 
@@ -9779,6 +9941,42 @@ export default function App() {
           </Modal>
         )}
 
+        {/* Banner de DATOS DE PRUEBA: recuerda que los ejemplos se pueden quitar
+            aquí mismo (o después en el menú), con las dos opciones a la mano. */}
+        <AnimatePresence>
+          {showSeedBanner && !hideSeed && (
+            <motion.div
+              initial={{ opacity: 0, y: 80 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 80 }}
+              className="fixed bottom-24 left-4 right-4 z-[290] max-w-md mx-auto p-5 rounded-3xl bg-zinc-900 border border-iogga-primary/40 shadow-2xl space-y-3"
+            >
+              <p className="text-lg font-black text-white leading-tight">Hay datos de prueba</p>
+              <p className="text-[12px] text-zinc-400 leading-snug">
+                Los planes y ofertas con etiqueta <span className="text-white font-bold">"Prueba"</span> son
+                ejemplos para que entiendas la app. Déjalos mientras aprendes, o quítalos si ya la dominas.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => { if (!hideSeed) toggleHideSeed(); setShowSeedBanner(false); triggerBeta('Datos de prueba desactivados', 'Tu cuenta quedó limpia. Puedes volver a activarlos cuando quieras en el menú (las 3 rayitas arriba a la derecha) → "Datos de prueba".'); }}
+                  className="py-3.5 rounded-2xl bg-iogga-primary text-white font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  Quitarlos ahora
+                </button>
+                <button
+                  onClick={() => setShowSeedBanner(false)}
+                  className="py-3.5 rounded-2xl bg-white/5 border border-white/10 text-zinc-300 font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  Dejarlos por ahora
+                </button>
+              </div>
+              <p className="text-[10px] text-zinc-600 leading-snug flex items-center gap-1.5">
+                <Menu size={12} className="shrink-0" /> También puedes activarlos o quitarlos en el menú → "Datos de prueba".
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Bienvenida a iogga para Negocios: popup grande en verde */}
         {showBizWelcome && (
           <div className="fixed inset-0 z-[340] flex items-end sm:items-center justify-center">
@@ -9807,9 +10005,21 @@ export default function App() {
               <p className="text-lg text-zinc-200 leading-snug font-medium">
                 Se acabó pagar por prospectos inciertos. Aquí ves <span className="font-black text-white">personas que YA están buscando tu producto ahora mismo</span> y les mandas tu promoción.
               </p>
-              <p className="text-sm text-iogga-accent font-bold">Clientes reales en tiempo real, no leads. 🧲</p>
+              <p className="text-sm text-iogga-accent font-bold">Clientes reales en tiempo real, no leads.</p>
               <button
-                onClick={() => setShowBizWelcome(false)}
+                onClick={() => {
+                  setShowBizWelcome(false);
+                  // Negocio NUEVO (sin perfil): arrancar el recorrido guiado de 5
+                  // pasos (mismo formato que el de personas), una sola vez.
+                  let done = false;
+                  try { done = localStorage.getItem('iogga_biz_tour_done') === '1'; } catch {}
+                  if (!hasBusiness && !businessProfile.name && !done) {
+                    try { localStorage.setItem('iogga_biz_tour_done', '1'); } catch {}
+                    setTutorialMode('business');
+                    setTutorialStep(0);
+                    setShowTutorial(true);
+                  }
+                }}
                 className="w-full py-5 bg-iogga-accent text-white rounded-[24px] font-black text-base active:scale-95 transition-all shadow-xl shadow-iogga-accent/30"
               >
                 Empezar
@@ -9838,7 +10048,7 @@ export default function App() {
               <p className="text-lg text-zinc-200 leading-snug font-medium">
                 La app para <span className="font-black text-white">salir del móvil y vivir lo espontáneo</span>. Comparte tu intención —"un café", "vamos al cine"— y quien quiera se suma.
               </p>
-              <p className="text-sm text-iogga-primary font-bold">Sin chats interminables: solo acción. ✨</p>
+              <p className="text-sm text-iogga-primary font-bold">Sin chats interminables: solo acción.</p>
               <button
                 onClick={() => setShowPersonWelcome(false)}
                 className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-base active:scale-95 transition-all shadow-xl shadow-iogga-primary/30"
@@ -10116,7 +10326,7 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
   const steps = {
     person: [
       {
-        title: "iogga ✨",
+        title: "iogga",
         description: "La app para salir del móvil y entrar en la vida. Crea momentos mágicos, sin chats, espontáneamente. Comparte tu intención y deja que la magia haga el resto.",
         targetId: null,
         icon: <Sparkles className="text-iogga-primary" size={32} />
@@ -10170,16 +10380,22 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
       }
     ],
     business: [
+      // Recorrido para negocios NUEVOS (mismo formato que el de personas):
+      // 5 pasos claros que iluminan el botón exacto de cada cosa.
       {
-        title: "iogga para Negocios",
-        description: "Potencia tu negocio conectando con personas que buscan qué hacer en tiempo real.",
-        targetId: null,
+        title: "1. Crea tu perfil",
+        description: "Toca aquí y llena los datos de tu negocio: nombre, logo, dirección y dónde recibes tus pagos.",
+        targetId: 'nav-profile',
         icon: <Store className="text-iogga-accent" size={32} />,
-        onEnter: () => setIsIntro(false)
+        onEnter: () => {
+          setIsIntro(false);
+          setMode('business');
+          setActiveTab('profile');
+        }
       },
       {
-        title: "Publica Ofertas",
-        description: "Crea productos y ofertas especiales que aparecerán cuando la gente busque qué hacer.",
+        title: "2. Crea tu oferta",
+        description: "Con el botón + publicas tu promoción: foto, precio y oferta. La verá la gente que anda buscando qué hacer.",
         targetId: 'tutorial-create-btn',
         icon: <PackagePlus className="text-iogga-accent" size={32} />,
         onEnter: () => {
@@ -10189,47 +10405,36 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
         }
       },
       {
-        title: "Demanda Real",
-        description: "Mira qué está buscando la gente en tiempo real en Chihuahua para adaptar tu oferta.",
-        targetId: 'nav-search',
-        icon: <TrendingUp className="text-iogga-accent" size={32} />,
-        onEnter: () => {
-          setIsIntro(false);
-          setMode('business');
-          setActiveTab('search');
-        }
-      },
-      {
-        title: "Tendencias",
-        description: "Observa lo que la gente está haciendo ahora mismo para adaptar tu oferta.",
-        targetId: 'nav-search',
-        icon: <Globe className="text-iogga-accent" size={32} />,
-        onEnter: () => {
-          setIsIntro(false);
-          setMode('business');
-          setActiveTab('search');
-        }
-      },
-      {
-        title: "Tus Ganancias",
-        description: "Sigue el rendimiento de tu negocio con analíticas claras y profesionales.",
-        targetId: 'nav-analytics',
-        icon: <DollarSign className="text-iogga-accent" size={32} />,
-        onEnter: () => {
-          setIsIntro(false);
-          setMode('business');
-          setActiveTab('analytics');
-        }
-      },
-      {
-        title: "Análisis Detallado",
-        description: "Revisa el éxito de cada producto individualmente para optimizar tus ventas.",
-        targetId: 'tutorial-business-offer-card',
-        icon: <BarChart3 className="text-iogga-accent" size={32} />,
+        title: "3. Edita tus promos",
+        description: "Aquí viven tus ofertas publicadas: puedes cambiarles precio, foto o vigencia cuando quieras.",
+        targetId: 'nav-active',
+        icon: <Edit3 className="text-iogga-accent" size={32} />,
         onEnter: () => {
           setIsIntro(false);
           setMode('business');
           setActiveTab('active');
+        }
+      },
+      {
+        title: "4. Recibe pagos con QR",
+        description: "El cliente paga en iogga y llega con su QR: lo escaneas aquí con tu cámara y la venta queda registrada.",
+        targetId: 'nav-scan',
+        icon: <QrCode className="text-iogga-accent" size={32} />,
+        onEnter: () => {
+          setIsIntro(false);
+          setMode('business');
+          setActiveTab('active');
+        }
+      },
+      {
+        title: "5. Revisa tus cuentas",
+        description: "Tus ventas, movimientos y estado de cuenta viven aquí, claritos como en el banco.",
+        targetId: 'nav-analytics',
+        icon: <BarChart3 className="text-iogga-accent" size={32} />,
+        onEnter: () => {
+          setIsIntro(false);
+          setMode('business');
+          setActiveTab('analytics');
         }
       }
     ]

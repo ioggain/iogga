@@ -786,6 +786,7 @@ export interface AdminData {
 // Un pago registrado por el backend (colección /payments)
 export interface PaymentRecord {
   status?: string; // created / approved / pending / rejected
+  statusDetail?: string | null; // motivo exacto de Mercado Pago (para diagnosticar rechazos)
   title?: string;
   amount?: number;
   feeAmount?: number;

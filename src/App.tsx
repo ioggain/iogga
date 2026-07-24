@@ -8741,6 +8741,7 @@ export default function App() {
                 ['Negocio', adminPayDetail.businessName || '—'],
                 ['Folio', adminPayDetail.code || '—'],
                 ['Estado', adminPayDetail.status || '—'],
+                ['Detalle (Mercado Pago)', adminPayDetail.statusDetail || '—'],
                 ['Método', adminPayDetail.method || '—'],
                 ['Fecha', new Date(adminPayDetail.approvedAtMs || adminPayDetail.createdAtMs || Date.now()).toLocaleString('es-MX')],
                 ['Ingreso', `$${(adminPayDetail.amount || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`],

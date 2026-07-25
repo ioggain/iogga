@@ -724,8 +724,7 @@ function ImageSourceButtons({ query, onPaste, accent = 'primary', onOpen, onEmpt
         className="py-3 bg-white/5 border border-white/10 text-zinc-200 rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
       >
         <GoogleMark size={15} />
-        <Search size={13} />
-        Buscar en Google
+        Buscar imagen
       </button>
       <button
         type="button"
@@ -2638,39 +2637,67 @@ export default function App() {
   };
   // Exportar datos en el formato que se elija (texto claro, CSV para Excel, o
   // JSON para analizar con IA). Mismo generador para todas las secciones.
-  const downloadTxt = (name: string, text: string) => {
-    const blob = new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8;' });
+  // Entregar un archivo generado por la app. En el tel\u00E9fono, "descargar" no
+  // funciona igual que en la computadora: iOS ignora la descarga directa. Por eso
+  // se usa la hoja de compartir del sistema (ah\u00ED salen Archivos, Correo, WhatsApp
+  // y las apps de IA), y solo se descarga cuando el tel\u00E9fono no la ofrece.
+  const deliverFile = async (name: string, text: string, mime = 'text/plain') => {
+    const blob = new Blob(['\uFEFF' + text], { type: `${mime};charset=utf-8;` });
+    const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean; share?: (d: unknown) => Promise<void> };
+    try {
+      const file = new File([blob], name, { type: mime });
+      if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
+        await nav.share({ files: [file], title: name });
+        return true;
+      }
+    } catch (e) {
+      // Si el usuario cancela la hoja de compartir, no seguimos con la descarga
+      if ((e as { name?: string })?.name === 'AbortError') return false;
+    }
+    // Computadora (o tel\u00E9fono sin compartir archivos): descarga normal
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = name;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(a.href);
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    return true;
   };
-  const exportRows = (title: string, rows: Record<string, unknown>[], format: 'txt' | 'csv' | 'json') => {
+  const downloadTxt = (name: string, text: string) => { void deliverFile(name, text, 'text/plain'); };
+  // Armar el contenido de un reporte en el formato pedido (texto claro para
+  // leer o pegar en una IA, CSV para Excel, JSON para analizar a fondo).
+  const buildReport = (title: string, rows: Record<string, unknown>[], format: 'txt' | 'csv' | 'json') => {
     const stamp = new Date().toISOString().slice(0, 10);
     const base = `iogga-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${stamp}`;
     const val = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : String(v));
+    const cols: string[] = Array.from(rows.reduce((set: Set<string>, r) => { Object.keys(r).forEach(k => set.add(k)); return set; }, new Set<string>()));
     if (format === 'json') {
-      downloadTxt(`${base}.json`, JSON.stringify({ reporte: title, generado: new Date().toISOString(), total: rows.length, datos: rows }, null, 2));
-      return;
+      return {
+        name: `${base}.json`,
+        mime: 'application/json',
+        text: JSON.stringify({ reporte: title, app: 'iogga', generado: new Date().toISOString(), total_registros: rows.length, campos: cols, datos: rows }, null, 2),
+      };
     }
-    const cols = Array.from(rows.reduce((set, r) => { Object.keys(r).forEach(k => set.add(k)); return set; }, new Set<string>()));
     if (format === 'csv') {
       const esc = (s: unknown) => `"${String(s ?? '').replace(/"/g, '""')}"`;
       const lines = [cols.map(esc).join(','), ...rows.map(r => cols.map(c => esc(r[c] ?? '')).join(','))];
-      downloadTxt(`${base}.csv`, lines.join('\n'));
-      return;
+      return { name: `${base}.csv`, mime: 'text/csv', text: lines.join('\n') };
     }
     // Texto: cada registro como bloque, campos en MAYÚSCULAS y alineados
-    const width = Math.max(...cols.map(c => c.length)) + 2;
+    const width = cols.length ? Math.max(...cols.map(c => c.length)) + 2 : 10;
     const out = ['='.repeat(46), `IOGGA · ${title.toUpperCase()}`, `CORTE: ${new Date().toLocaleString('es-MX')}`, `REGISTROS: ${rows.length}`, '='.repeat(46), ''];
     rows.forEach((r, i) => {
       out.push(`${i + 1} DE ${rows.length}`, '-'.repeat(46));
-      cols.forEach(c => out.push(`${(c.toUpperCase() + ':').padEnd(width)}${val(r[c])}`));
+      cols.forEach(c => out.push(`${(c.toUpperCase().replace(/_/g, ' ') + ':').padEnd(width)}${val(r[c])}`));
       out.push('');
     });
     if (rows.length === 0) out.push('SIN REGISTROS EN ESTE CORTE', '');
-    downloadTxt(`${base}.txt`, out.join('\n'));
+    return { name: `${base}.txt`, mime: 'text/plain', text: out.join('\n') };
+  };
+  const exportRows = async (title: string, rows: Record<string, unknown>[], format: 'txt' | 'csv' | 'json') => {
+    const rep = buildReport(title, rows, format);
+    return deliverFile(rep.name, rep.text, rep.mime);
   };
 
 
@@ -8856,16 +8883,22 @@ export default function App() {
               <div className="space-y-2">
                 <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Elige el formato</p>
                 {([
-                  ['txt', 'Texto ordenado', 'Se lee fácil, para leer o pegar en una IA'],
-                  ['csv', 'CSV (Excel)', 'Para abrir en Excel o Google Sheets'],
-                  ['json', 'JSON', 'El más completo para analizar con IA'],
+                  ['json', 'JSON', 'El mejor para analizar con IA: datos completos y estructurados'],
+                  ['csv', 'CSV', 'Para abrir en Excel o Google Sheets'],
+                  ['txt', 'Texto', 'Para leer o pegar directo en un chat de IA'],
                 ] as const).map(([fmt, title, desc]) => (
                   <button
                     key={fmt}
-                    onClick={() => { exportRows(exportPack.title, exportPack.rows, fmt); setExportPack(null); }}
+                    onClick={async () => {
+                      const ok = await exportRows(exportPack.title, exportPack.rows, fmt);
+                      if (ok) {
+                        setExportPack(null);
+                        triggerBeta('Reporte listo', 'Si tu teléfono abrió la hoja de compartir, elige dónde mandarlo (tu IA, correo, WhatsApp o Archivos). En computadora se descargó a tu carpeta de descargas.');
+                      }
+                    }}
                     className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3 active:scale-[0.98] transition-transform text-left"
                   >
-                    <div className="w-10 h-10 rounded-2xl bg-iogga-primary/15 text-iogga-primary flex items-center justify-center shrink-0"><FileDown size={18} /></div>
+                    <div className="w-11 h-11 rounded-2xl bg-iogga-primary/15 text-iogga-primary flex items-center justify-center shrink-0 text-[10px] font-black">{fmt.toUpperCase()}</div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-black text-white">{title}</p>
                       <p className="text-[10px] text-zinc-500 leading-snug">{desc}</p>
@@ -9336,6 +9369,58 @@ export default function App() {
                     ))}
                   </div>
 
+                  {/* Exportar la sección que estás viendo: un solo botón grande,
+                      claro y siempre a la mano (misma acción en todas las pestañas). */}
+                  {(() => {
+                    const packs: Record<string, { title: string; rows: Record<string, unknown>[] }> = {
+                      resumen: { title: 'Analítica', rows: [{
+                        usuarios_registrados: adminData.userCount,
+                        planes_creados: adminData.planCount,
+                        ofertas_publicadas: adminData.promoCount,
+                        citas_concretadas: adminData.redemptionsRedeemed,
+                        ventas_concretadas: adminData.salesTotal,
+                        ingresos_iogga: adminData.incomeTotal,
+                        compras_pagadas_mp: adminData.paidCount,
+                        cobrado_por_mp: adminData.paidAmount,
+                        comision_iogga_mp: adminData.paidFees,
+                        comentarios_soporte: adminData.feedback.length,
+                        altas_con_google: adminData.signupStats.google,
+                        altas_con_correo: adminData.signupStats.email,
+                      }] },
+                      ingresos: { title: 'Movimientos', rows: adminData.recentPayments.map(p => ({
+                        fecha: new Date(p.approvedAtMs || p.createdAtMs || Date.now()).toLocaleString('es-MX'),
+                        estado: p.status || '', promocion: p.title || '', cliente: p.userName || '',
+                        negocio: p.businessName || '', folio: p.code || '', metodo: p.method || '',
+                        ingreso: p.amount || 0, comision_iogga: p.feeAmount || 0, neto_negocio: p.payoutAmount || 0,
+                      })) },
+                      usuarios: { title: 'Usuarios', rows: adminData.usersList.map(u => ({
+                        nombre: u.name || '', correo: u.email || '', whatsapp: u.whatsapp || '',
+                        ciudad: u.location || '', edad: u.edad ?? '', alta: u.alta || '', negocio: u.business || '',
+                      })) },
+                      contenido: { title: 'Canjes', rows: adminData.recentRedemptions.map(r => ({
+                        fecha: r.redeemedAtMs ? new Date(r.redeemedAtMs).toLocaleString('es-MX') : '',
+                        folio: r.code, promocion: r.promoTitle, negocio: r.businessName,
+                        cliente: r.userName, monto: r.priceAmount || 0,
+                      })) },
+                      soporte: { title: 'Comentarios', rows: adminData.feedback.map(f => ({
+                        fecha: f.createdAtMs ? new Date(f.createdAtMs).toLocaleString('es-MX') : '',
+                        de: f.userName || '', correo: f.email || '', whatsapp: f.whatsapp || '',
+                        ciudad: f.location || '', equipo: f.device || '', version: f.version || '',
+                        pantalla: f.context || '', mensaje: f.text || '',
+                      })) },
+                    };
+                    const pack = packs[adminTab];
+                    return (
+                      <button
+                        onClick={() => setExportPack(pack)}
+                        className="w-full py-4 rounded-2xl bg-indigo-500 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-indigo-500/20"
+                      >
+                        <FileDown size={16} />
+                        Exportar {pack.title.toLowerCase()} ({pack.rows.length})
+                      </button>
+                    );
+                  })()}
+
                   {adminTab === 'resumen' && (<>
                   {/* KPIs principales: tocar uno abre las opciones de exportar */}
                   <div className="grid grid-cols-2 gap-3">
@@ -9461,9 +9546,9 @@ export default function App() {
                               ingreso: p.amount || 0, comision_iogga: p.feeAmount || 0, neto_negocio: p.payoutAmount || 0,
                             })) })}
                             disabled={list.length === 0}
-                            className="text-[9px] font-black text-iogga-primary uppercase tracking-widest flex items-center gap-1 disabled:opacity-40"
+                            className="px-3 py-1.5 rounded-full bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
                           >
-                            <FileDown size={11} /> Exportar
+                            <FileDown size={12} /> Exportar
                           </button>
                         </div>
                         {/* Totales financieros (lo principal de un vistazo) */}
@@ -9521,9 +9606,9 @@ export default function App() {
                               pantalla: f.context || '', mensaje: f.text || '',
                             })) })}
                             disabled={fb.length === 0}
-                            className="text-[9px] font-black text-iogga-primary uppercase tracking-widest flex items-center gap-1 disabled:opacity-40"
+                            className="px-3 py-1.5 rounded-full bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
                           >
-                            <FileDown size={11} /> Exportar
+                            <FileDown size={12} /> Exportar
                           </button>
                         </div>
                         {fb.length === 0 && <p className="text-xs text-zinc-500 px-1">Sin comentarios todavía.</p>}
@@ -9575,9 +9660,9 @@ export default function App() {
                             ciudad: u.location || '', edad: u.edad ?? '', alta: u.alta || '', negocio: u.business || '',
                           })) })}
                           disabled={adminData.usersList.length === 0}
-                          className="text-[9px] font-black text-iogga-primary uppercase tracking-widest flex items-center gap-1 disabled:opacity-40"
+                          className="px-3 py-1.5 rounded-full bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
                         >
-                          <FileDown size={11} /> Exportar
+                          <FileDown size={12} /> Exportar
                         </button>
                       </div>
                       {/* Cuántos tienen negocio, WhatsApp o ciudad (para decidir) */}

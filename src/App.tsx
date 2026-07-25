@@ -55,7 +55,8 @@ import {
   AudioLines,
   Receipt,
   FileDown,
-  CalendarPlus
+  CalendarPlus,
+  ClipboardPaste
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -671,6 +672,89 @@ function openExternal(url: string): void {
   a.remove();
 }
 
+// Logo de Google (oficial, en SVG) para el botón de buscar imagen.
+function GoogleMark({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/>
+      <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
+      <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 40.4 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/>
+    </svg>
+  );
+}
+
+// Leer una imagen del portapapeles (la que copiaste en Google, galería, etc.).
+// Devuelve la imagen lista para usar, o null si no había ninguna copiada.
+async function readImageFromClipboard(): Promise<string | null> {
+  try {
+    const items = await (navigator as any).clipboard?.read?.();
+    if (!items) return null;
+    for (const it of items) {
+      const t = it.types.find((x: string) => x.startsWith('image/'));
+      if (t) {
+        const blob = await it.getType(t);
+        return await new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(blob); });
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Par de botones universales para la foto: buscar en Google (logo de Google +
+// lupa) y pegar desde el portapapeles (icono universal de pegar). Se usa igual
+// en planes y en ofertas, para no duplicar diseños.
+function ImageSourceButtons({ query, onPaste, accent = 'primary', onOpen, onEmpty }: {
+  query: string;
+  onPaste: (dataUrl: string) => void;
+  accent?: 'primary' | 'accent';
+  onOpen: (url: string) => void;
+  onEmpty: () => void;
+}) {
+  const pasteCls = accent === 'accent'
+    ? 'bg-iogga-accent/15 border-iogga-accent/30 text-iogga-accent'
+    : 'bg-iogga-primary/15 border-iogga-primary/30 text-iogga-primary';
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <button
+        type="button"
+        onClick={() => onOpen(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query || 'foto')}`)}
+        className="py-3 bg-white/5 border border-white/10 text-zinc-200 rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+      >
+        <GoogleMark size={15} />
+        <Search size={13} />
+        Buscar en Google
+      </button>
+      <button
+        type="button"
+        onClick={async () => { const img = await readImageFromClipboard(); if (img) onPaste(img); else onEmpty(); }}
+        className={`py-3 border rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 ${pasteCls}`}
+      >
+        <ClipboardPaste size={15} />
+        Pegar imagen
+      </button>
+    </div>
+  );
+}
+
+// Zona o colonia de una dirección (para la pista pública, sin dar el punto
+// exacto). Se saca del mismo servicio de mapas: "Centro", "San Felipe", etc.
+async function fetchZoneHint(address: string): Promise<string | null> {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&countrycodes=mx&accept-language=es&q=${encodeURIComponent(address)}`);
+    const list = await r.json();
+    const a = Array.isArray(list) && list[0] ? list[0].address || {} : {};
+    const zona = a.neighbourhood || a.suburb || a.quarter || a.city_district || a.village || a.town;
+    const ciudad = a.city || a.town || a.municipality || '';
+    if (zona && ciudad && zona !== ciudad) return `${zona}, ${ciudad}`;
+    return zona || ciudad || null;
+  } catch {
+    return null;
+  }
+}
+
 // Sugerencias de dirección MIENTRAS escribes (misma experiencia que el buscador
 // de Google Maps): tocas una y se llena el campo. Usa OpenStreetMap (gratuito).
 function AddressSuggest({ query, onPick, accent = 'primary' }: { query: string; onPick: (text: string) => void; accent?: 'primary' | 'accent' }) {
@@ -1032,6 +1116,13 @@ export default function App() {
   // Banner "hay datos de prueba": recuerda cada cierto número de aperturas que
   // los ejemplos se pueden quitar aquí mismo, con el interruptor a la mano.
   const [showSeedBanner, setShowSeedBanner] = useState(false);
+  // Al abrir algo con etiqueta "Prueba" se ofrece limpiar la app (una vez por sesión)
+  const seedNoticeShown = useRef(false);
+  const noticeIfSeed = (item?: { isSeed?: boolean } | null) => {
+    if (!item?.isSeed || hideSeed || seedNoticeShown.current) return;
+    seedNoticeShown.current = true;
+    setTimeout(() => setShowSeedBanner(true), 700);
+  };
   // Elementos de prueba BORRADOS uno a uno (persisten borrados para siempre)
   const [deletedSeedIds, setDeletedSeedIds] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('iogga_deleted_seed') || '[]'); } catch { return []; }
@@ -2100,6 +2191,10 @@ export default function App() {
   const [adminPayAll, setAdminPayAll] = useState(false);
   const [adminFbAll, setAdminFbAll] = useState(false);
   const [adminPayDetail, setAdminPayDetail] = useState<import('./lib/firebase').PaymentRecord | null>(null);
+  // Pestañas del panel (se deslizan de lado, como las de WhatsApp/Contactos)
+  const [adminTab, setAdminTab] = useState<'resumen' | 'ingresos' | 'usuarios' | 'contenido' | 'soporte'>('resumen');
+  // Exportar cualquier bloque en el formato que elija el fundador
+  const [exportPack, setExportPack] = useState<null | { title: string; rows: Record<string, unknown>[] }>(null);
   useEffect(() => {
     if (!currentUser?.email) { setIsAdmin(false); return; }
     void checkIsAdmin(currentUser.email).then(setIsAdmin);
@@ -2539,6 +2634,8 @@ export default function App() {
     );
     return out.join('\n');
   };
+  // Exportar datos en el formato que se elija (texto claro, CSV para Excel, o
+  // JSON para analizar con IA). Mismo generador para todas las secciones.
   const downloadTxt = (name: string, text: string) => {
     const blob = new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8;' });
     const a = document.createElement('a');
@@ -2547,6 +2644,33 @@ export default function App() {
     a.click();
     URL.revokeObjectURL(a.href);
   };
+  const exportRows = (title: string, rows: Record<string, unknown>[], format: 'txt' | 'csv' | 'json') => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const base = `iogga-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${stamp}`;
+    const val = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : String(v));
+    if (format === 'json') {
+      downloadTxt(`${base}.json`, JSON.stringify({ reporte: title, generado: new Date().toISOString(), total: rows.length, datos: rows }, null, 2));
+      return;
+    }
+    const cols = Array.from(rows.reduce((set, r) => { Object.keys(r).forEach(k => set.add(k)); return set; }, new Set<string>()));
+    if (format === 'csv') {
+      const esc = (s: unknown) => `"${String(s ?? '').replace(/"/g, '""')}"`;
+      const lines = [cols.map(esc).join(','), ...rows.map(r => cols.map(c => esc(r[c] ?? '')).join(','))];
+      downloadTxt(`${base}.csv`, lines.join('\n'));
+      return;
+    }
+    // Texto: cada registro como bloque, campos en MAYÚSCULAS y alineados
+    const width = Math.max(...cols.map(c => c.length)) + 2;
+    const out = ['='.repeat(46), `IOGGA · ${title.toUpperCase()}`, `CORTE: ${new Date().toLocaleString('es-MX')}`, `REGISTROS: ${rows.length}`, '='.repeat(46), ''];
+    rows.forEach((r, i) => {
+      out.push(`${i + 1} DE ${rows.length}`, '-'.repeat(46));
+      cols.forEach(c => out.push(`${(c.toUpperCase() + ':').padEnd(width)}${val(r[c])}`));
+      out.push('');
+    });
+    if (rows.length === 0) out.push('SIN REGISTROS EN ESTE CORTE', '');
+    downloadTxt(`${base}.txt`, out.join('\n'));
+  };
+
 
   // Agregar un plan al calendario del teléfono (archivo .ics universal: lo abren
   // Calendario de iPhone, Google Calendar y Outlook con toda la información).
@@ -2829,6 +2953,21 @@ export default function App() {
     window.addEventListener('open-create-promo', handleOpenCreatePromo);
     return () => window.removeEventListener('open-create-promo', handleOpenCreatePromo);
   }, []);
+
+  // Pista pública AUTOMÁTICA: si el usuario puso el lugar exacto pero no escribió
+  // la zona, la sacamos del mapa (colonia/zona) para que los demás sepan por dónde
+  // es, sin revelar el punto exacto. Si él escribe la suya, se respeta siempre.
+  const hintTouched = useRef(false);
+  useEffect(() => {
+    const loc = (newPlan.location || '').trim();
+    if (!loc || loc.length < 6 || hintTouched.current || (newPlan.locationHint || '').trim()) return;
+    let cancel = false;
+    const t = setTimeout(async () => {
+      const zona = await fetchZoneHint(loc);
+      if (!cancel && zona && !hintTouched.current) setNewPlan(p => (p.locationHint || '').trim() ? p : { ...p, locationHint: zona });
+    }, 900);
+    return () => { cancel = true; clearTimeout(t); };
+  }, [newPlan.location]);
 
   const handlePublishPlan = async () => {
     // Pokayoke: un plan con fecha/hora que YA pasó no se ve en ningún feed
@@ -3429,8 +3568,11 @@ export default function App() {
               {/* Left: Logo & Mode */}
               <div className="flex items-center gap-3" id="tutorial-mode-switch">
               <div className="flex items-center gap-2 group relative">
-              <button 
+              <button
                 onClick={handleRefresh}
+                // Doble toque = cambiar de perfil (igual que en el botón Perfil
+                // de la barra de abajo): mismo gesto en toda la app.
+                onDoubleClick={() => toggleMode(mode === 'person' ? 'business' : 'person')}
                 className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-full transition-all duration-500 shadow-lg active:scale-95 ${mode === 'person' ? 'bg-iogga-primary/10 text-iogga-primary' : 'bg-iogga-accent/10 text-iogga-accent'}`}
               >
                 {mode === 'person'
@@ -3917,11 +4059,11 @@ export default function App() {
 
                   {mode === 'person' ? (
                     <div className="flex p-1 bg-white/5 rounded-2xl border border-white/5">
-                      <button 
+                      <button
                         onClick={() => setSearchFilter('plans')}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${searchFilter === 'plans' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500'}`}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${searchFilter === 'plans' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500'}`}
                       >
-                        Planes
+                        <Users size={13} /> Planes
                       </button>
                       <button
                         onClick={() => setSearchFilter('promos')}
@@ -4032,7 +4174,7 @@ export default function App() {
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: index * 0.05 }}
-                                onClick={() => setSelectedPlanForDetails(plan)}
+                                onClick={() => { noticeIfSeed(plan); setSelectedPlanForDetails(plan); }}
                                 className="relative aspect-[4/5] rounded-[32px] overflow-hidden group shadow-2xl cursor-pointer border border-white/10"
                               >
                                 {plan.isSeed && <SeedTag />}
@@ -4083,7 +4225,7 @@ export default function App() {
                             <PromoCard
                               key={promo.id}
                               promo={promo}
-                              onClick={() => setSelectedPromo(promo)}
+                              onClick={() => { noticeIfSeed(promo); setSelectedPromo(promo); }}
                               onBusinessClick={() => setSelectedBusinessProfile(promo)}
                             />
                           ))}
@@ -6244,7 +6386,7 @@ export default function App() {
                             placeholder="Ej. por el Centro / zona Norte"
                             className="w-full h-14 pl-6 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
                             value={newPlan.locationHint || ''}
-                            onChange={e => setNewPlan({ ...newPlan, locationHint: e.target.value })}
+                            onChange={e => { hintTouched.current = true; setNewPlan({ ...newPlan, locationHint: e.target.value }); }}
                           />
                           <FieldVoice step={4} onDicta={t => setNewPlan(p => ({ ...p, locationHint: t }))} />
                         </div>
@@ -6431,40 +6573,14 @@ export default function App() {
                           </button>
                         )}
                       </div>
-                      {/* Los DOS pasos JUNTOS (pokayoke): 1. Copiar de Google → 2. Pegar copiada */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => openExternal(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(newPlan.activity || 'plan con amigos')}`)}
-                          className="py-3 bg-white/5 border border-white/10 text-zinc-300 rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                        >
-                          <Search size={13} /> 1. Copiar de Google
-                        </button>
-                        <button
-                          onClick={async () => {
-                            try {
-                              const items = await (navigator as any).clipboard?.read?.();
-                              if (items) {
-                                for (const it of items) {
-                                  const t = it.types.find((x: string) => x.startsWith('image/'));
-                                  if (t) {
-                                    const blob = await it.getType(t);
-                                    const url: string = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(blob); });
-                                    setNewPlan(p => ({ ...p, image: url }));
-                                    return;
-                                  }
-                                }
-                              }
-                              triggerBeta('Copia una imagen primero', 'En Google mantén presionada la imagen, toca "Copiar imagen", y vuelve aquí a "Pegar copiada".');
-                            } catch {
-                              triggerBeta('No se pudo pegar', 'Tu navegador no permitió leer el portapapeles. Usa "Subir foto".');
-                            }
-                          }}
-                          className="py-3 bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                        >
-                          <PlusCircle size={13} /> 2. Pegar copiada
-                        </button>
-                      </div>
-                      <p className="text-[10px] text-zinc-500 text-center leading-snug">En Google <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen" → vuelve y toca <span className="text-white font-bold">"Pegar copiada"</span>.</p>
+                      {/* Buscar en Google + pegar del portapapeles (iconos universales) */}
+                      <ImageSourceButtons
+                        query={newPlan.activity || 'plan con amigos'}
+                        onOpen={openExternal}
+                        onPaste={(img) => setNewPlan(p => ({ ...p, image: img }))}
+                        onEmpty={() => triggerBeta('Copia una imagen primero', 'En Google mantén presionada la imagen, toca "Copiar imagen", y vuelve aquí a "Pegar imagen".')}
+                      />
+                      <p className="text-[10px] text-zinc-500 text-center leading-snug">En Google <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen" → vuelve y toca <span className="text-white font-bold">"Pegar imagen"</span>.</p>
                       {newPlan.image && (
                         <button
                           onClick={() => setNewPlan({...newPlan, image: undefined})}
@@ -6559,41 +6675,16 @@ export default function App() {
                     <span className="text-xs font-bold text-white uppercase tracking-widest">Cambiar Foto</span>
                   </div>
                 </button>
-                {/* Los DOS pasos JUNTOS (pokayoke): 1. Copiar de Google → 2. Pegar copiada */}
+                {/* Buscar en Google + pegar del portapapeles (iconos universales) */}
                 <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => openExternal(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(newPromo.title || 'comida promoción')}`)}
-                      className="py-3 bg-white/5 border border-white/10 text-zinc-300 rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                    >
-                      <Search size={13} /> 1. Copiar de Google
-                    </button>
-                    <button
-                      onClick={async () => {
-                        try {
-                          const items = await (navigator as any).clipboard?.read?.();
-                          if (items) {
-                            for (const it of items) {
-                              const t = it.types.find((x: string) => x.startsWith('image/'));
-                              if (t) {
-                                const blob = await it.getType(t);
-                                const url: string = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(blob); });
-                                setPromoImage(url);
-                                return;
-                              }
-                            }
-                          }
-                          triggerBeta('Copia una imagen primero', 'En Google mantén presionada la imagen, toca "Copiar imagen", y vuelve aquí a "Pegar copiada".');
-                        } catch {
-                          triggerBeta('No se pudo pegar', 'Tu navegador no permitió leer el portapapeles. Usa "Subir Foto Real".');
-                        }
-                      }}
-                      className="py-3 bg-iogga-accent/15 border border-iogga-accent/30 text-iogga-accent rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                    >
-                      <PlusCircle size={13} /> 2. Pegar copiada
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-zinc-500 text-center leading-snug">En Google <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen" → vuelve y toca <span className="text-white font-bold">"Pegar copiada"</span>.</p>
+                  <ImageSourceButtons
+                    accent="accent"
+                    query={newPromo.title || 'comida promoción'}
+                    onOpen={openExternal}
+                    onPaste={setPromoImage}
+                    onEmpty={() => triggerBeta('Copia una imagen primero', 'En Google mantén presionada la imagen, toca "Copiar imagen", y vuelve aquí a "Pegar imagen".')}
+                  />
+                  <p className="text-[10px] text-zinc-500 text-center leading-snug">En Google <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen" → vuelve y toca <span className="text-white font-bold">"Pegar imagen"</span>.</p>
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -7458,7 +7549,7 @@ export default function App() {
           )}
 
           {selectedPromo && (
-            <Modal onClose={() => setSelectedPromo(null)} title="Tu Invitación Especial">
+            <Modal onClose={() => setSelectedPromo(null)} title="Detalle de la oferta">
               <div className="space-y-6">
                 {/* Main Offer Card */}
                 <div className="relative rounded-[32px] overflow-hidden border border-white/10 shadow-2xl bg-zinc-900">
@@ -7681,8 +7772,9 @@ export default function App() {
                       icon={<CreditCard size={18} />}
                       label="Métodos de Pago"
                       onClick={() => {
+                        // Muestra la billetera, donde se ve con qué cuenta pagas
                         setShowSettingsMenu(false);
-                        triggerBeta("Métodos de Pago", "Tus pagos van protegidos por Mercado Pago: tarjeta, dinero en cuenta, transferencia u OXXO. Consejo: si entras con tu cuenta de Mercado Pago, tu tarjeta queda guardada ahí y pagas en un toque. iogga nunca ve ni guarda tu tarjeta.");
+                        ensureLoggedIn(() => setShowWallet(true));
                       }}
                     />
                     <SettingsItem
@@ -7869,7 +7961,7 @@ export default function App() {
                     </div>
                     {/* La tarjeta tal cual la verán */}
                     <div className="rounded-[28px] overflow-hidden pointer-events-none select-none">
-                      <PlanCard plan={lastPublishedPlan} />
+                      <PlanCard plan={lastPublishedPlan} preview />
                     </div>
 
                     {/* Invitados de iogga (dentro de la misma caja) */}
@@ -8731,6 +8823,62 @@ export default function App() {
           </Modal>
         )}
 
+        {/* Compartir o exportar un bloque de datos (admin): elige el formato.
+            "Compartir" abre la hoja del sistema, donde aparecen las apps de IA
+            instaladas en el teléfono para analizar la información. */}
+        {exportPack && (
+          <Modal onClose={() => setExportPack(null)} title={`Compartir ${exportPack.title.toLowerCase()}`}>
+            <div className="space-y-5">
+              <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/25">
+                <p className="text-base font-black text-white leading-snug">Manda estos datos a tu IA</p>
+                <p className="text-[12px] text-zinc-300 leading-snug mt-1">
+                  Comparte el archivo con ChatGPT, Claude o Gemini y pregúntale lo que quieras saber:
+                  tendencias, qué mejorar, cómo crecer. Son {exportPack.rows.length} registros.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Elige el formato</p>
+                {([
+                  ['txt', 'Texto ordenado', 'Se lee fácil, para leer o pegar en una IA'],
+                  ['csv', 'CSV (Excel)', 'Para abrir en Excel o Google Sheets'],
+                  ['json', 'JSON', 'El más completo para analizar con IA'],
+                ] as const).map(([fmt, title, desc]) => (
+                  <button
+                    key={fmt}
+                    onClick={() => { exportRows(exportPack.title, exportPack.rows, fmt); setExportPack(null); }}
+                    className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3 active:scale-[0.98] transition-transform text-left"
+                  >
+                    <div className="w-10 h-10 rounded-2xl bg-iogga-primary/15 text-iogga-primary flex items-center justify-center shrink-0"><FileDown size={18} /></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-black text-white">{title}</p>
+                      <p className="text-[10px] text-zinc-500 leading-snug">{desc}</p>
+                    </div>
+                    <ChevronRight size={16} className="text-zinc-500 shrink-0" />
+                  </button>
+                ))}
+              </div>
+              {/* Compartir directo (abre la hoja del sistema con tus apps de IA) */}
+              <button
+                onClick={async () => {
+                  const cols: string[] = Array.from(exportPack.rows.reduce((s: Set<string>, r) => { Object.keys(r).forEach(k => s.add(k)); return s; }, new Set<string>()));
+                  const texto = [
+                    `IOGGA · ${exportPack.title.toUpperCase()} (${exportPack.rows.length} registros)`,
+                    '',
+                    ...exportPack.rows.slice(0, 60).map((r, i) => `${i + 1}. ` + cols.map(c => `${c}: ${r[c] ?? '—'}`).join(' | ')),
+                  ].join('\n');
+                  try {
+                    if ((navigator as any).share) await (navigator as any).share({ title: `iogga · ${exportPack.title}`, text: texto });
+                    else { await navigator.clipboard.writeText(texto); triggerBeta('Copiado', 'Los datos se copiaron. Pégalos en tu IA favorita y pregúntale lo que quieras.'); }
+                  } catch { /* el usuario canceló */ }
+                }}
+                className="w-full py-4 rounded-2xl bg-indigo-500 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+              >
+                <Send size={16} /> Compartir con una IA
+              </button>
+            </div>
+          </Modal>
+        )}
+
         {/* Detalle de un movimiento (admin): todos los datos del pago */}
         {adminPayDetail && (
           <Modal onClose={() => setAdminPayDetail(null)} title="Detalle del movimiento">
@@ -9151,7 +9299,28 @@ export default function App() {
                 </div>
               ) : (
                 <>
-                  {/* KPIs principales */}
+                  {/* Pestañas deslizables (modelo Contactos/WhatsApp): cada sección
+                      del negocio a un toque, sin perderse en una sola lista larga. */}
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 sticky top-0 z-10 bg-zinc-950/95 backdrop-blur">
+                    {([
+                      ['resumen', 'Resumen'],
+                      ['ingresos', 'Ingresos'],
+                      ['usuarios', 'Usuarios'],
+                      ['contenido', 'Contenido'],
+                      ['soporte', 'Soporte'],
+                    ] as const).map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => setAdminTab(key)}
+                        className={`px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest whitespace-nowrap border transition-all ${adminTab === key ? 'bg-white text-zinc-900 border-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {adminTab === 'resumen' && (<>
+                  {/* KPIs principales: tocar uno abre las opciones de exportar */}
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { label: 'Usuarios registrados', value: adminData.userCount, color: 'text-white' },
@@ -9163,51 +9332,48 @@ export default function App() {
                       { label: 'Compras pagadas (MP)', value: adminData.paidCount, color: 'text-sky-400' },
                       { label: 'Cobrado por MP', value: `$${adminData.paidAmount.toLocaleString('es-MX')}`, color: 'text-sky-400' },
                     ].map(k => (
-                      <div key={k.label} className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <button
+                        key={k.label}
+                        onClick={() => setExportPack({ title: 'Analítica', rows: [{
+                          usuarios_registrados: adminData.userCount,
+                          planes_creados: adminData.planCount,
+                          ofertas_publicadas: adminData.promoCount,
+                          citas_concretadas: adminData.redemptionsRedeemed,
+                          ventas_concretadas: adminData.salesTotal,
+                          ingresos_iogga: adminData.incomeTotal,
+                          compras_pagadas_mp: adminData.paidCount,
+                          cobrado_por_mp: adminData.paidAmount,
+                          comision_iogga_mp: adminData.paidFees,
+                          comentarios_soporte: adminData.feedback.length,
+                        }] })}
+                        className="p-4 rounded-2xl bg-white/5 border border-white/10 text-left active:scale-95 transition-transform"
+                      >
                         <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{k.label}</p>
                         <p className={`text-2xl font-black mt-1 ${k.color}`}>{k.value}</p>
-                      </div>
+                      </button>
                     ))}
                   </div>
-                  {/* Exportar la analítica principal (para el equipo/inversionistas) */}
+                  <p className="text-[10px] text-zinc-500 text-center">Toca cualquier dato para compartirlo o analizarlo con IA.</p>
                   <button
-                    onClick={() => downloadTxt(`iogga-analitica-${new Date().toISOString().slice(0, 10)}.txt`, [
-                      'IOGGA · ANALÍTICA', `CORTE: ${new Date().toLocaleString('es-MX')}`, '='.repeat(42), '',
-                      `USUARIOS REGISTRADOS:   ${adminData.userCount}`,
-                      `PLANES CREADOS:         ${adminData.planCount}`,
-                      `OFERTAS PUBLICADAS:     ${adminData.promoCount}`,
-                      `CITAS CONCRETADAS:      ${adminData.redemptionsRedeemed}`,
-                      `VENTAS CONCRETADAS:     $${adminData.salesTotal.toLocaleString('es-MX')}`,
-                      `INGRESOS IOGGA:         $${adminData.incomeTotal.toLocaleString('es-MX')}`,
-                      `COMPRAS PAGADAS (MP):   ${adminData.paidCount}`,
-                      `COBRADO POR MP:         $${adminData.paidAmount.toLocaleString('es-MX')}`,
-                      `COMISIÓN IOGGA (MP):    $${adminData.paidFees.toLocaleString('es-MX')}`,
-                      `COMENTARIOS/SOPORTE:    ${adminData.feedback.length}`,
-                    ].join('\n'))}
+                    onClick={() => setExportPack({ title: 'Analítica', rows: [{
+                      usuarios_registrados: adminData.userCount,
+                      planes_creados: adminData.planCount,
+                      ofertas_publicadas: adminData.promoCount,
+                      citas_concretadas: adminData.redemptionsRedeemed,
+                      ventas_concretadas: adminData.salesTotal,
+                      ingresos_iogga: adminData.incomeTotal,
+                      compras_pagadas_mp: adminData.paidCount,
+                      cobrado_por_mp: adminData.paidAmount,
+                      comision_iogga_mp: adminData.paidFees,
+                      comentarios_soporte: adminData.feedback.length,
+                    }] })}
                     className="w-full py-3 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
                   >
-                    <FileDown size={14} /> Exportar analítica (texto)
+                    <FileDown size={14} /> Exportar analítica
                   </button>
-                  <button
-                    onClick={() => {
-                      const lines = ['IOGGA · USUARIOS REGISTRADOS', `TOTAL: ${adminData.usersList.length}`, '='.repeat(42), ''];
-                      adminData.usersList.forEach((u, i) => lines.push(
-                        `USUARIO ${i + 1}`, '-'.repeat(42),
-                        `NOMBRE:   ${u.name || '—'}`,
-                        `CORREO:   ${u.email || '—'}`,
-                        `WHATSAPP: ${u.whatsapp || '—'}`,
-                        `UBICACIÓN: ${u.location || '—'}`,
-                        `NEGOCIO:  ${u.business || '—'}`, ''
-                      ));
-                      downloadTxt(`iogga-usuarios-${new Date().toISOString().slice(0, 10)}.txt`, lines.join('\n'));
-                    }}
-                    disabled={adminData.usersList.length === 0}
-                    className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
-                  >
-                    <FileDown size={14} /> Exportar usuarios (texto)
-                  </button>
+                  </>)}
 
-                  {/* Últimos canjes concretados */}
+                  {adminTab === 'contenido' && (
                   <div className="space-y-2">
                     <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Últimas ofertas concretadas</p>
                     {adminData.recentRedemptions.length === 0 && <p className="text-xs text-zinc-500 px-1">Aún no hay canjes concretados.</p>}
@@ -9221,11 +9387,23 @@ export default function App() {
                         <span className="text-sm font-black text-emerald-400 shrink-0">${r.priceAmount || 0}</span>
                       </div>
                     ))}
+                    <button
+                      onClick={() => setExportPack({ title: 'Canjes', rows: adminData.recentRedemptions.map(r => ({
+                        fecha: r.redeemedAtMs ? new Date(r.redeemedAtMs).toLocaleString('es-MX') : '',
+                        folio: r.code, promocion: r.promoTitle, negocio: r.businessName,
+                        cliente: r.userName, monto: r.priceAmount || 0,
+                      })) })}
+                      disabled={adminData.recentRedemptions.length === 0}
+                      className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
+                    >
+                      <FileDown size={14} /> Exportar canjes
+                    </button>
                   </div>
+                  )}
 
                   {/* Movimientos (modelo banco/ecommerce): ingreso, comisiones y
                       traspaso al negocio, con totales, "ver más" y detalle al tocar. */}
-                  {(() => {
+                  {adminTab === 'ingresos' && (() => {
                     const MP_FEE_RATE = 0.0349; // comisión aprox. de Mercado Pago (referencia)
                     const money = (n: number) => `$${(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                     const totIngreso = adminData.paidAmount;
@@ -9258,7 +9436,18 @@ export default function App() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
                           <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Movimientos</p>
-                          <button onClick={exportTxt} disabled={list.length === 0} className="text-[9px] font-black text-iogga-primary uppercase tracking-widest flex items-center gap-1 disabled:opacity-40"><FileDown size={11} /> Exportar</button>
+                          <button
+                            onClick={() => setExportPack({ title: 'Movimientos', rows: list.map(p => ({
+                              fecha: new Date(p.approvedAtMs || p.createdAtMs || Date.now()).toLocaleString('es-MX'),
+                              estado: p.status || '', promocion: p.title || '', cliente: p.userName || '',
+                              negocio: p.businessName || '', folio: p.code || '',
+                              ingreso: p.amount || 0, comision_iogga: p.feeAmount || 0, neto_negocio: p.payoutAmount || 0,
+                            })) })}
+                            disabled={list.length === 0}
+                            className="text-[9px] font-black text-iogga-primary uppercase tracking-widest flex items-center gap-1 disabled:opacity-40"
+                          >
+                            <FileDown size={11} /> Exportar
+                          </button>
                         </div>
                         {/* Totales financieros (lo principal de un vistazo) */}
                         <div className="rounded-2xl bg-white/5 border border-white/10 divide-y divide-white/5 overflow-hidden">
@@ -9300,27 +9489,25 @@ export default function App() {
                   })()}
 
                   {/* Comentarios y soporte: quién, cuándo, correo — con responder y exportar */}
-                  {(() => {
+                  {adminTab === 'soporte' && (() => {
                     const fb = adminData.feedback;
                     const shown = adminFbAll ? fb : fb.slice(0, 5);
-                    const exportTxt = () => {
-                      const lines = ['IOGGA · COMENTARIOS Y SOPORTE', `TOTAL: ${fb.length}`, '='.repeat(42), ''];
-                      fb.forEach((f, i) => lines.push(`MENSAJE ${i + 1}`, '-'.repeat(42),
-                        `DE:       ${f.userName || '—'}`,
-                        `CORREO:   ${f.email || '—'}`,
-                        `WHATSAPP: ${f.whatsapp || '—'}`,
-                        `UBICACIÓN: ${f.location || '—'}`,
-                        `EQUIPO:   ${f.device || '—'}${f.version ? ` · v${f.version}` : ''}`,
-                        `FECHA:    ${f.createdAtMs ? new Date(f.createdAtMs).toLocaleString('es-MX') : '—'}`,
-                        `PANTALLA: ${f.context || '—'}`,
-                        `MENSAJE:  ${f.text || ''}`, ''));
-                      downloadTxt(`iogga-comentarios-${new Date().toISOString().slice(0, 10)}.txt`, lines.join('\n'));
-                    };
                     return (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
                           <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Comentarios y soporte ({fb.length})</p>
-                          <button onClick={exportTxt} disabled={fb.length === 0} className="text-[9px] font-black text-iogga-primary uppercase tracking-widest flex items-center gap-1 disabled:opacity-40"><FileDown size={11} /> Exportar</button>
+                          <button
+                            onClick={() => setExportPack({ title: 'Comentarios', rows: fb.map(f => ({
+                              fecha: f.createdAtMs ? new Date(f.createdAtMs).toLocaleString('es-MX') : '',
+                              de: f.userName || '', correo: f.email || '', whatsapp: f.whatsapp || '',
+                              ubicacion: f.location || '', equipo: f.device || '', version: f.version || '',
+                              pantalla: f.context || '', mensaje: f.text || '',
+                            })) })}
+                            disabled={fb.length === 0}
+                            className="text-[9px] font-black text-iogga-primary uppercase tracking-widest flex items-center gap-1 disabled:opacity-40"
+                          >
+                            <FileDown size={11} /> Exportar
+                          </button>
                         </div>
                         {fb.length === 0 && <p className="text-xs text-zinc-500 px-1">Sin comentarios todavía.</p>}
                         {shown.map((f, i) => (
@@ -9360,7 +9547,55 @@ export default function App() {
                     );
                   })()}
 
+                  {/* Usuarios registrados: lista con lo esencial y exportación */}
+                  {adminTab === 'usuarios' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between px-1">
+                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Usuarios ({adminData.usersList.length})</p>
+                        <button
+                          onClick={() => setExportPack({ title: 'Usuarios', rows: adminData.usersList.map(u => ({
+                            nombre: u.name || '', correo: u.email || '', whatsapp: u.whatsapp || '',
+                            ciudad: u.location || '', negocio: u.business || '',
+                          })) })}
+                          disabled={adminData.usersList.length === 0}
+                          className="text-[9px] font-black text-iogga-primary uppercase tracking-widest flex items-center gap-1 disabled:opacity-40"
+                        >
+                          <FileDown size={11} /> Exportar
+                        </button>
+                      </div>
+                      {/* Cuántos tienen negocio, WhatsApp o ciudad (para decidir) */}
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          ['Con negocio', adminData.usersList.filter(u => u.business).length],
+                          ['Con WhatsApp', adminData.usersList.filter(u => u.whatsapp).length],
+                          ['Con ciudad', adminData.usersList.filter(u => u.location).length],
+                        ].map(([k, v]) => (
+                          <div key={k as string} className="p-3 rounded-2xl bg-white/5 border border-white/10 text-center">
+                            <p className="text-lg font-black text-white">{v as number}</p>
+                            <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-tight">{k}</p>
+                          </div>
+                        ))}
+                      </div>
+                      {adminData.usersList.length === 0 && <p className="text-xs text-zinc-500 px-1">Aún no hay usuarios registrados.</p>}
+                      {(adminPayAll ? adminData.usersList : adminData.usersList.slice(0, 8)).map((u, i) => (
+                        <div key={i} className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-iogga-primary/15 text-iogga-primary flex items-center justify-center shrink-0 font-black text-sm">{(u.name || '?').charAt(0).toUpperCase()}</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-white truncate">{u.name || 'Sin nombre'}{u.business ? ` · ${u.business}` : ''}</p>
+                            <p className="text-[10px] text-zinc-500 truncate">{[u.email, u.whatsapp, u.location].filter(Boolean).join(' · ') || 'Sin datos de contacto'}</p>
+                          </div>
+                        </div>
+                      ))}
+                      {adminData.usersList.length > 8 && (
+                        <button onClick={() => setAdminPayAll(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                          {adminPayAll ? 'Ver menos' : `Ver más (${adminData.usersList.length - 8})`}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {/* Administradores: agregar/quitar por correo */}
+                  {adminTab === 'resumen' && (<>
                   <div className="space-y-2">
                     <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Administradores</p>
                     <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-3">
@@ -9426,6 +9661,7 @@ export default function App() {
                     <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Versión en producción</span>
                     <span className="text-xs font-black text-white">v{APP_VERSION}</span>
                   </div>
+                  </>)}
                 </>
               )}
             </div>
@@ -10617,7 +10853,7 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
   );
 }
 
-function PlanCard({ plan, onAccept, onIgnore }: { plan: Plan, onAccept?: () => void, onIgnore?: () => void, key?: string | number }) {
+function PlanCard({ plan, onAccept, onIgnore, preview = false }: { plan: Plan, onAccept?: () => void, onIgnore?: () => void, preview?: boolean, key?: string | number }) {
   // Mock AI recommendation
   const isAiRecommended = plan.id === '1' || plan.id === '3';
 
@@ -10666,20 +10902,24 @@ function PlanCard({ plan, onAccept, onIgnore }: { plan: Plan, onAccept?: () => v
         {renderPlanTechnicalDetails(plan, undefined, (plan.locationHint && plan.locationHint.trim()) || 'Zona por confirmar')}
       </div>
 
-      <div className="flex items-center gap-3 pt-2">
-        <button 
-          onClick={onIgnore}
-          className="flex-1 py-4 bg-white/5 text-zinc-500 rounded-2xl font-bold text-xs active:scale-95 transition-all border border-white/10 hover:bg-white/10"
-        >
-          Ignorar
-        </button>
-        <button 
-          onClick={onAccept}
-          className="flex-[2] py-4 bg-iogga-primary text-white rounded-2xl font-black text-xs active:scale-95 transition-all shadow-xl shadow-iogga-primary/20 hover:scale-[1.02] border border-white/10"
-        >
-          Aceptar Plan
-        </button>
-      </div>
+      {/* En vista previa NO se muestran los botones: es solo cómo lo verán los
+          demás, y tenerlos ahí confundía (la gente intentaba tocarlos). */}
+      {!preview && (
+        <div className="flex items-center gap-3 pt-2">
+          <button
+            onClick={onIgnore}
+            className="flex-1 py-4 bg-white/5 text-zinc-500 rounded-2xl font-bold text-xs active:scale-95 transition-all border border-white/10 hover:bg-white/10"
+          >
+            Ignorar
+          </button>
+          <button
+            onClick={onAccept}
+            className="flex-[2] py-4 bg-iogga-primary text-white rounded-2xl font-black text-xs active:scale-95 transition-all shadow-xl shadow-iogga-primary/20 hover:scale-[1.02] border border-white/10"
+          >
+            Aceptar Plan
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -10777,68 +11017,45 @@ interface PromoCardProps {
   onBusinessClick?: () => void;
 }
 
+// Tarjeta de oferta (modelo Uber Eats / Shein): foto limpia arriba con la
+// etiqueta de oferta, y debajo — sobre fondo sólido, no encima de la imagen —
+// lo importante bien legible: título, negocio, zona y precio.
 const PromoCard: React.FC<PromoCardProps> = ({ promo, onClick, onBusinessClick }) => {
   return (
     <div
       onClick={onClick}
-      className="relative aspect-[9/16] rounded-[32px] overflow-hidden group shadow-2xl cursor-pointer border border-white/10"
+      className="rounded-[24px] overflow-hidden group shadow-xl cursor-pointer border border-white/10 bg-zinc-900 flex flex-col"
     >
-      {promo.isSeed && <SeedTag />}
-      <img src={promo.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" referrerPolicy="no-referrer" />
-      
-      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent p-4 flex flex-col justify-end">
-        <div className="flex items-center gap-3 mb-3">
-          <div 
-            className="relative cursor-pointer hover:scale-110 transition-transform shadow-lg"
-            onClick={(e) => {
-              if (onBusinessClick) {
-                e.stopPropagation();
-                onBusinessClick();
-              }
-            }}
-          >
-            <img src={promo.businessLogo} className="w-8 h-8 rounded-full border-2 border-white/50" referrerPolicy="no-referrer" />
-          </div>
-          <div 
-            className="cursor-pointer drop-shadow-md"
-            onClick={(e) => {
-              if (onBusinessClick) {
-                e.stopPropagation();
-                onBusinessClick();
-              }
-            }}
-          >
-            <span className="text-xs font-black text-white block tracking-tight">{promo.businessName}</span>
-          </div>
-        </div>
-        
-        <h4 className="text-lg font-black text-white leading-tight mb-2 drop-shadow-lg line-clamp-2">{promo.title}</h4>
-        
-        <div className="space-y-2 mb-2">
-          <div className="flex items-center gap-1.5 text-[10px] text-white/90 font-black uppercase tracking-wider">
-            <MapPin size={10} className="text-iogga-accent" />
-            <span>{promo.location}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-white/90 font-black uppercase tracking-wider">
-            <Clock size={10} className="text-iogga-accent" />
-            <span>Abierto • 08:00 - 22:00</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-white/90 font-black uppercase tracking-wider">
-            <Navigation size={10} className="text-iogga-accent" />
-            <span>A 1.2 km de ti</span>
-          </div>
-        </div>
+      {/* Foto: sin texto encima, para que se vea el producto */}
+      <div className="relative aspect-[4/3] overflow-hidden">
+        {promo.isSeed && <SeedTag />}
+        <img src={promo.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+        {promo.offer && (
+          <span className="absolute bottom-2 left-2 px-2.5 py-1 rounded-full bg-iogga-accent text-white text-[10px] font-black uppercase tracking-wide shadow-lg">
+            {promo.offer}
+          </span>
+        )}
+      </div>
 
-        <div className="flex items-center justify-between drop-shadow-sm">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-black text-white">{promo.price}</span>
-            {promo.offer && (
-              <span className="text-[8px] font-black text-iogga-accent uppercase tracking-tighter">{promo.offer}</span>
-            )}
+      {/* Información legible sobre fondo sólido */}
+      <div className="p-3 space-y-1.5 flex-1 flex flex-col">
+        <h4 className="text-sm font-black text-white leading-snug line-clamp-2">{promo.title}</h4>
+        <button
+          onClick={(e) => { if (onBusinessClick) { e.stopPropagation(); onBusinessClick(); } }}
+          className="flex items-center gap-1.5 min-w-0 active:scale-95 transition-transform"
+        >
+          <img src={promo.businessLogo} className="w-4 h-4 rounded-full object-cover shrink-0" referrerPolicy="no-referrer" />
+          <span className="text-[11px] font-bold text-zinc-400 truncate">{promo.businessName}</span>
+        </button>
+        {promo.location && (
+          <div className="flex items-center gap-1 text-[10px] text-zinc-500 min-w-0">
+            <MapPin size={10} className="shrink-0" />
+            <span className="truncate">{promo.location}</span>
           </div>
-          <button className="p-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-white group-hover:bg-iogga-accent transition-all">
-            <ChevronRight size={14} />
-          </button>
+        )}
+        <div className="flex items-center justify-between pt-1 mt-auto">
+          <span className="text-base font-black text-white">{promo.price}</span>
+          <ChevronRight size={16} className="text-zinc-500" />
         </div>
       </div>
     </div>
@@ -10923,6 +11140,28 @@ function SelectButton({ active, onClick, label }: { active: boolean, onClick: ()
 }
 
 function Modal({ children, onClose, onBack, title }: { children: React.ReactNode, onClose: () => void, onBack?: () => void, title: string }) {
+  // Cerrar deslizando hacia abajo desde CUALQUIER punto de la tarjeta (modelo
+  // iOS/Instagram): solo arrastra cuando el contenido ya está hasta arriba, para
+  // no pelearse con el scroll. La tarjeta sigue el dedo y se cierra al soltar.
+  const sheetRef = React.useRef<HTMLDivElement>(null);
+  const dragRef = React.useRef({ y: 0, active: false });
+  const [dragY, setDragY] = React.useState(0);
+  const onTouchStart = (e: React.TouchEvent) => {
+    const el = sheetRef.current;
+    dragRef.current = { y: e.touches[0].clientY, active: !!el && el.scrollTop <= 0 };
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!dragRef.current.active) return;
+    const el = sheetRef.current;
+    if (el && el.scrollTop > 0) { dragRef.current.active = false; setDragY(0); return; }
+    const d = e.touches[0].clientY - dragRef.current.y;
+    if (d > 0) setDragY(d);
+  };
+  const onTouchEnd = () => {
+    if (dragRef.current.active && dragY > 110) onClose();
+    dragRef.current.active = false;
+    setDragY(0);
+  };
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -10932,14 +11171,19 @@ function Modal({ children, onClose, onBack, title }: { children: React.ReactNode
       className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end"
     >
       <motion.div
+        ref={sheetRef}
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 40, opacity: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 0.61, 0.36, 1] }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={dragY > 0 ? { transform: `translateY(${dragY}px)`, transition: 'none' } : undefined}
         className="w-full bg-zinc-950 rounded-t-[48px] p-8 max-h-[94%] overflow-y-auto no-scrollbar shadow-2xl border-t border-white/10 relative"
       >
-        {/* Encabezado arrastrable: deslizar hacia ABAJO cierra la tarjeta
-            (además de la tachita), en TODAS las pantallas de persona y negocio. */}
+        {/* Encabezado: además del deslizamiento en toda la tarjeta, aquí se
+            puede arrastrar aunque el contenido esté a media altura. */}
         <motion.div
           drag="y"
           dragConstraints={{ top: 0, bottom: 0 }}

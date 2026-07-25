@@ -24,10 +24,29 @@ function formatUntil(ms: number): string {
 }
 
 function Overlay({ onClose, title, children }: { onClose: () => void; title: string; children: React.ReactNode }) {
+  // Deslizar hacia abajo desde cualquier punto para cerrar (igual que el resto
+  // de las tarjetas de iogga): solo arrastra si el contenido está hasta arriba.
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({ y: 0, active: false });
+  const [dragY, setDragY] = useState(0);
   return (
     <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-md bg-zinc-950 border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-6 pb-10 space-y-5 max-h-[90vh] overflow-y-auto">
+      <div
+        ref={sheetRef}
+        onTouchStart={(e) => { const el = sheetRef.current; dragRef.current = { y: e.touches[0].clientY, active: !!el && el.scrollTop <= 0 }; }}
+        onTouchMove={(e) => {
+          if (!dragRef.current.active) return;
+          const el = sheetRef.current;
+          if (el && el.scrollTop > 0) { dragRef.current.active = false; setDragY(0); return; }
+          const d = e.touches[0].clientY - dragRef.current.y;
+          if (d > 0) setDragY(d);
+        }}
+        onTouchEnd={() => { if (dragRef.current.active && dragY > 110) onClose(); dragRef.current.active = false; setDragY(0); }}
+        style={dragY > 0 ? { transform: `translateY(${dragY}px)`, transition: 'none' } : undefined}
+        className="relative w-full sm:max-w-md bg-zinc-950 border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-6 pb-10 space-y-5 max-h-[90vh] overflow-y-auto"
+      >
+        <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto sm:hidden" />
         <div className="flex items-center justify-between">
           <h3 className="font-black text-lg text-white uppercase tracking-tight">{title}</h3>
           <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 text-white/60 hover:bg-white/10 active:scale-90 transition-all">

@@ -163,8 +163,10 @@ export async function registerUser(name: string, email: string, password: string
       name,
       nameLower: name.trim().toLowerCase(),
       email,
+      signupMethod: 'email', // para saber por dónde entra la gente (analítica)
       createdAt: serverTimestamp(),
-    });
+      createdAtMs: Date.now(),
+    }, { merge: true });
   } catch {
     // el perfil se puede volver a guardar después
   }
@@ -225,7 +227,7 @@ export async function completeGoogleRedirect(): Promise<AuthUser | null> {
       name: res.user.displayName || res.user.email?.split('@')[0] || 'Usuario',
       email: res.user.email || '',
     };
-    await setDoc(doc(db, 'users', user.uid), { name: user.name, nameLower: user.name.trim().toLowerCase(), email: user.email, photoURL: res.user.photoURL || null, updatedAt: serverTimestamp() }, { merge: true }).catch(() => {});
+    await setDoc(doc(db, 'users', user.uid), { name: user.name, nameLower: user.name.trim().toLowerCase(), email: user.email, photoURL: res.user.photoURL || null, signupMethod: 'google', createdAtMs: Date.now(), updatedAt: serverTimestamp() }, { merge: true }).catch(() => {});
     return user;
   } catch {
     return null;
@@ -293,7 +295,7 @@ export async function loginWithGoogle(): Promise<AuthUser> {
   try {
     await setDoc(
       doc(db, 'users', user.uid),
-      { name: user.name, nameLower: user.name.trim().toLowerCase(), email: user.email, photoURL: cred.user.photoURL || null, updatedAt: serverTimestamp() },
+      { name: user.name, nameLower: user.name.trim().toLowerCase(), email: user.email, photoURL: cred.user.photoURL || null, signupMethod: 'google', createdAtMs: Date.now(), updatedAt: serverTimestamp() },
       { merge: true }
     );
   } catch {
@@ -336,6 +338,8 @@ export interface UserProfile {
   location?: string;
   photoURL?: string | null;
   photos?: string[]; // hasta 3 fotos extra para conocerse mejor en planes públicos
+  birthday?: string; // fecha de nacimiento (YYYY-MM-DD), opcional: de aquí sale la edad
+  signupMethod?: 'google' | 'email' | 'guest'; // cómo se registró (para analítica)
   whatsapp?: string; // para el botón "Hablar por WhatsApp" al hacer match
   instagram?: string; // usuario de Instagram (sin @)
   website?: string;
@@ -779,8 +783,10 @@ export interface AdminData {
   paidAmount: number;
   paidFees: number;
   recentPayments: PaymentRecord[];
-  // Lista de usuarios (para exportar: nombre, correo, WhatsApp, ubicación, negocio)
-  usersList: { name?: string; email?: string; whatsapp?: string; location?: string; business?: string }[];
+  // Lista de usuarios (para exportar y analizar)
+  usersList: { name?: string; email?: string; whatsapp?: string; location?: string; business?: string; edad?: number | ''; alta?: string }[];
+  // De dónde llega la gente (para decidir en qué invertir)
+  signupStats: { google: number; email: number; sinDato: number };
 }
 
 // Un pago registrado por el backend (colección /payments)
@@ -801,7 +807,7 @@ export interface PaymentRecord {
 
 // Todo lo del panel en una sola llamada (conteos y listas recientes)
 export async function fetchAdminData(): Promise<AdminData> {
-  const empty: AdminData = { userCount: 0, planCount: 0, promoCount: 0, redemptionsTotal: 0, redemptionsRedeemed: 0, incomeTotal: 0, salesTotal: 0, feedback: [], admins: [], recentRedemptions: [], paidCount: 0, paidAmount: 0, paidFees: 0, recentPayments: [], usersList: [] };
+  const empty: AdminData = { userCount: 0, planCount: 0, promoCount: 0, redemptionsTotal: 0, redemptionsRedeemed: 0, incomeTotal: 0, salesTotal: 0, feedback: [], admins: [], recentRedemptions: [], paidCount: 0, paidAmount: 0, paidFees: 0, recentPayments: [], usersList: [], signupStats: { google: 0, email: 0, sinDato: 0 } };
   if (!db) return empty;
   const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => { try { return await fn(); } catch { return fallback; } };
   const [users, plansSnap, promosSnap, reds, ledger, fb, adminsSnap, paysSnap] = await Promise.all([
@@ -838,15 +844,41 @@ export async function fetchAdminData(): Promise<AdminData> {
     usersList: users
       ? users.docs.map((d: any) => {
           const x = d.data() || {};
+          // Edad real a partir de la fecha de nacimiento que la persona dio
+          let edad: number | '' = '';
+          if (x.birthday) {
+            const b = new Date(x.birthday);
+            if (!isNaN(b.getTime())) {
+              const hoy = new Date();
+              let a = hoy.getFullYear() - b.getFullYear();
+              const m = hoy.getMonth() - b.getMonth();
+              if (m < 0 || (m === 0 && hoy.getDate() < b.getDate())) a--;
+              if (a > 0 && a < 120) edad = a;
+            }
+          }
           return {
             name: x.name || '',
             email: x.email || '',
             whatsapp: x.whatsapp || '',
             location: x.location || '',
             business: (x.business && x.business.name) || '',
+            edad,
+            alta: x.signupMethod === 'google' ? 'Google' : x.signupMethod === 'email' ? 'Correo' : '',
           };
         })
       : [],
+    signupStats: users
+      ? users.docs.reduce(
+          (acc: { google: number; email: number; sinDato: number }, d: any) => {
+            const m = (d.data() || {}).signupMethod;
+            if (m === 'google') acc.google++;
+            else if (m === 'email') acc.email++;
+            else acc.sinDato++;
+            return acc;
+          },
+          { google: 0, email: 0, sinDato: 0 }
+        )
+      : { google: 0, email: 0, sinDato: 0 },
   };
 }
 

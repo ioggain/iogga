@@ -1286,6 +1286,7 @@ export default function App() {
   const [editPhoto, setEditPhoto] = useState('');
   const [editPhotos, setEditPhotos] = useState<string[]>([]); // hasta 3 fotos extra
   const [editWhatsapp, setEditWhatsapp] = useState('');
+  const [editBirthday, setEditBirthday] = useState('');
   const [editInstagram, setEditInstagram] = useState('');
   const [editLinks, setEditLinks] = useState({ website: '', facebook: '', tiktok: '', linkedin: '' });
 
@@ -2067,6 +2068,7 @@ export default function App() {
       setEditPhoto(userProfile.photoURL || '');
       setEditPhotos(userProfile.photos || []);
       setEditWhatsapp(userProfile.whatsapp || '');
+      setEditBirthday(userProfile.birthday || '');
       setEditInstagram(userProfile.instagram || '');
       setEditLinks({ website: userProfile.website || '', facebook: userProfile.facebook || '', tiktok: userProfile.tiktok || '', linkedin: userProfile.linkedin || '' });
     }
@@ -6923,6 +6925,20 @@ export default function App() {
                     <input type="tel" autoComplete="tel-national" value={editWhatsapp} onChange={e => setEditWhatsapp(e.target.value)} placeholder="Ej. 6141234567" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
                     <p className="text-[10px] text-zinc-600 ml-4">Solo lo verán quienes acepten tus planes, para coordinar directo.</p>
                   </div>
+                  {/* Fecha de nacimiento (como Facebook/Instagram): privada, sirve
+                      para mostrar planes acordes a tu edad. */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Fecha de nacimiento (opcional)</label>
+                    <input
+                      type="date"
+                      value={editBirthday}
+                      max={new Date().toISOString().slice(0, 10)}
+                      onChange={e => setEditBirthday(e.target.value)}
+                      onClick={(e) => { try { (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker?.(); } catch {} }}
+                      className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all"
+                    />
+                    <p className="text-[10px] text-zinc-600 ml-4">No se muestra a nadie. Nos ayuda a recomendarte planes de gente de tu edad.</p>
+                  </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Instagram (opcional)</label>
                     <div className="relative">
@@ -6968,6 +6984,7 @@ export default function App() {
                         photoURL: editPhoto || userProfile.photoURL || null,
                         photos: editPhotos.filter(Boolean).slice(0, 3),
                         whatsapp: editWhatsapp.replace(/\D/g, ''),
+                        birthday: editBirthday || undefined,
                         instagram: editInstagram.replace(/[@\s]/g, ''),
                         website: editLinks.website.trim(),
                         facebook: editLinks.facebook.trim(),
@@ -9555,7 +9572,7 @@ export default function App() {
                         <button
                           onClick={() => setExportPack({ title: 'Usuarios', rows: adminData.usersList.map(u => ({
                             nombre: u.name || '', correo: u.email || '', whatsapp: u.whatsapp || '',
-                            ciudad: u.location || '', negocio: u.business || '',
+                            ciudad: u.location || '', edad: u.edad ?? '', alta: u.alta || '', negocio: u.business || '',
                           })) })}
                           disabled={adminData.usersList.length === 0}
                           className="text-[9px] font-black text-iogga-primary uppercase tracking-widest flex items-center gap-1 disabled:opacity-40"
@@ -9576,13 +9593,39 @@ export default function App() {
                           </div>
                         ))}
                       </div>
+                      {/* Cómo se registran (para saber en qué invertir) */}
+                      <div className="rounded-2xl bg-white/5 border border-white/10 divide-y divide-white/5 overflow-hidden">
+                        <p className="px-4 py-2 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Cómo se registran</p>
+                        {[
+                          ['Con Google', adminData.signupStats.google, 'text-white'],
+                          ['Con correo', adminData.signupStats.email, 'text-white'],
+                          ['Antes de medir', adminData.signupStats.sinDato, 'text-zinc-500'],
+                        ].map(([k, v, cls]) => (
+                          <div key={k as string} className="flex items-center justify-between px-4 py-2.5">
+                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
+                            <span className={`text-sm font-black ${cls}`}>{v as number}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Edad promedio de quienes la compartieron */}
+                      {(() => {
+                        const edades = adminData.usersList.map(u => u.edad).filter((e): e is number => typeof e === 'number');
+                        if (edades.length === 0) return null;
+                        const prom = Math.round(edades.reduce((a, b) => a + b, 0) / edades.length);
+                        return (
+                          <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
+                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Edad promedio ({edades.length} personas)</span>
+                            <span className="text-lg font-black text-white">{prom} años</span>
+                          </div>
+                        );
+                      })()}
                       {adminData.usersList.length === 0 && <p className="text-xs text-zinc-500 px-1">Aún no hay usuarios registrados.</p>}
                       {(adminPayAll ? adminData.usersList : adminData.usersList.slice(0, 8)).map((u, i) => (
                         <div key={i} className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-iogga-primary/15 text-iogga-primary flex items-center justify-center shrink-0 font-black text-sm">{(u.name || '?').charAt(0).toUpperCase()}</div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-white truncate">{u.name || 'Sin nombre'}{u.business ? ` · ${u.business}` : ''}</p>
-                            <p className="text-[10px] text-zinc-500 truncate">{[u.email, u.whatsapp, u.location].filter(Boolean).join(' · ') || 'Sin datos de contacto'}</p>
+                            <p className="text-[10px] text-zinc-500 truncate">{[u.email, u.whatsapp, u.location, u.edad ? `${u.edad} años` : '', u.alta].filter(Boolean).join(' · ') || 'Sin datos de contacto'}</p>
                           </div>
                         </div>
                       ))}

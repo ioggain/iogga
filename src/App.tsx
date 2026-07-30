@@ -56,7 +56,9 @@ import {
   Receipt,
   FileDown,
   CalendarPlus,
-  ClipboardPaste
+  ClipboardPaste,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -132,7 +134,7 @@ import {
 } from './lib/firebase';
 import { RedeemQRModal, ValidateCodeModal } from './components/qr';
 import { pickImage } from './lib/images';
-import { playIntroChime, playChime } from './lib/sound';
+import { playIntroChime, sfx, isSoundOn, setSoundOn } from './lib/sound';
 import { APP_VERSION } from './lib/version';
 
 interface AppNotification {
@@ -302,6 +304,20 @@ const renderPlanTechnicalDetails = (plan: Plan, onEditSection?: (step: number) =
 
 // Mensaje unificado de bienvenida de iogga (mismo texto en el intro y en el popup de persona)
 const IOGGA_WELCOME = 'iogga es la app para salir del móvil y vivir lo espontáneo. Comparte tu intención —"un café", "vamos al cine"— y quien quiera se suma. Sin chats interminables: solo acción.';
+
+// ---- Datos oficiales de iogga: UN solo lugar para todo (contacto, redes, legal) ----
+// Se usan en Configuración → Información, en el Aviso de Privacidad y en Ayuda.
+// Para publicar una red social, basta con escribir aquí el usuario (sin @).
+// Si se deja vacío, esa red simplemente no aparece (así nunca hay enlaces rotos).
+const IOGGA_INFO = {
+  website: 'iogga.com',
+  instagram: '',
+  tiktok: '',
+  facebook: '',
+  email: 'admin@iogga.com',
+  phone: '614 980 2402',
+  address: 'Tecnológico de Monterrey Campus Chihuahua, Av. H. Colegio Militar 4709, Nombre de Dios, 31150, Chihuahua, Chihuahua, México',
+};
 
 // ---- Voz: hablar (TTS) y escuchar (reconocimiento) para Platica y Dicta ----
 function speakEs(text: string): Promise<void> {
@@ -1112,6 +1128,9 @@ export default function App() {
       return next;
     });
   };
+  // Sonidos de la app: el valor real vive en lib/sound (localStorage); aquí solo
+  // se copia para que el interruptor de Configuración se pinte al instante.
+  const [soundOn, setSoundOnState] = useState<boolean>(() => isSoundOn());
   // Banner "hay datos de prueba": recuerda cada cierto número de aperturas que
   // los ejemplos se pueden quitar aquí mismo, con el interruptor a la mano.
   const [showSeedBanner, setShowSeedBanner] = useState(false);
@@ -2486,7 +2505,7 @@ export default function App() {
   const prevNotifCount = useRef<number | null>(null);
   useEffect(() => {
     if (prevNotifCount.current !== null && realNotifs.length > prevNotifCount.current) {
-      try { playChime('campanitas'); } catch {}
+      sfx('aviso');
     }
     prevNotifCount.current = realNotifs.length;
   }, [realNotifs.length]);
@@ -2537,6 +2556,7 @@ export default function App() {
   // Promos ya usadas o caducadas: se muestran en gris al tocar "Ver más".
   const myPastPurchases = myUserRedemptions.filter(r => !purchaseActive(r)).sort((a, b) => (b.redeemedAtMs || b.createdAtMs) - (a.redeemedAtMs || a.createdAtMs));
   const [showPastPromos, setShowPastPromos] = useState(false);
+  const [showPastPlans, setShowPastPlans] = useState(false);
   // Ver un QR ya comprado (sin generar ni cobrar otro)
   const [viewQR, setViewQR] = useState<Redemption | null>(null);
   // "Mis compras": historial completo (modelo Mercado Pago) + comprobante al tocar
@@ -2841,7 +2861,7 @@ export default function App() {
   const prevDerivedCount = useRef<number | null>(null);
   useEffect(() => {
     if (prevDerivedCount.current !== null && derivedNotifs.length > prevDerivedCount.current) {
-      try { playChime('campanitas'); } catch { /* silencio si el navegador aún no permite audio */ }
+      sfx('aviso');
     }
     prevDerivedCount.current = derivedNotifs.length;
   }, [derivedNotifs.length]);
@@ -3121,6 +3141,7 @@ export default function App() {
       setIoggaSent(false);
       setInvitePreviewMore(false);
       setShowMatchCelebration(true);
+      sfx('logro'); // el plan quedó publicado
     }
     setShowCreatePlan(false);
     setCurrentPlanStep(0);
@@ -4979,7 +5000,9 @@ export default function App() {
                               dragConstraints={{ left: -110, right: 0 }}
                               dragElastic={0.12}
                               onDragEnd={(_, info) => { if (info.offset.x < -70) n.onDismiss(); }}
-                              onClick={() => n.onOpen()}
+                              // Tocarla la abre Y la quita de la lista (como
+                              // WhatsApp/Instagram: lo que ya viste, ya no estorba).
+                              onClick={() => { n.onOpen(); n.onDismiss(); }}
                               className={`p-5 rounded-[32px] border flex gap-4 relative overflow-hidden cursor-pointer active:scale-[0.99] transition-transform ${n.read ? 'bg-zinc-950 border-white/5' : 'bg-zinc-900 border-white/10 shadow-xl'}`}
                             >
                               {!n.read && <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${barCls}`} />}
@@ -5620,25 +5643,51 @@ export default function App() {
                       </button>
                     )}
 
-                    {/* Cuadrícula de mis planes ACTIVOS (como el feed de tu perfil) */}
-                    {plans.filter(p => isMyPlan(p) && !p.deleted && !p.closed && !isExpiredPlan(p)).length > 0 && (
-                      <div className="pt-3 space-y-2">
-                        <div className="flex items-center gap-2 px-1">
-                          <LayoutGrid size={14} className="text-iogga-primary" />
-                          <h3 className="text-xs font-black text-white uppercase tracking-widest">Mis planes</h3>
-                          <span className="text-[10px] font-black text-zinc-500">({plans.filter(p => isMyPlan(p) && !p.deleted && !p.closed && !isExpiredPlan(p)).length})</span>
+                    {/* Mis planes: los ACTIVOS arriba y, con "Ver más", los que ya
+                        pasaron (en gris). Tu contenido NUNCA desaparece de tu perfil,
+                        igual que en Instagram o Facebook. */}
+                    {(() => {
+                      const mine = plans.filter(p => isMyPlan(p) && !p.deleted);
+                      const activos = mine.filter(p => !p.closed && !isExpiredPlan(p));
+                      const pasados = mine.filter(p => p.closed || isExpiredPlan(p));
+                      if (mine.length === 0) return null;
+                      const Cuadro = ({ pl, gris }: { pl: Plan; gris?: boolean; key?: string }) => (
+                        <button onClick={() => setSelectedPlanForDetails(pl)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
+                          <img src={pl.image || `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=300&q=80`} className={`w-full h-full object-cover ${gris ? 'grayscale opacity-60' : ''}`} referrerPolicy="no-referrer" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                          {gris && <span className="absolute top-1 right-1 text-[7px] font-black text-zinc-300 bg-zinc-800/90 px-1.5 py-0.5 rounded-full uppercase tracking-widest">{pl.closed ? 'Cerrado' : 'Terminó'}</span>}
+                          <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{pl.activity}</span>
+                        </button>
+                      );
+                      return (
+                        <div className="pt-3 space-y-2">
+                          <div className="flex items-center gap-2 px-1">
+                            <LayoutGrid size={14} className="text-iogga-primary" />
+                            <h3 className="text-xs font-black text-white uppercase tracking-widest">Mis planes</h3>
+                            <span className="text-[10px] font-black text-zinc-500">({activos.length})</span>
+                          </div>
+                          {activos.length > 0 ? (
+                            <div className="grid grid-cols-3 gap-1">
+                              {activos.map(pl => <Cuadro key={pl.id} pl={pl} />)}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-zinc-500 px-1">No tienes planes activos ahora.</p>
+                          )}
+                          {pasados.length > 0 && (
+                            <>
+                              {showPastPlans && (
+                                <div className="grid grid-cols-3 gap-1 pt-1">
+                                  {pasados.map(pl => <Cuadro key={pl.id} pl={pl} gris />)}
+                                </div>
+                              )}
+                              <button onClick={() => setShowPastPlans(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                                {showPastPlans ? 'Ver menos' : `Ver más — planes pasados (${pasados.length})`}
+                              </button>
+                            </>
+                          )}
                         </div>
-                        <div className="grid grid-cols-3 gap-1">
-                          {plans.filter(p => isMyPlan(p) && !p.deleted && !p.closed && !isExpiredPlan(p)).map(pl => (
-                            <button key={pl.id} onClick={() => setSelectedPlanForDetails(pl)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
-                              <img src={pl.image || `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=300&q=80`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                              <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{pl.activity}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Mis promos activas: SOLO las vigentes (con QR usable). Tocar
                         una abre SU QR. "Ver más" muestra las caducadas/usadas en gris. */}
@@ -7802,8 +7851,6 @@ export default function App() {
                       />
                     )}
                     <SettingsItem icon={<Download size={18} />} label="Instalar la app en tu celular" onClick={() => { setShowSettingsMenu(false); setShowInstall(true); }} />
-                    <SettingsItem icon={<Shield size={18} />} label="Aviso de Privacidad" onClick={() => { setShowSettingsMenu(false); setShowLegal('privacy'); }} />
-                    <SettingsItem icon={<CheckCircle2 size={18} />} label="Términos y Condiciones" onClick={() => { setShowSettingsMenu(false); setShowLegal('terms'); }} />
                     <SettingsItem icon={<Bell size={18} />} label="Notificaciones" />
                     <SettingsItem icon={<Smartphone size={18} />} label="Dispositivos" />
                   </div>
@@ -7848,15 +7895,7 @@ export default function App() {
                       label="Idioma y Región" 
                       onClick={() => {
                         setShowSettingsMenu(false);
-                        triggerBeta("Idioma y Región", "Iogga está configurada por defecto en Español (México) para la región Chihuahua Centro. Soporte multi-idioma se agregará próximamente.");
-                      }}
-                    />
-                    <SettingsItem 
-                      icon={<HelpCircle size={18} />} 
-                      label="Centro de Ayuda" 
-                      onClick={() => {
-                        setShowSettingsMenu(false);
-                        triggerBeta("Centro de Ayuda", "Contacta a admin@iogga.com si requieres asistencia técnica adicional durante tus pruebas de MVP.");
+                        triggerBeta("Idioma y región", "iogga está en español (México), para Chihuahua. Pronto habrá más idiomas.");
                       }}
                     />
                     {/* Panel de administrador: SOLO lo ven los usuarios asignados */}
@@ -7867,6 +7906,23 @@ export default function App() {
                         onClick={() => { setShowSettingsMenu(false); openAdmin(); }}
                       />
                     )}
+                    {/* Sonidos de la app (modelo iPhone/WhatsApp): el usuario manda.
+                        Mismo interruptor que "Datos de prueba", sin inventar otro. */}
+                    <button
+                      onClick={() => { const on = !soundOn; setSoundOn(on); setSoundOnState(on); if (on) sfx('logro'); }}
+                      className="w-full p-4 flex items-center justify-between transition-colors border-b border-white/5 group hover:bg-white/5"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-zinc-500 group-hover:text-iogga-primary transition-colors">{soundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}</div>
+                        <div className="text-left">
+                          <span className="text-sm font-bold text-zinc-300 block">Sonidos</span>
+                          <span className="text-[10px] text-zinc-500">{soundOn ? 'Activados: se escuchan al abrir y al lograr algo' : 'Apagados: la app no suena'}</span>
+                        </div>
+                      </div>
+                      <span className={`w-11 h-6 rounded-full relative transition-all shrink-0 ${soundOn ? 'bg-iogga-primary' : 'bg-white/15'}`}>
+                        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${soundOn ? 'left-[22px]' : 'left-0.5'}`} />
+                      </span>
+                    </button>
                     {/* Entorno limpio: oculta TODO lo de prueba (planes, ofertas,
                         personas, notificaciones demo) para usar solo datos reales */}
                     <button
@@ -7889,9 +7945,37 @@ export default function App() {
                       label="Novedades"
                       onClick={() => {
                         setShowSettingsMenu(false);
-                        triggerBeta("Novedades de la Versión", "¡Bienvenido a iogga v2.4 (Chihuahua MVP)! Hemos agregado el motor inteligente Spark Matcher de coincidencia en tiempo real entre planes y negocios.");
+                        triggerBeta("Novedades", `Versión ${APP_VERSION}. Ya funcionan los pagos con tarjeta, el QR de canje y las notificaciones al celular.`);
                       }}
                     />
+                  </div>
+                </div>
+
+                {/* INFORMACIÓN: lo legal, la ayuda y las redes oficiales de iogga.
+                    Modelo del pie de Ajustes de Instagram / Uber Eats: primero las
+                    filas, y debajo los enlaces en texto, discretos. */}
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2">Información</p>
+                  <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden">
+                    <SettingsItem icon={<Shield size={18} />} label="Aviso de privacidad" onClick={() => { setShowSettingsMenu(false); setShowLegal('privacy'); }} />
+                    <SettingsItem icon={<CheckCircle2 size={18} />} label="Términos y condiciones" onClick={() => { setShowSettingsMenu(false); setShowLegal('terms'); }} />
+                    <SettingsItem
+                      icon={<HelpCircle size={18} />}
+                      label="Ayuda"
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        triggerBeta('Ayuda', `Escribe a ${IOGGA_INFO.email} o al ${IOGGA_INFO.phone}. Se responde el mismo día.`);
+                      }}
+                    />
+                  </div>
+                  {/* Redes y contacto oficiales. Solo aparece lo que existe: las
+                      redes vacías en IOGGA_INFO no se muestran (cero enlaces rotos). */}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 px-3 pt-1">
+                    {socialChips(IOGGA_INFO).map(c => (
+                      <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`text-[12px] font-black active:scale-95 transition-all ${c.color}`}>{c.label}</a>
+                    ))}
+                    <a href={`mailto:${IOGGA_INFO.email}`} className="text-[12px] font-black text-zinc-300 active:scale-95 transition-all">Correo</a>
+                    <a href={waLink(IOGGA_INFO.phone, 'Hola iogga, necesito ayuda.')} target="_blank" rel="noopener noreferrer" className="text-[12px] font-black text-green-400 active:scale-95 transition-all">WhatsApp</a>
                   </div>
                 </div>
 
@@ -10439,13 +10523,17 @@ export default function App() {
               </div>
               {showLegal === 'privacy' ? (
                 <div className="space-y-3 text-xs text-zinc-400 leading-relaxed">
-                  <p><span className="text-white font-bold">iogga</span> (en adelante "la Plataforma"), con base en Chihuahua, México, es responsable del tratamiento de tus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP).</p>
-                  <p><span className="text-white font-bold">Datos que recabamos:</span> nombre, correo electrónico, número de WhatsApp (opcional), fotografía de perfil (opcional), ubicación aproximada y la actividad que publiques en la Plataforma (planes, promociones y canjes).</p>
-                  <p><span className="text-white font-bold">Finalidades:</span> crear y administrar tu cuenta; conectar planes personales con promociones comerciales; permitir la validación de códigos de canje entre usuarios y negocios; y mostrar estadísticas de uso a los negocios.</p>
-                  <p><span className="text-white font-bold">Compartición:</span> tu nombre y foto son visibles para otros usuarios. Tu número de WhatsApp solo se muestra a quienes interactúan con tus planes, para coordinar directamente. No vendemos tus datos a terceros.</p>
-                  <p><span className="text-white font-bold">Derechos ARCO:</span> puedes acceder, rectificar, cancelar u oponerte al tratamiento de tus datos escribiendo a <span className="text-white">admin@iogga.com</span>. También puedes eliminar tu cuenta en cualquier momento.</p>
-                  <p><span className="text-white font-bold">Seguridad:</span> los datos se almacenan en la infraestructura de Google Firebase con controles de acceso y cifrado en tránsito.</p>
-                  <p className="text-zinc-600">Última actualización: julio de 2026. Este aviso puede actualizarse; los cambios se publicarán en la Plataforma.</p>
+                  <p><span className="text-white font-bold">Responsable:</span> Omar Eduardo Hernández Holguín (iogga), en adelante "la Plataforma", es responsable del tratamiento de tus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP).</p>
+                  <p><span className="text-white font-bold">Domicilio:</span> {IOGGA_INFO.address}. Teléfono {IOGGA_INFO.phone}. Correo <span className="text-white">{IOGGA_INFO.email}</span>. Sitio <span className="text-white">{IOGGA_INFO.website}</span>.</p>
+                  <p><span className="text-white font-bold">Datos que recabamos:</span> nombre, correo electrónico, número de WhatsApp (opcional), fotografía de perfil (opcional), fecha de nacimiento (opcional), ubicación aproximada y la actividad que publiques en la Plataforma (planes, promociones y canjes).</p>
+                  <p><span className="text-white font-bold">Finalidades:</span> crear y administrar tu cuenta; conectar planes personales con promociones comerciales; validar códigos de canje entre usuarios y negocios; mostrar estadísticas de uso a los negocios; realizar analítica de mercadotecnia; y enviarte ofertas y oportunidades relacionadas con la Plataforma.</p>
+                  <p><span className="text-white font-bold">No vendemos ni publicamos tus datos.</span> Tus datos no se venden, no se rentan ni se hacen públicos. Solo se usan para las finalidades descritas arriba.</p>
+                  <p><span className="text-white font-bold">Compartición:</span> tu nombre y foto son visibles para otros usuarios dentro de la Plataforma. Tu WhatsApp solo se muestra a quienes aceptas en tus planes, para coordinar directamente.</p>
+                  <p><span className="text-white font-bold">Comunicaciones:</span> puedes dejar de recibir ofertas y avisos cuando quieras, desactivando las notificaciones en tu teléfono o escribiendo a <span className="text-white">{IOGGA_INFO.email}</span>. Darte de baja no afecta el uso de la Plataforma.</p>
+                  <p><span className="text-white font-bold">Derechos ARCO:</span> tienes derecho a <span className="text-white">Acceder</span> a tus datos, <span className="text-white">Rectificarlos</span> si son inexactos, <span className="text-white">Cancelarlos</span> cuando consideres que no se requieren, y <span className="text-white">Oponerte</span> a su tratamiento; así como a revocar tu consentimiento y a limitar su uso o divulgación. Para ejercerlos escribe a <span className="text-white">{IOGGA_INFO.email}</span> indicando tu nombre, el derecho que deseas ejercer y un medio de contacto. Se responde en un plazo máximo de 20 días hábiles. También puedes eliminar tu cuenta y toda tu información desde Configuración, con el botón "Eliminar mi cuenta".</p>
+                  <p><span className="text-white font-bold">Seguridad:</span> los datos se almacenan en la infraestructura de Google Firebase con controles de acceso y cifrado en tránsito. Los pagos los procesa Mercado Pago: la Plataforma nunca ve ni guarda los datos de tu tarjeta.</p>
+                  <p><span className="text-white font-bold">Cambios:</span> este aviso puede actualizarse; los cambios se publican en esta misma pantalla.</p>
+                  <p className="text-zinc-600">Última actualización: julio de 2026.</p>
                 </div>
               ) : (
                 <div className="space-y-3 text-xs text-zinc-400 leading-relaxed">
@@ -10456,7 +10544,7 @@ export default function App() {
                   <p><span className="text-white font-bold">4. Encuentros entre usuarios.</span> Los planes se realizan bajo tu propia responsabilidad. Te recomendamos reunirte en lugares públicos y verificar la identidad de las personas. iogga no supervisa los encuentros ni se hace responsable de lo que ocurra en ellos.</p>
                   <p><span className="text-white font-bold">5. Contenido.</span> No publiques contenido ilegal, ofensivo o engañoso. Podemos retirar contenido y suspender cuentas que violen estos términos.</p>
                   <p><span className="text-white font-bold">6. Responsabilidad.</span> La Plataforma se ofrece "tal cual", en etapa MVP. En la medida permitida por la ley, iogga no será responsable por daños indirectos derivados del uso del servicio.</p>
-                  <p><span className="text-white font-bold">7. Contacto.</span> admin@iogga.com · Chihuahua, México.</p>
+                  <p><span className="text-white font-bold">7. Contacto.</span> {IOGGA_INFO.email} · {IOGGA_INFO.phone} · Chihuahua, México.</p>
                   <p className="text-zinc-600">Última actualización: julio de 2026.</p>
                 </div>
               )}
@@ -11267,7 +11355,12 @@ function SelectButton({ active, onClick, label }: { active: boolean, onClick: ()
   );
 }
 
-function Modal({ children, onClose, onBack, title }: { children: React.ReactNode, onClose: () => void, onBack?: () => void, title: string }) {
+function Modal({ children, onClose: rawClose, onBack, title }: { children: React.ReactNode, onClose: () => void, onBack?: () => void, title: string }) {
+  // Sonido de abrir/cerrar: vive AQUÍ, en la hoja, así toda la app suena igual
+  // sin repetir una línea en cada pantalla (modelo de las hojas del iPhone).
+  React.useEffect(() => { sfx('abrir'); }, []);
+  const onClose = React.useCallback(() => { sfx('cerrar'); rawClose(); }, [rawClose]);
+
   // Cerrar deslizando hacia abajo desde CUALQUIER punto de la tarjeta (modelo
   // iOS/Instagram): solo arrastra cuando el contenido ya está hasta arriba, para
   // no pelearse con el scroll. La tarjeta sigue el dedo y se cierra al soltar.
@@ -11296,6 +11389,8 @@ function Modal({ children, onClose, onBack, title }: { children: React.ReactNode
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5, ease: 'easeInOut' }}
+      // Tocar fuera de la tarjeta también cierra (universal en iOS y Android).
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end"
     >
       <motion.div

@@ -5,6 +5,27 @@
 
 export type ChimeVariant = 'lluvia' | 'campanitas' | 'polvo';
 
+// ---- Interruptor de sonido (modelo iPhone/WhatsApp: el usuario manda) ----
+// Se recuerda en el teléfono. Si está apagado, NADA suena.
+let soundOn = (() => {
+  try {
+    return localStorage.getItem('iogga_sound') !== 'off';
+  } catch {
+    return true;
+  }
+})();
+
+export function isSoundOn(): boolean {
+  return soundOn;
+}
+
+export function setSoundOn(on: boolean): void {
+  soundOn = on;
+  try {
+    localStorage.setItem('iogga_sound', on ? 'on' : 'off');
+  } catch {}
+}
+
 // Pentatónica mayor en octavas altas + armónicos: siempre suena afinado
 const SCALE = [
   1046.5, 1174.7, 1318.5, 1568.0, 1760.0,
@@ -15,6 +36,7 @@ const SCALE = [
 let ctx: AudioContext | null = null;
 
 function ensureCtx(): AudioContext | null {
+  if (!soundOn) return null;
   try {
     if (!ctx) ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     if (ctx.state === 'suspended') void ctx.resume();
@@ -108,6 +130,68 @@ export function playIntroChime(): void {
     const dur = 0.25 + Math.random() * 0.6;
     const pan = (Math.random() - 0.5) * 1.6;
     note(master, t, freq, vol, dur, pan);
+  }
+}
+
+// ---- Viento: un soplo cortito para abrir y cerrar ----
+// Ruido suave filtrado que sube (abrir) o baja (cerrar), como las hojas del
+// iPhone. Dura ~0.3 s y es casi imperceptible: acompaña, no interrumpe.
+function breeze(up: boolean): void {
+  const c = ensureCtx();
+  if (!c) return;
+  const now = c.currentTime + 0.01;
+  const DUR = 0.32;
+
+  // Ruido blanco corto generado al vuelo (no hace falta ningún archivo)
+  const frames = Math.floor(c.sampleRate * DUR);
+  const buffer = c.createBuffer(1, frames, c.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
+
+  const src = c.createBufferSource();
+  src.buffer = buffer;
+
+  // El filtro es lo que le da el "aire": barrido de agudos arriba o abajo
+  const filter = c.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.Q.value = 0.9;
+  filter.frequency.setValueAtTime(up ? 700 : 2600, now);
+  filter.frequency.exponentialRampToValueAtTime(up ? 2600 : 700, now + DUR);
+
+  const gain = c.createGain();
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.05, now + DUR * 0.35);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + DUR);
+
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(c.destination);
+  src.start(now);
+  src.stop(now + DUR + 0.05);
+}
+
+// ---- Vocabulario ÚNICO de sonidos de iogga ----
+// Regla (modelo iOS/Duolingo): el sonido significa algo, no acompaña cada toque.
+//   abrir/cerrar -> viento    | logro  -> campanitas
+//   aviso        -> polvo     | error  -> dos notas graves
+// Toda la app usa SOLO estos cinco. Así nunca suena de más ni suena distinto
+// para la misma acción.
+export type Sfx = 'abrir' | 'cerrar' | 'logro' | 'aviso' | 'error';
+
+export function sfx(name: Sfx): void {
+  try {
+    if (name === 'abrir') return breeze(true);
+    if (name === 'cerrar') return breeze(false);
+    if (name === 'logro') return playChime('campanitas');
+    if (name === 'aviso') return playChime('polvo');
+    // error: dos notas graves y secas, sin brillo (nunca estridente)
+    const c = ensureCtx();
+    if (!c) return;
+    const now = c.currentTime + 0.02;
+    note(c.destination, now, 392.0, 0.07, 0.22, 0);
+    note(c.destination, now + 0.13, 329.6, 0.06, 0.3, 0);
+  } catch {
+    /* si el navegador aún no permite audio, la app sigue igual */
   }
 }
 

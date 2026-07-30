@@ -13,7 +13,7 @@ import {
   type ValidationResult,
 } from '../lib/firebase';
 import { PAYMENTS_ENABLED, createPaymentLink } from '../lib/payments';
-import { playChime } from '../lib/sound';
+import { sfx } from '../lib/sound';
 
 // "sáb 19 jul, 9:30 p.m." — para decir claramente hasta cuándo vale el QR
 function formatUntil(ms: number): string {
@@ -93,14 +93,14 @@ export function RedeemQRModal({
   useEffect(() => {
     if (paid && (payStep === 'pay' || payStep === 'loading')) {
       setPayStep('done');
-      try { playChime('campanitas'); } catch {}
+      sfx('logro');
     }
   }, [paid]);
 
   // Botón "Ya pagué" (respaldo si el aviso automático tarda): pasar al QR
   const confirmPurchase = () => {
     setPayStep('done');
-    try { playChime('campanitas'); } catch {}
+    sfx('logro');
   };
 
   // Reintentar el pago de un QR ya generado que quedó sin pagar

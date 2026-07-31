@@ -33,6 +33,24 @@
   --color-iogga-primary: #6366f1; /* Indigo for Personal */
   --color-iogga-accent: #14b8a6; /* Teal for Business */
   --color-iogga-dark: #09090b;
+
+  /* MOVIMIENTO ÚNICO DE IOGGA (modelo iOS): todo aparece despacio y con la
+     MISMA curva de desaceleración. Al definirlo aquí, cada "transition-all"
+     de la app lo hereda solo: no hay que tocar pantalla por pantalla y nunca
+     vuelve a haber un efecto rápido conviviendo con uno lento. */
+  --default-transition-duration: 320ms;
+  --default-transition-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-iogga: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Quien pide menos movimiento en su teléfono (Ajustes > Accesibilidad), lo
+   recibe: regla universal de iOS y Android. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @layer base {

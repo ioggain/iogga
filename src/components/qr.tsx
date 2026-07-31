@@ -50,7 +50,7 @@ function Overlay({ onClose, title, children }: { onClose: () => void; title: str
         <div className="flex items-center justify-between">
           <h3 className="font-black text-lg text-white uppercase tracking-tight">{title}</h3>
           <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 text-white/60 hover:bg-white/10 active:scale-90 transition-all">
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
         {children}
@@ -232,7 +232,7 @@ export function RedeemQRModal({
 
         {!error && !redemption && (
           <div className="flex items-center gap-2 text-zinc-400 py-10">
-            <Loader2 size={18} className="animate-spin" />
+            <Loader2 size={16} className="animate-spin" />
             <span className="text-sm font-medium">Generando tu código…</span>
           </div>
         )}
@@ -240,14 +240,14 @@ export function RedeemQRModal({
         {/* Paso de PAGO (cuando la oferta tiene precio): pagar y luego ver el QR */}
         {redemption && payStep === 'loading' && (
           <div className="flex items-center gap-2 text-zinc-400 py-6">
-            <Loader2 size={18} className="animate-spin" />
+            <Loader2 size={16} className="animate-spin" />
             <span className="text-sm font-medium">Preparando tu pago seguro…</span>
           </div>
         )}
         {redemption && payStep === 'pay' && (
           <div className="w-full space-y-3">
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
-              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Total a pagar</p>
+              <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">Total a pagar</p>
               <p className="text-3xl font-black text-white mt-1">${price.toLocaleString('es-MX')}</p>
             </div>
             <a
@@ -264,8 +264,8 @@ export function RedeemQRModal({
                 />
                 Pagar con Mercado Pago
               </span>
-              <span className="text-[9px] font-black uppercase tracking-[0.25em] opacity-90 flex items-center gap-1">
-                <Lock size={9} /> Pago seguro y express
+              <span className="text-[11px] font-black uppercase tracking-[0.25em] opacity-90 flex items-center gap-1">
+                <Lock size={12} /> Pago seguro y express
               </span>
             </a>
             <button
@@ -274,7 +274,7 @@ export function RedeemQRModal({
             >
               Ya pagué → ver mi QR
             </button>
-            <p className="text-[10px] text-zinc-500 leading-snug text-center">
+            <p className="text-[11px] text-zinc-500 leading-snug text-center">
               Pago procesado por Mercado Pago: tarjeta, dinero en cuenta, transferencia u OXXO.
               iogga nunca ve ni guarda tu tarjeta. Si entras con tu cuenta de Mercado Pago,
               tu tarjeta queda guardada y pagas en un toque.
@@ -317,7 +317,7 @@ export function RedeemQRModal({
               <canvas ref={canvasRef} className="rounded-xl" />
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Código único</p>
+              <p className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.3em]">Código único</p>
               <p className="text-3xl font-black text-white tracking-[0.4em]">{redemption.code}</p>
             </div>
             <div className="w-full grid grid-cols-2 gap-2">
@@ -325,14 +325,14 @@ export function RedeemQRModal({
                 onClick={downloadQR}
                 className="py-4 bg-white/5 border border-white/10 text-white rounded-[20px] font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
               >
-                <Download size={15} />
+                <Download size={14} />
                 Descargar
               </button>
               <button
                 onClick={() => void shareQR()}
                 className="py-4 bg-green-500/15 border border-green-500/30 text-green-400 rounded-[20px] font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
               >
-                <Send size={15} />
+                <Send size={14} />
                 Por WhatsApp
               </button>
             </div>
@@ -492,7 +492,7 @@ export function ValidateCodeModal({ onClose, validatorUid }: { onClose: () => vo
             <div className="relative rounded-[24px] overflow-hidden border border-iogga-accent/40">
               <video ref={videoRef} className="w-full aspect-square object-cover" muted playsInline />
               <div className="absolute inset-8 border-2 border-white/60 rounded-3xl pointer-events-none" />
-              <p className="absolute bottom-3 left-0 right-0 text-center text-[10px] font-black text-white uppercase tracking-widest drop-shadow">
+              <p className="absolute bottom-3 left-0 right-0 text-center text-[11px] font-black text-white uppercase tracking-widest drop-shadow">
                 Apunta al QR del cliente
               </p>
             </div>
@@ -550,12 +550,12 @@ export function ValidateCodeModal({ onClose, validatorUid }: { onClose: () => vo
 
         {busy && !manualMode && !scanning && (
           <div className="flex items-center justify-center gap-2 text-zinc-400 py-8">
-            <Loader2 size={18} className="animate-spin" />
+            <Loader2 size={16} className="animate-spin" />
             <span className="text-sm font-medium">Validando…</span>
           </div>
         )}
 
-        <p className="text-[10px] text-zinc-600 leading-relaxed text-center border-t border-white/5 pt-3">
+        <p className="text-[11px] text-zinc-600 leading-relaxed text-center border-t border-white/5 pt-3">
           Tu negocio vive de sus calificaciones: cada canje validado aquí construye tu reputación.
           Las transacciones fuera de iogga no cuentan, no están protegidas y se consideran mala práctica.
         </p>
@@ -586,11 +586,11 @@ export function ValidateCodeModal({ onClose, validatorUid }: { onClose: () => vo
                       ${result.redemption.priceAmount.toLocaleString('es-MX')}
                     </p>
                   )}
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest">
+                  <p className="text-[11px] text-zinc-500 uppercase tracking-widest">
                     Registrado en tus analíticas
                   </p>
                   {result.redemption.priceAmount > 0 && (
-                    <p className="text-[10px] text-zinc-400 leading-snug">
+                    <p className="text-[11px] text-zinc-400 leading-snug">
                       El dinero de esta venta se te deposita en el siguiente corte de iogga
                       (a la cuenta de tu perfil de negocio). Te avisaremos cuando salga.
                     </p>

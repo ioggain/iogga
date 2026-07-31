@@ -275,7 +275,7 @@ const renderPlanTechnicalDetails = (plan: Plan, onEditSection?: (step: number) =
           <Icon size={14} />
         </div>
         <div className="min-w-0 text-left">
-          <span className="text-[8px] text-zinc-500 block font-black uppercase tracking-widest leading-none mb-0.5">{label}</span>
+          <span className="text-[11px] text-zinc-500 block font-black uppercase tracking-widest leading-none mb-0.5">{label}</span>
           <span className="text-[11px] font-bold text-white leading-none truncate block">{value}</span>
         </div>
       </>
@@ -284,7 +284,7 @@ const renderPlanTechnicalDetails = (plan: Plan, onEditSection?: (step: number) =
       return (
         <button onClick={() => onEditSection(step)} className="flex items-center gap-2.5 min-w-0 rounded-xl -m-1 p-1 hover:bg-white/5 active:scale-95 transition-all">
           {inner}
-          <Edit3 size={11} className="text-zinc-600 ml-auto shrink-0" />
+          <Edit3 size={12} className="text-zinc-600 ml-auto shrink-0" />
         </button>
       );
     }
@@ -320,6 +320,12 @@ const IOGGA_INFO = {
   owner: 'Omar Eduardo Hernández Hernández',
   address: 'Tecnológico de Monterrey Campus Chihuahua, Av. H. Colegio Militar 4709, Nombre de Dios, 31150, Chihuahua, Chihuahua, México',
 };
+
+// ---- MOVIMIENTO ÚNICO DE IOGGA ----
+// La misma curva y el mismo tiempo que index.css. Todo lo que aparece en la app
+// usa esto: nunca conviven un efecto rápido y uno lento (modelo iOS).
+const EASE_IOGGA = [0.22, 0.61, 0.36, 1] as const;
+const APPEAR = { duration: 0.6, ease: EASE_IOGGA };
 
 // Aviso de marca y derechos de autor. Una sola línea, al pie, como en el
 // "Acerca de" de WhatsApp e Instagram: discreta pero siempre visible.
@@ -430,7 +436,7 @@ function FireflyWords({ onPick }: { onPick: (w: string) => void }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.9, ease: 'easeInOut' }}
+            transition={APPEAR}
             onClick={() => onPick(w)}
             className="text-sm font-semibold text-iogga-primary bg-transparent border-none"
             style={{ animation: `iogFirefly ${4 + (i % 3)}s ease-in-out ${(i * 0.4).toFixed(2)}s infinite` }}
@@ -770,7 +776,7 @@ function ImageSourceButtons({ query, onPaste, accent = 'primary', onOpen, onEmpt
         onClick={() => onOpen(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query || 'foto')}`)}
         className="py-3 bg-white/5 border border-white/10 text-zinc-200 rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
       >
-        <GoogleMark size={15} />
+        <GoogleMark size={14} />
         Buscar imagen
       </button>
       <button
@@ -778,7 +784,7 @@ function ImageSourceButtons({ query, onPaste, accent = 'primary', onOpen, onEmpt
         onClick={async () => { const img = await readImageFromClipboard(); if (img) onPaste(img); else onEmpty(); }}
         className={`py-3 border rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 ${pasteCls}`}
       >
-        <ClipboardPaste size={15} />
+        <ClipboardPaste size={14} />
         Pegar imagen
       </button>
     </div>
@@ -830,7 +836,7 @@ function AddressSuggest({ query, onPick, accent = 'primary' }: { query: string; 
           <MapPin size={14} className={`shrink-0 mt-0.5 ${accent === 'accent' ? 'text-iogga-accent' : 'text-iogga-primary'}`} />
           <span className="min-w-0">
             <span className="block text-sm font-bold text-white truncate">{it.main}</span>
-            {it.detail && <span className="block text-[10px] text-zinc-500 truncate">{it.detail}</span>}
+            {it.detail && <span className="block text-[11px] text-zinc-500 truncate">{it.detail}</span>}
           </span>
         </button>
       ))}
@@ -914,14 +920,14 @@ function InstallAnimationIOS() {
           transition={{ duration: 0.9, repeat: scene === 2 ? Infinity : 0 }}
           className={`h-8 rounded-lg flex items-center justify-between px-2.5 ${scene === 2 ? 'bg-iogga-primary/30 ring-2 ring-iogga-primary' : 'bg-white/10'}`}
         >
-          <span className="text-[8px] font-black text-white">Agregar a inicio</span>
+          <span className="text-[11px] font-black text-white">Agregar a inicio</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
         </motion.div>
         <div className="h-6 rounded-lg bg-white/10" />
       </motion.div>
       {/* Etiqueta de la escena */}
       <div className="absolute top-2 left-0 right-0 text-center z-30">
-        <span className="text-[8px] font-black text-white bg-black/60 px-2 py-1 rounded-full uppercase tracking-widest">
+        <span className="text-[11px] font-black text-white bg-black/60 px-2 py-1 rounded-full uppercase tracking-widest">
           {scene === 0 ? '1 · Toca Compartir' : scene === 1 ? '2 · Sube el menú' : '3 · Agregar a inicio'}
         </span>
       </div>
@@ -942,12 +948,12 @@ function StatusAnimationWA() {
       {/* Fondo: la imagen del estado (morado iogga) */}
       <div className="absolute inset-0 bg-gradient-to-b from-indigo-900 to-zinc-950 flex flex-col items-center justify-center gap-1.5">
         <div className="w-8 h-8 rounded-full bg-white shadow-[0_0_14px_rgba(255,255,255,0.35)]" />
-        <span className="text-white text-[10px] font-bold" style={{ fontFamily: '"Quicksand", sans-serif' }}>tu plan aquí</span>
+        <span className="text-white text-[11px] font-bold" style={{ fontFamily: '"Quicksand", sans-serif' }}>tu plan aquí</span>
         {/* Botón compartir (escena 0) */}
         <motion.div
           animate={scene === 0 ? { scale: [1, 1.15, 1] } : { scale: 1 }}
           transition={{ duration: 0.9, repeat: scene === 0 ? Infinity : 0 }}
-          className={`mt-3 px-3 py-1.5 rounded-full text-[8px] font-black text-white uppercase tracking-widest ${scene === 0 ? 'bg-fuchsia-500 ring-4 ring-fuchsia-500/30' : 'bg-fuchsia-500/50'}`}
+          className={`mt-3 px-3 py-1.5 rounded-full text-[11px] font-black text-white uppercase tracking-widest ${scene === 0 ? 'bg-fuchsia-500 ring-4 ring-fuchsia-500/30' : 'bg-fuchsia-500/50'}`}
         >
           Compartir ahora
         </motion.div>
@@ -975,7 +981,7 @@ function StatusAnimationWA() {
           /* Dentro de WhatsApp: Mi estado (escena 2) y 3 puntos (escena 3) */
           <div className="space-y-1.5">
             <div className="flex items-center justify-between px-1">
-              <span className="text-[8px] font-black text-white/60 uppercase">WhatsApp</span>
+              <span className="text-[11px] font-black text-white/60 uppercase">WhatsApp</span>
               <motion.span
                 animate={scene === 3 ? { scale: [1, 1.35, 1] } : {}}
                 transition={{ duration: 0.9, repeat: scene === 3 ? Infinity : 0 }}
@@ -989,15 +995,15 @@ function StatusAnimationWA() {
               transition={{ duration: 0.9, repeat: scene === 2 ? Infinity : 0 }}
               className={`h-8 rounded-lg flex items-center gap-1.5 px-2 ${scene === 2 ? 'bg-[#25D366]/25 ring-2 ring-[#25D366]' : 'bg-white/10'}`}
             >
-              <span className="w-5 h-5 rounded-full border-2 border-dashed border-[#25D366] flex items-center justify-center text-[#25D366] text-[9px] font-black">+</span>
-              <span className="text-[8px] font-black text-white">Mi estado</span>
+              <span className="w-5 h-5 rounded-full border-2 border-dashed border-[#25D366] flex items-center justify-center text-[#25D366] text-[11px] font-black">+</span>
+              <span className="text-[11px] font-black text-white">Mi estado</span>
             </motion.div>
             <div className="h-6 rounded-lg bg-white/10" />
           </div>
         )}
       </motion.div>
       <div className="absolute top-2 left-0 right-0 text-center z-30">
-        <span className="text-[8px] font-black text-white bg-black/60 px-2 py-1 rounded-full uppercase tracking-widest">
+        <span className="text-[11px] font-black text-white bg-black/60 px-2 py-1 rounded-full uppercase tracking-widest">
           {scene === 0 ? '1 · Compartir ahora' : scene === 1 ? '2 · Elige WhatsApp' : scene === 2 ? '3 · Toca Mi estado' : '4 · Elige quién la ve'}
         </span>
       </div>
@@ -1015,12 +1021,12 @@ function VoiceAnimation() {
   return (
     <div className="relative w-40 h-64 mx-auto rounded-[24px] border-4 border-zinc-700 bg-zinc-900 overflow-hidden shadow-2xl shrink-0">
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-3">
-        <p className="text-[9px] font-black text-white text-center">¿Cuál es tu plan hoy?</p>
+        <p className="text-[11px] font-black text-white text-center">¿Cuál es tu plan hoy?</p>
         {/* Caja de texto con mic y ondas */}
         <div className="w-full h-9 rounded-xl bg-white/10 border border-white/15 flex items-center px-2 gap-1">
           <motion.span
             key={scene === 0 ? 'typing' : 'idle'}
-            className="flex-1 text-[8px] text-white/80 truncate"
+            className="flex-1 text-[11px] text-white/80 truncate"
           >
             {scene === 0 ? (
               <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2 }}>Café con amigos…</motion.span>
@@ -1031,14 +1037,14 @@ function VoiceAnimation() {
             transition={{ duration: 0.8, repeat: scene === 2 ? Infinity : 0 }}
             className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${scene === 2 ? 'bg-iogga-primary ring-4 ring-iogga-primary/30' : 'bg-white/10'}`}
           >
-            <AudioLines size={11} className="text-white" />
+            <AudioLines size={12} className="text-white" />
           </motion.span>
           <motion.span
             animate={scene === 1 ? { scale: [1, 1.3, 1] } : {}}
             transition={{ duration: 0.8, repeat: scene === 1 ? Infinity : 0 }}
             className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${scene === 1 ? 'bg-red-500 ring-4 ring-red-500/30' : 'bg-white/10'}`}
           >
-            <Mic size={11} className="text-white" />
+            <Mic size={12} className="text-white" />
           </motion.span>
         </div>
         {/* Ondas de voz cuando dicta/platica */}
@@ -1055,11 +1061,11 @@ function VoiceAnimation() {
           </div>
         )}
         {scene === 2 && (
-          <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-[8px] text-iogga-primary font-bold text-center">iogga pregunta, tú contestas 🎙️</motion.p>
+          <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-[11px] text-iogga-primary font-bold text-center">iogga pregunta, tú contestas 🎙️</motion.p>
         )}
       </div>
       <div className="absolute top-2 left-0 right-0 text-center z-30">
-        <span className="text-[8px] font-black text-white bg-black/60 px-2 py-1 rounded-full uppercase tracking-widest">
+        <span className="text-[11px] font-black text-white bg-black/60 px-2 py-1 rounded-full uppercase tracking-widest">
           {scene === 0 ? '1 · Escríbelo' : scene === 1 ? '2 · Díctalo' : '3 · Platícalo'}
         </span>
       </div>
@@ -1071,7 +1077,7 @@ function VoiceAnimation() {
 function SeedTag() {
   return (
     <div className="absolute top-0 left-0 bg-amber-500/20 px-3 py-1 rounded-br-2xl border-r border-b border-amber-400/30 flex items-center gap-1 z-20 backdrop-blur-md">
-      <span className="text-[9px] font-black text-amber-300 uppercase tracking-[0.2em]">Prueba</span>
+      <span className="text-[11px] font-black text-amber-300 uppercase tracking-[0.2em]">Prueba</span>
     </div>
   );
 }
@@ -2646,7 +2652,7 @@ export default function App() {
     const fee = Math.round(total * STATEMENT_FEE * 100) / 100;
     const out: string[] = [
       line,
-      'IOGGA · ESTADO DE CUENTA',
+      'iogga · ESTADO DE CUENTA',
       `NEGOCIO: ${opts.negocio || '—'}`,
       ...(opts.promo ? [`PROMOCION: ${opts.promo}`] : []),
       `CORTE AL: ${fecha(Date.now())}`,
@@ -2737,7 +2743,7 @@ export default function App() {
     }
     // Texto: cada registro como bloque, campos en MAYÚSCULAS y alineados
     const width = cols.length ? Math.max(...cols.map(c => c.length)) + 2 : 10;
-    const out = ['='.repeat(46), `IOGGA · ${title.toUpperCase()}`, `CORTE: ${new Date().toLocaleString('es-MX')}`, `REGISTROS: ${rows.length}`, '='.repeat(46), ''];
+    const out = ['='.repeat(46), `iogga · ${title.toUpperCase()}`, `CORTE: ${new Date().toLocaleString('es-MX')}`, `REGISTROS: ${rows.length}`, '='.repeat(46), ''];
     rows.forEach((r, i) => {
       out.push(`${i + 1} DE ${rows.length}`, '-'.repeat(46));
       cols.forEach(c => out.push(`${(c.toUpperCase().replace(/_/g, ' ') + ':').padEnd(width)}${val(r[c])}`));
@@ -3419,7 +3425,7 @@ export default function App() {
     }
     
     setSearchQuery(term);
-    triggerBeta("Búsqueda de Ofertas", `Hemos asociado tu plan de "${plan.activity}" para buscar las mejores ofertas de ${term} en Chihuahua.`);
+    triggerBeta('Ofertas para tu plan', `iogga ya busca ofertas de ${term} en Chihuahua para tu plan de "${plan.activity}".`);
   };
 
   const [showModeMenu, setShowModeMenu] = useState(false);
@@ -3541,7 +3547,7 @@ export default function App() {
         {updateReady && (
           <div className="absolute top-0 left-0 right-0 z-[400] p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <div className="flex items-center gap-3 p-3 rounded-2xl bg-iogga-primary text-white shadow-2xl shadow-iogga-primary/30 border border-white/20">
-              <RefreshCw size={18} className="shrink-0" />
+              <RefreshCw size={16} className="shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-black leading-none">Actualización disponible</p>
                 <p className="text-[11px] text-white/80 mt-0.5">Toca para tener la última versión de iogga.</p>
@@ -3581,7 +3587,7 @@ export default function App() {
               <div className="relative" id="tutorial-intro-input">
                 <div className="flex items-center justify-center gap-2 mb-4">
                   <Sparkles size={14} className="text-iogga-primary animate-pulse" />
-                  <span className="text-[10px] font-black text-iogga-primary uppercase tracking-[0.2em]">Escribe, dicta o platícalo</span>
+                  <span className="text-[11px] font-black text-iogga-primary uppercase tracking-[0.2em]">Escribe, dicta o platícalo</span>
                 </div>
                 {/* Barra estilo chat: escribir + platica (voz) + dictar, dentro de la barra */}
                 <div className="relative">
@@ -3616,9 +3622,9 @@ export default function App() {
                   >
                     <Sparkles size={14} className="text-iogga-primary shrink-0 mt-0.5" />
                     <p className="text-[11px] text-zinc-300 leading-snug flex-1">
-                      Toca <Mic size={11} className="inline align-middle text-iogga-primary" /> para <b className="text-white">dictar</b>, o <AudioLines size={11} className="inline align-middle text-iogga-primary" /> para <b className="text-white">platicarlo por voz</b> y armar tu plan solo.
+                      Toca <Mic size={12} className="inline align-middle text-iogga-primary" /> para <b className="text-white">dictar</b>, o <AudioLines size={12} className="inline align-middle text-iogga-primary" /> para <b className="text-white">platicarlo por voz</b> y armar tu plan solo.
                     </p>
-                    <button onClick={dismissBarHint} className="text-[10px] font-black text-iogga-primary uppercase tracking-widest shrink-0">Ok</button>
+                    <button onClick={dismissBarHint} className="text-[11px] font-black text-iogga-primary uppercase tracking-widest shrink-0">Ok</button>
                   </motion.div>
                 )}
               </div>
@@ -3753,7 +3759,7 @@ export default function App() {
             >
               <Bell size={20} />
               {(unreadNotifs + derivedNotifs.length) > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full border border-zinc-900 flex items-center justify-center text-[10px] font-black text-white">{unreadNotifs + derivedNotifs.length}</span>
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full border border-zinc-900 flex items-center justify-center text-[11px] font-black text-white">{unreadNotifs + derivedNotifs.length}</span>
               )}
             </button>
             <button 
@@ -3780,7 +3786,7 @@ export default function App() {
               style={{ height: isRefreshing ? 44 : pullDist, opacity: isRefreshing ? 1 : Math.min(pullDist / PULL_THRESHOLD, 1) }}
             >
               <RefreshCw
-                size={22}
+                size={20}
                 className={`text-iogga-primary ${isRefreshing || pullDist >= PULL_THRESHOLD ? 'animate-spin' : ''}`}
                 style={{ transform: isRefreshing ? undefined : `rotate(${pullDist * 3}deg)` }}
               />
@@ -3792,7 +3798,7 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: [0, 0.3, 0] }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.4, ease: "easeInOut" }}
+                transition={{ duration: 0.4, ease: EASE_IOGGA }}
                 className="absolute inset-0 bg-white z-[100] pointer-events-none"
               />
             )}
@@ -3826,7 +3832,7 @@ export default function App() {
 
                     {/* Search Bar */}
                     <div className="relative">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
                       <input 
                         type="text" 
                         placeholder="Busca invitaciones..." 
@@ -3880,18 +3886,18 @@ export default function App() {
                                       >
                                         {plan.userName}
                                       </h3>
-                                      <span className="text-[10px] text-zinc-500 font-medium">Hace 5 min</span>
+                                      <span className="text-[11px] text-zinc-500 font-medium">Hace 5 min</span>
                                     </div>
                                     <p className="text-sm text-zinc-200 font-medium leading-snug italic">
                                       "{getPlanDescription(plan)}"
                                     </p>
                                     <div className="flex items-center gap-2 mt-2">
                                       {plan.id === 'inv1' && (
-                                        <span className="text-[8px] font-black bg-iogga-primary/20 text-iogga-primary px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1">
-                                          <Sparkles size={8} /> Match IA
+                                        <span className="text-[11px] font-black bg-iogga-primary/20 text-iogga-primary px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1">
+                                          <Sparkles size={12} /> Match IA
                                         </span>
                                       )}
-                                      <span className="text-[8px] font-bold bg-white/5 text-zinc-500 px-2 py-0.5 rounded-full uppercase tracking-widest">{plan.location}</span>
+                                      <span className="text-[11px] font-bold bg-white/5 text-zinc-500 px-2 py-0.5 rounded-full uppercase tracking-widest">{plan.location}</span>
                                     </div>
                                   </div>
                                   <ChevronRight size={20} className={`text-zinc-600 transition-transform ${selectedInvitationId === plan.id ? 'rotate-90' : ''}`} />
@@ -3957,21 +3963,21 @@ export default function App() {
                                                     <div className="flex flex-col h-full justify-between">
                                                       <div>
                                                         <div className="flex items-center gap-2 mb-1">
-                                                          <span className="text-[8px] font-black text-iogga-primary uppercase tracking-[0.2em]">Oferta Especial</span>
-                                                          {isInviterSelected && <Sparkles size={10} className="text-iogga-primary animate-pulse" />}
+                                                          <span className="text-[11px] font-black text-iogga-primary uppercase tracking-[0.2em]">Oferta Especial</span>
+                                                          {isInviterSelected && <Sparkles size={12} className="text-iogga-primary animate-pulse" />}
                                                         </div>
                                                         <h5 className="text-sm font-black text-white truncate uppercase tracking-tight group-hover/promo:text-iogga-primary transition-colors">{promo.title}</h5>
-                                                        <p className="text-[10px] text-zinc-500 font-bold truncate">{promo.businessName}</p>
+                                                        <p className="text-[11px] text-zinc-500 font-bold truncate">{promo.businessName}</p>
                                                       </div>
                                                       
                                                       <div className="flex items-center justify-between mt-2">
                                                         <div className="flex items-center gap-2">
                                                           <span className="text-xs font-black text-white">{promo.price}</span>
-                                                          <span className="text-[8px] font-bold text-zinc-600 line-through">S/ 45.00</span>
+                                                          <span className="text-[11px] font-bold text-zinc-600 line-through">S/ 45.00</span>
                                                         </div>
                                                         <div className="flex items-center gap-1 text-iogga-primary">
-                                                          <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/promo:opacity-100 transition-opacity">Ver más</span>
-                                                          <ArrowRight size={10} className="translate-x-[-4px] group-hover/promo:translate-x-0 transition-transform" />
+                                                          <span className="text-[11px] font-black uppercase tracking-widest opacity-0 group-hover/promo:opacity-100 transition-opacity">Ver más</span>
+                                                          <ArrowRight size={12} className="translate-x-[-4px] group-hover/promo:translate-x-0 transition-transform" />
                                                         </div>
                                                       </div>
                                                     </div>
@@ -4054,20 +4060,20 @@ export default function App() {
                       </div>
                       <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10">
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">En vivo</span>
+                        <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">En vivo</span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4" id="tutorial-business-stats">
                       <div className="p-5 rounded-[32px] bg-zinc-900 border border-white/5 space-y-1">
-                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Búsquedas hoy</span>
+                        <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Búsquedas hoy</span>
                         <div className="flex items-end gap-2">
                           <span className="text-3xl font-black text-white">1,284</span>
                           <span className="text-xs font-bold text-green-500 mb-1">↑ 12%</span>
                         </div>
                       </div>
                       <div className="p-5 rounded-[32px] bg-zinc-900 border border-white/5 space-y-1">
-                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ventas</span>
+                        <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Ventas</span>
                         <div className="flex items-end gap-2">
                           <span className="text-3xl font-black text-white">{bizTotals.sales}</span>
                           <span className="text-xs font-bold text-green-500 mb-1">● en vivo</span>
@@ -4078,7 +4084,7 @@ export default function App() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between px-1">
                         <h3 className="text-sm font-black text-white uppercase tracking-widest">Tus Ofertas Activas</h3>
-                        <Plus size={18} className="text-iogga-primary cursor-pointer" onClick={() => setShowCreatePromo(true)} />
+                        <Plus size={16} className="text-iogga-primary cursor-pointer" onClick={() => setShowCreatePromo(true)} />
                       </div>
                       <div className="space-y-3">
                         {myPromos.map(promo => (
@@ -4088,18 +4094,18 @@ export default function App() {
                             <div className="flex-1">
                               <h4 className="font-bold text-white text-sm">{promo.title}</h4>
                               <div className="flex items-center gap-3 mt-1">
-                                <div onClick={!isLoggedIn ? () => setShowLoginModal(true) : undefined} className="flex items-center gap-1 text-[10px] text-zinc-500">
-                                  <Users size={10} />
+                                <div onClick={!isLoggedIn ? () => setShowLoginModal(true) : undefined} className="flex items-center gap-1 text-[11px] text-zinc-500">
+                                  <Users size={12} />
                                   <span className={!isLoggedIn ? 'blur-[4px] select-none cursor-pointer' : ''}>{promo.realTimeSearchers}</span> Interesados
                                 </div>
-                                <div className="flex items-center gap-1 text-[10px] text-zinc-500">
-                                  <QrCode size={10} />
+                                <div className="flex items-center gap-1 text-[11px] text-zinc-500">
+                                  <QrCode size={12} />
                                   {promo.qrScans} scans
                                 </div>
                               </div>
                             </div>
                             <button onClick={() => comingSoon("Estadísticas del producto")} className="p-2 bg-white/5 rounded-xl text-zinc-400 hover:text-white transition-colors">
-                              <BarChart3 size={18} />
+                              <BarChart3 size={16} />
                             </button>
                           </div>
                         ))}
@@ -4135,7 +4141,7 @@ export default function App() {
                 </div>
                 <div className="space-y-4">
                   <div className="relative">
-                    <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                    <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
                     <input 
                       type="text" 
                       placeholder={mode === 'business' ? "Busca tendencias o categorías..." : (searchFilter === 'plans' ? "Busca planes públicos..." : "Busca ofertas...")}
@@ -4151,13 +4157,13 @@ export default function App() {
                         onClick={() => setSearchFilter('plans')}
                         className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${searchFilter === 'plans' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500'}`}
                       >
-                        <Users size={13} /> Planes
+                        <Users size={12} /> Planes
                       </button>
                       <button
                         onClick={() => setSearchFilter('promos')}
                         className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${searchFilter === 'promos' ? 'bg-iogga-accent/15 text-iogga-accent shadow-sm border border-iogga-accent/30' : 'text-zinc-500'}`}
                       >
-                        <Store size={13} /> Ofertas
+                        <Store size={12} /> Ofertas
                       </button>
                     </div>
                   ) : (
@@ -4240,7 +4246,7 @@ export default function App() {
                           {plans.filter(p => (searchSubFilter === 'public' ? p.isPublic : !p.isPublic) && matchesCategory(p) && isLivePlan(p) && planMatchesQuery(p)).length === 0 && (
                             <div className="col-span-2 py-16 flex flex-col items-center gap-4 text-center">
                               <div className="p-5 rounded-full bg-iogga-primary/10 border border-iogga-primary/20">
-                                <Sparkles size={28} className="text-iogga-primary" />
+                                <Sparkles size={24} className="text-iogga-primary" />
                               </div>
                               <div className="space-y-1">
                                 <p className="font-black text-white text-lg">Aún no hay planes por aquí</p>
@@ -4284,7 +4290,7 @@ export default function App() {
                                       <img src={plan.userAvatar} className="w-7 h-7 rounded-full border border-white/30" referrerPolicy="no-referrer" />
                                     </div>
                                     <span 
-                                      className="text-[10px] font-bold text-white truncate drop-shadow-md hover:text-iogga-primary transition-colors cursor-pointer"
+                                      className="text-[11px] font-bold text-white truncate drop-shadow-md hover:text-iogga-primary transition-colors cursor-pointer"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedUserProfile(plan);
@@ -4294,8 +4300,8 @@ export default function App() {
                                     </span>
                                   </div>
                                   <h3 className="text-sm font-black text-white leading-tight line-clamp-2 drop-shadow-lg">{plan.activity}</h3>
-                                  <div className="mt-2 flex items-center gap-1 text-[8px] text-white/70 font-bold uppercase tracking-widest">
-                                    <MapPin size={8} className="shrink-0" />
+                                  <div className="mt-2 flex items-center gap-1 text-[11px] text-white/70 font-bold uppercase tracking-widest">
+                                    <MapPin size={12} className="shrink-0" />
                                     <span className="truncate">{plan.location}</span>
                                   </div>
                                 </div>
@@ -4306,7 +4312,7 @@ export default function App() {
                         <div className="space-y-3">
                           <div className="flex items-center gap-2 px-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-iogga-accent animate-pulse" />
-                            <span className="text-[10px] font-black text-iogga-accent uppercase tracking-widest">Ofertas de negocios cerca de ti</span>
+                            <span className="text-[11px] font-black text-iogga-accent uppercase tracking-widest">Ofertas de negocios cerca de ti</span>
                           </div>
                           <div className="grid grid-cols-2 gap-3 border-l-2 border-iogga-accent/30 pl-3">
                           {promos.filter(pr => promoLive(pr) && matchesPromoCategory(pr) && promoMatchesQuery(pr)).map(promo => (
@@ -4362,7 +4368,7 @@ export default function App() {
                     : (items as Promotion[]).some(pr => promoExpired(pr));
                   return (
                     <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-3">
-                      <Clock size={18} className="text-amber-400 shrink-0" />
+                      <Clock size={16} className="text-amber-400 shrink-0" />
                       <p className="text-xs text-amber-200 leading-snug flex-1">
                         {anyExpired
                           ? `Tienes ${items.length} ${mode === 'person' ? (items.length === 1 ? 'plan caducado' : 'planes caducados') : (items.length === 1 ? 'oferta vencida' : 'ofertas vencidas')}. Edítalos para reactivarlos.`
@@ -4413,11 +4419,11 @@ export default function App() {
                               {expired ? (
                                 // Ya pasó la hora: gris/inactivo, aunque se haya cerrado (concretado),
                                 // para que no se confunda con un plan activo.
-                                <span className="px-3 py-1 bg-zinc-700 text-zinc-300 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg flex items-center gap-1">{plan.closed ? <><CheckCircle2 size={11} /> Finalizado</> : 'Caducado'}</span>
+                                <span className="px-3 py-1 bg-zinc-700 text-zinc-300 text-[11px] font-black uppercase tracking-widest rounded-full shadow-lg flex items-center gap-1">{plan.closed ? <><CheckCircle2 size={12} /> Finalizado</> : 'Caducado'}</span>
                               ) : plan.closed ? (
-                                <span className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg flex items-center gap-1"><CheckCircle2 size={11} /> Cerrado</span>
+                                <span className="px-3 py-1 bg-emerald-500 text-white text-[11px] font-black uppercase tracking-widest rounded-full shadow-lg flex items-center gap-1"><CheckCircle2 size={12} /> Cerrado</span>
                               ) : (
-                                <span className="px-3 py-1 bg-iogga-primary text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">Tu Plan Activo</span>
+                                <span className="px-3 py-1 bg-iogga-primary text-white text-[11px] font-black uppercase tracking-widest rounded-full shadow-lg">Tu Plan Activo</span>
                               )}
                             </div>
                             <div className="absolute top-4 right-4 flex items-center gap-2">
@@ -4461,8 +4467,8 @@ export default function App() {
                               <div className="mb-3">
                                 {/* Título claro + "Omar y 2 más" (modelo de los me gusta de Instagram) */}
                                 <div className="flex items-center gap-2 mb-2 px-0.5">
-                                  <UserPlus size={13} className="text-emerald-400" />
-                                  <p className="text-[10px] font-black text-emerald-300 uppercase tracking-widest">Se apuntaron a tu plan</p>
+                                  <UserPlus size={12} className="text-emerald-400" />
+                                  <p className="text-[11px] font-black text-emerald-300 uppercase tracking-widest">Se apuntaron a tu plan</p>
                                 </div>
                                 <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
                                   {plan.acceptedBy!.map((a, i) => {
@@ -4477,9 +4483,9 @@ export default function App() {
                                           <motion.div animate={{ boxShadow: ['0 0 0 0 rgba(52,211,153,0)', '0 0 0 5px rgba(52,211,153,0.25)', '0 0 0 0 rgba(52,211,153,0)'] }} transition={{ duration: 2.4, repeat: Infinity }} className="rounded-full">
                                             {a.photo ? <img src={a.photo} className="w-12 h-12 rounded-full object-cover border-2 border-emerald-400/40" referrerPolicy="no-referrer" /> : <div className="w-12 h-12 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center text-sm font-black border-2 border-emerald-400/40">{a.name.charAt(0).toUpperCase()}</div>}
                                           </motion.div>
-                                          {ok && <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-iogga-primary text-white flex items-center justify-center border-2 border-zinc-900"><Check size={11} /></div>}
+                                          {ok && <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-iogga-primary text-white flex items-center justify-center border-2 border-zinc-900"><Check size={12} /></div>}
                                         </div>
-                                        <span className="text-[9px] text-zinc-400 truncate w-full text-center">{a.name.split(' ')[0]}</span>
+                                        <span className="text-[11px] text-zinc-400 truncate w-full text-center">{a.name.split(' ')[0]}</span>
                                       </button>
                                     );
                                   })}
@@ -4532,7 +4538,7 @@ export default function App() {
                                     title={plan.isPublic ? 'Público — toca para cambiar' : 'Amigos — toca para cambiar'}
                                     className="shrink-0 text-white/50 hover:text-white active:scale-90 transition-all p-1 -m-1"
                                   >
-                                    {plan.isPublic ? <Globe size={15} /> : <Users size={15} />}
+                                    {plan.isPublic ? <Globe size={14} /> : <Users size={14} />}
                                   </button>
                                 )}
                               </h3>
@@ -4570,9 +4576,9 @@ export default function App() {
                                 <LayoutGrid size={14} />
                                 Coincidencias
                                 {(() => { const nM = getMatchingPlansForPlan(plan).length + getMatchingPromosForPlan(plan).length + plan.acceptedCount; return nM > 0 ? (
-                                  <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1.5 bg-red-500 text-white rounded-full text-[10px] font-black flex items-center justify-center border border-zinc-900">{nM}</span>
+                                  <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1.5 bg-red-500 text-white rounded-full text-[11px] font-black flex items-center justify-center border border-zinc-900">{nM}</span>
                                 ) : null; })()}
-                                <ChevronDown size={15} className={`transition-transform duration-500 ${expandedPlanId === plan.id ? 'rotate-180' : ''}`} />
+                                <ChevronDown size={14} className={`transition-transform duration-500 ${expandedPlanId === plan.id ? 'rotate-180' : ''}`} />
                               </button>
                             </div>
                             )}
@@ -4628,15 +4634,15 @@ export default function App() {
                                         <div className="flex flex-col h-full justify-between">
                                           <div>
                                             <h4 className="text-sm font-black text-white truncate uppercase tracking-tight group-hover/promo:text-iogga-primary transition-colors">{promo.title}</h4>
-                                            <p className="text-iogga-accent font-black text-[10px] uppercase tracking-widest mb-1">{promo.offer}</p>
-                                            <p className="text-[10px] text-zinc-500 truncate font-bold">{promo.businessName}</p>
+                                            <p className="text-iogga-accent font-black text-[11px] uppercase tracking-widest mb-1">{promo.offer}</p>
+                                            <p className="text-[11px] text-zinc-500 truncate font-bold">{promo.businessName}</p>
                                           </div>
                                           
                                           <div className="flex items-center justify-between mt-2">
                                             <span className="text-xs font-black text-white">{promo.price}</span>
                                             <div className="flex items-center gap-1 text-iogga-primary">
-                                              <span className="text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/promo:opacity-100 transition-opacity">Detalles</span>
-                                              <ArrowRight size={10} className="translate-x-[-4px] group-hover/promo:translate-x-0 transition-transform" />
+                                              <span className="text-[11px] font-black uppercase tracking-widest opacity-0 group-hover/promo:opacity-100 transition-opacity">Detalles</span>
+                                              <ArrowRight size={12} className="translate-x-[-4px] group-hover/promo:translate-x-0 transition-transform" />
                                             </div>
                                           </div>
                                         </div>
@@ -4668,7 +4674,7 @@ export default function App() {
                                             {/* Red Delete Background */}
                                             <div className="absolute inset-0 bg-red-500/80 flex items-center justify-end px-5 text-white z-0">
                                               <div className="flex items-center gap-2">
-                                                <span className="text-[9px] font-black uppercase tracking-wider">Descartar</span>
+                                                <span className="text-[11px] font-black uppercase tracking-wider">Descartar</span>
                                                 <Trash2 size={16} />
                                               </div>
                                             </div>
@@ -4694,9 +4700,9 @@ export default function App() {
                                               <div className="flex-1 min-w-0 pointer-events-none select-none">
                                                 <div className="flex items-center justify-between">
                                                   <span className="font-bold text-xs text-white block">{otherPlan.userName}</span>
-                                                  <span className="text-[9px] text-zinc-500">{otherPlan.startTime} - {otherPlan.endTime}</span>
+                                                  <span className="text-[11px] text-zinc-500">{otherPlan.startTime} - {otherPlan.endTime}</span>
                                                 </div>
-                                                <p className="text-[10px] text-zinc-400 truncate">{otherPlan.activity} @ {otherPlan.location}</p>
+                                                <p className="text-[11px] text-zinc-400 truncate">{otherPlan.activity} @ {otherPlan.location}</p>
                                               </div>
                                               <div className="flex flex-col items-center shrink-0 text-zinc-500 pointer-events-none">
                                                 <ChevronRight size={14} className="shrink-0 animate-pulse" />
@@ -4749,7 +4755,7 @@ export default function App() {
                                   e.stopPropagation();
                                   setSelectedPromo(promo);
                                 }}
-                                className="flex items-center gap-2 px-3 py-2 bg-zinc-900/90 backdrop-blur-md rounded-2xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all border border-white/20 shadow-2xl"
+                                className="flex items-center gap-2 px-3 py-2 bg-zinc-900/90 backdrop-blur-md rounded-2xl text-white text-[11px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all border border-white/20 shadow-2xl"
                               >
                                 <Eye size={14} />
                                 Ver cómo
@@ -4818,13 +4824,13 @@ export default function App() {
 
                           {/* Bottom Left: Offer Badge + estado de vigencia */}
                           <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2">
-                            <div className="bg-iogga-accent text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl border border-white/10">
+                            <div className="bg-iogga-accent text-white px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-xl border border-white/10">
                               {promo.offer}
                             </div>
                             {promoExpired(promo) ? (
-                              <div className="bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-1"><Clock size={11} /> Vencida</div>
+                              <div className="bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-xl flex items-center gap-1"><Clock size={12} /> Vencida</div>
                             ) : promoExpiringSoon(promo) ? (
-                              <div className="bg-amber-500 text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-1"><Clock size={11} /> Por vencer</div>
+                              <div className="bg-amber-500 text-white px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-xl flex items-center gap-1"><Clock size={12} /> Por vencer</div>
                             ) : null}
                           </div>
 
@@ -4844,7 +4850,7 @@ export default function App() {
                             >
                               <Users size={14} className="text-iogga-primary mb-1" />
                               <span className="text-lg font-black text-white leading-none">{getMatchingPlansForPromo(promo).length}</span>
-                              <span className="text-[9px] font-bold text-iogga-primary/80 uppercase tracking-wider mt-1 text-center leading-tight">En su plan</span>
+                              <span className="text-[11px] font-bold text-iogga-primary/80 uppercase tracking-wider mt-1 text-center leading-tight">En su plan</span>
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); setSelectedProductAnalytics(promo); setActiveTab('analytics'); }}
@@ -4852,7 +4858,7 @@ export default function App() {
                             >
                               <QrCode size={14} className="text-iogga-accent mb-1" />
                               <span className="text-lg font-black text-white leading-none">{promo.qrScans}</span>
-                              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1 text-center leading-tight">Seleccionados</span>
+                              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mt-1 text-center leading-tight">Seleccionados</span>
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); setSelectedProductAnalytics(promo); setActiveTab('analytics'); }}
@@ -4860,7 +4866,7 @@ export default function App() {
                             >
                               <CheckCircle2 size={14} className="text-emerald-400 mb-1" />
                               <span className="text-lg font-black text-emerald-400 leading-none">{promo.salesCount}</span>
-                              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1 text-center leading-tight">Canjeados</span>
+                              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mt-1 text-center leading-tight">Canjeados</span>
                             </button>
                           </div>
 
@@ -4904,7 +4910,7 @@ export default function App() {
                     onClick={() => setShowLoginModal(true)}
                     className="w-full p-4 rounded-3xl bg-iogga-accent/10 border border-iogga-accent/30 text-left flex items-center gap-3"
                   >
-                    <Shield size={18} className="text-iogga-accent shrink-0" />
+                    <Shield size={16} className="text-iogga-accent shrink-0" />
                     <p className="text-xs text-zinc-300 font-medium">Hay clientes interesados en tu negocio. <span className="text-iogga-accent font-black">Inicia sesión</span> para abrir tus notificaciones.</p>
                   </button>
                 )}
@@ -5031,7 +5037,7 @@ export default function App() {
                           <motion.div key={n.id} layout className="relative group">
                             {/* Fondo rojo del swipe */}
                             <div className="absolute inset-0 rounded-[32px] bg-red-500/80 flex items-center justify-end px-8 text-white">
-                              <Trash2 size={22} />
+                              <Trash2 size={20} />
                             </div>
                             <motion.div
                               drag="x"
@@ -5045,18 +5051,18 @@ export default function App() {
                             >
                               {!n.read && <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${barCls}`} />}
                               <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg ${toneIcon}`}>
-                                <Icon size={22} />
+                                <Icon size={20} />
                               </div>
                               <div className="flex-1 min-w-0 pr-7">
                                 <div className="flex items-center justify-between mb-1 gap-2">
                                   <h3 className={`font-black text-sm truncate flex items-center gap-1.5 ${n.read ? 'text-zinc-400' : 'text-white'}`}>
-                                    {n.demo && <span className="shrink-0 text-[8px] font-black text-amber-300 bg-amber-500/20 border border-amber-400/30 px-1.5 py-0.5 rounded-full uppercase tracking-[0.15em]">Prueba</span>}
+                                    {n.demo && <span className="shrink-0 text-[11px] font-black text-amber-300 bg-amber-500/20 border border-amber-400/30 px-1.5 py-0.5 rounded-full uppercase tracking-[0.15em]">Prueba</span>}
                                     <span className="truncate">{n.title}</span>
                                   </h3>
-                                  <span className="text-[10px] text-zinc-500 font-bold shrink-0">{n.timeLabel || timeAgo(n.ts)}</span>
+                                  <span className="text-[11px] text-zinc-500 font-bold shrink-0">{n.timeLabel || timeAgo(n.ts)}</span>
                                 </div>
                                 <p className={`text-xs leading-relaxed line-clamp-2 ${n.read ? 'text-zinc-500' : 'text-zinc-300'}`}>{n.message}</p>
-                                <span className={`text-[10px] font-black uppercase tracking-widest mt-1.5 inline-block ${n.tone === 'warning' ? 'text-amber-400' : n.tone === 'success' ? 'text-iogga-accent' : 'text-iogga-primary'}`}>Ver →</span>
+                                <span className={`text-[11px] font-black uppercase tracking-widest mt-1.5 inline-block ${n.tone === 'warning' ? 'text-amber-400' : n.tone === 'success' ? 'text-iogga-accent' : 'text-iogga-primary'}`}>Ver →</span>
                               </div>
                               {/* Tachita siempre visible, además del swipe */}
                               <button
@@ -5071,7 +5077,7 @@ export default function App() {
                       })}
                       {feed.length === 0 && (
                         <div className="p-10 rounded-[32px] bg-white/5 border border-dashed border-white/10 text-center">
-                          <Bell size={26} className="text-zinc-600 mx-auto mb-2" />
+                          <Bell size={24} className="text-zinc-600 mx-auto mb-2" />
                           <p className="text-xs text-zinc-500">Sin notificaciones por ahora. Aquí te avisaremos de invitaciones, caducidades y evaluaciones.</p>
                         </div>
                       )}
@@ -5127,7 +5133,7 @@ export default function App() {
                       </button>
                       <div>
                         <h2 className="text-xl font-black text-white tracking-tight">Detalle de la promoción</h2>
-                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Analítica específica</p>
+                        <p className="text-[11px] text-zinc-500 font-bold uppercase tracking-widest">Analítica específica</p>
                       </div>
                     </div>
                     
@@ -5145,19 +5151,19 @@ export default function App() {
                     {/* Métricas clave (tiles legibles sobre fondo oscuro) */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Ventas</p>
+                        <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">Ventas</p>
                         <p className="text-2xl font-black text-emerald-400 mt-1">${selectedProductAnalytics.totalEarnings.toLocaleString('es-MX')}</p>
                       </div>
                       <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Conversión</p>
+                        <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">Conversión</p>
                         <p className="text-2xl font-black text-white mt-1">{selectedProductAnalytics.qrScans > 0 ? Math.round((selectedProductAnalytics.salesCount / selectedProductAnalytics.qrScans) * 100) : 0}%</p>
                       </div>
                       <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Seleccionados</p>
+                        <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">Seleccionados</p>
                         <p className="text-2xl font-black text-iogga-accent mt-1">{selectedProductAnalytics.qrScans || 0}</p>
                       </div>
                       <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">QR canjeados</p>
+                        <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">QR canjeados</p>
                         <p className="text-2xl font-black text-indigo-400 mt-1">{selectedProductAnalytics.salesCount || 0}</p>
                       </div>
                     </div>
@@ -5168,7 +5174,7 @@ export default function App() {
                           <p className="text-xs font-black text-white uppercase tracking-widest">Ventas en el tiempo</p>
                           <div className="flex items-center gap-1">
                             <div className="w-2 h-2 rounded-full bg-iogga-accent"></div>
-                            <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-widest">Ventas</span>
+                            <span className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest">Ventas</span>
                           </div>
                         </div>
                         <div className="h-48 w-full">
@@ -5190,7 +5196,7 @@ export default function App() {
                           </ResponsiveContainer>
                           ) : (
                             <div className="h-full flex flex-col items-center justify-center text-center gap-2">
-                              <BarChart3 size={28} className="text-zinc-600" />
+                              <BarChart3 size={24} className="text-zinc-600" />
                               <p className="text-xs text-zinc-500 font-medium max-w-[200px]">Aún no hay ventas de este producto. Cada canje QR validado aparecerá aquí.</p>
                             </div>
                           )}
@@ -5210,7 +5216,7 @@ export default function App() {
                         <div className="p-5 rounded-3xl bg-white/5 border border-white/10 space-y-3">
                           <div className="flex items-center justify-between">
                             <p className="text-xs font-black text-white uppercase tracking-widest">Movimientos</p>
-                            <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">{promoTxExpanded ? 'Este mes' : 'Recientes'}</span>
+                            <span className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">{promoTxExpanded ? 'Este mes' : 'Recientes'}</span>
                           </div>
                           {shown.length === 0 && <p className="text-xs text-zinc-500 text-center py-3">Aún no hay ventas canjeadas{promoTxExpanded ? ' este mes' : ''}.</p>}
                           <div className="divide-y divide-white/5">
@@ -5218,7 +5224,7 @@ export default function App() {
                               <div key={r.code} className="flex items-center justify-between gap-3 py-2.5">
                                 <div className="min-w-0">
                                   <p className="text-xs font-bold text-white truncate">Folio {r.code} · {r.userName}</p>
-                                  <p className="text-[10px] text-zinc-500">{new Date(r.redeemedAtMs || r.createdAtMs).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</p>
+                                  <p className="text-[11px] text-zinc-500">{new Date(r.redeemedAtMs || r.createdAtMs).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</p>
                                 </div>
                                 <span className="text-sm font-black text-emerald-400 shrink-0">+${(r.priceAmount || 0).toLocaleString('es-MX')}</span>
                               </div>
@@ -5227,7 +5233,7 @@ export default function App() {
                           {all.length > 3 && (
                             <button
                               onClick={() => setPromoTxExpanded(v => !v)}
-                              className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+                              className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all"
                             >
                               {promoTxExpanded ? 'Ver menos' : 'Ver más (este mes)'}
                             </button>
@@ -5239,17 +5245,17 @@ export default function App() {
                                 `iogga-estado-de-cuenta-${selectedProductAnalytics.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30)}-${new Date().toISOString().slice(0, 10)}.txt`,
                                 buildStatementTxt(all, { negocio: businessProfile.name || selectedProductAnalytics.businessName, promo: selectedProductAnalytics.title })
                               )}
-                              className="py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
+                              className="py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
                             >
-                              <FileDown size={13} />
+                              <FileDown size={12} />
                               Descargar
                             </button>
                             <button
                               disabled={all.length === 0}
                               onClick={() => openExternal(`https://wa.me/?text=${encodeURIComponent(buildStatementTxt(all, { negocio: businessProfile.name || selectedProductAnalytics.businessName, promo: selectedProductAnalytics.title }))}`)}
-                              className="py-3 rounded-2xl bg-green-500/15 border border-green-500/30 text-green-400 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
+                              className="py-3 rounded-2xl bg-green-500/15 border border-green-500/30 text-green-400 font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
                             >
-                              <Send size={13} />
+                              <Send size={12} />
                               Por WhatsApp
                             </button>
                           </div>
@@ -5265,7 +5271,7 @@ export default function App() {
                           onClick={() => sharePromo(selectedProductAnalytics)}
                           className="w-full py-4 bg-iogga-accent text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-iogga-accent/20 flex items-center justify-center gap-2"
                         >
-                          <Send size={18} /> Compartir promoción
+                          <Send size={16} /> Compartir promoción
                         </button>
                     </div>
                   </div>
@@ -5279,7 +5285,7 @@ export default function App() {
                         </div>
                         <div className="flex flex-col items-end">
                           <span className="text-xs text-green-500 font-bold">● En vivo</span>
-                          <span className="text-[10px] text-zinc-500">canjes QR validados</span>
+                          <span className="text-[11px] text-zinc-500">canjes QR validados</span>
                         </div>
                       </div>
                       
@@ -5290,7 +5296,7 @@ export default function App() {
                             <p className="text-xs text-zinc-400">QRs</p>
                           </div>
                           <p className="text-xl font-bold">{bizTotals.scans}</p>
-                          <p className="text-[10px] text-zinc-500">Escaneos totales</p>
+                          <p className="text-[11px] text-zinc-500">Escaneos totales</p>
                         </div>
                         <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
                           <div className="flex items-center gap-2 mb-2">
@@ -5298,7 +5304,7 @@ export default function App() {
                             <p className="text-xs text-zinc-400">Canjes</p>
                           </div>
                           <p className="text-xl font-bold">{bizTotals.sales}</p>
-                          <p className="text-[10px] text-zinc-500">Clientes atendidos</p>
+                          <p className="text-[11px] text-zinc-500">Clientes atendidos</p>
                         </div>
                       </div>
 
@@ -5309,11 +5315,11 @@ export default function App() {
                           <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1">
                               <div className="w-2 h-2 rounded-full bg-iogga-accent"></div>
-                              <span className="text-[8px] text-zinc-500">Ventas</span>
+                              <span className="text-[11px] text-zinc-500">Ventas</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <div className="w-2 h-2 rounded-full bg-white/30"></div>
-                              <span className="text-[8px] text-zinc-500">Tendencia</span>
+                              <span className="text-[11px] text-zinc-500">Tendencia</span>
                             </div>
                           </div>
                         </div>
@@ -5337,7 +5343,7 @@ export default function App() {
                           </ResponsiveContainer>
                           ) : (
                             <div className="h-full flex flex-col items-center justify-center text-center gap-2">
-                              <BarChart3 size={28} className="text-zinc-600" />
+                              <BarChart3 size={24} className="text-zinc-600" />
                               <p className="text-xs text-zinc-500 font-medium max-w-[220px]">Aún no hay ventas. Cuando valides canjes QR, tus ventas por día aparecerán aquí.</p>
                             </div>
                           )}
@@ -5354,7 +5360,7 @@ export default function App() {
                                 className={`w-full rounded-t-lg transition-all duration-500 ${i === 3 ? 'bg-iogga-accent' : 'bg-white/10'}`}
                                 style={{ height: `${h}%` }}
                               ></div>
-                              <span className="text-[8px] text-zinc-500 font-bold">{['L', 'M', 'M', 'J', 'V', 'S', 'D'][i]}</span>
+                              <span className="text-[11px] text-zinc-500 font-bold">{['L', 'M', 'M', 'J', 'V', 'S', 'D'][i]}</span>
                             </div>
                           ))}
                         </div>
@@ -5377,7 +5383,7 @@ export default function App() {
                             <div className="flex items-center gap-3">
                               <div className="relative">
                                 <img src={promo.image} className="w-12 h-12 rounded-xl object-cover" />
-                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-iogga-accent rounded-full flex items-center justify-center text-[8px] font-bold text-white border-2 border-zinc-950">
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-iogga-accent rounded-full flex items-center justify-center text-[11px] font-bold text-white border-2 border-zinc-950">
                                   {promo.salesCount}
                                 </div>
                               </div>
@@ -5388,7 +5394,7 @@ export default function App() {
                             </div>
                             <div className="text-right">
                               <p className="font-bold text-white">${promo.totalEarnings}</p>
-                              <p className="text-[10px] text-zinc-500">Ventas totales</p>
+                              <p className="text-[11px] text-zinc-500">Ventas totales</p>
                             </div>
                           </button>
                         ))}
@@ -5422,7 +5428,7 @@ export default function App() {
                                 ['Neto a depositar', money(total - fee)],
                               ].map(([k, v], i, arr) => (
                                 <div key={k} className="flex items-center justify-between px-4 py-2.5">
-                                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
+                                  <span className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
                                   <span className={`text-sm font-black ${i === arr.length - 1 ? 'text-emerald-400' : 'text-white'}`}>{v}</span>
                                 </div>
                               ))}
@@ -5448,7 +5454,7 @@ export default function App() {
                                 Por WhatsApp
                               </button>
                             </div>
-                            <p className="text-[10px] text-zinc-500 leading-snug">
+                            <p className="text-[11px] text-zinc-500 leading-snug">
                               Lo que vendes pagado en iogga se te deposita por transferencia (SPEI) a la
                               cuenta de tu perfil de negocio en cada corte. El archivo trae cada venta como
                               ticket, con folio y montos exactos para comparar con tu banco.
@@ -5506,17 +5512,17 @@ export default function App() {
                       <div className="flex items-center justify-around">
                         <button onClick={() => setActiveTab('active')} className="flex flex-col items-center active:scale-95 transition-transform">
                           <span className="text-lg font-black text-white">{myPromos.length}</span>
-                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Ofertas</span>
+                          <span className="text-[11px] text-zinc-500 uppercase tracking-widest font-bold">Ofertas</span>
                         </button>
                         {/* Los negocios no tienen "seguidores" (modelo Uber Eats):
                             aquí importan las VENTAS canjeadas. */}
                         <button onClick={() => { setShowMySales(true); }} className="flex flex-col items-center active:scale-95 transition-transform">
                           <span className="text-lg font-black text-white">{bizTotals.sales}</span>
-                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Canjes</span>
+                          <span className="text-[11px] text-zinc-500 uppercase tracking-widest font-bold">Canjes</span>
                         </button>
                         <div className="flex flex-col items-center">
                           <span className="text-lg font-black text-white">{(businessProfile.name ? 4.8 : 5).toFixed(1)}</span>
-                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Rating</span>
+                          <span className="text-[11px] text-zinc-500 uppercase tracking-widest font-bold">Rating</span>
                         </div>
                       </div>
 
@@ -5530,7 +5536,7 @@ export default function App() {
                         {socialChips(businessProfile, { includeWhatsapp: true }).length > 0 && (
                           <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2">
                             {socialChips(businessProfile, { includeWhatsapp: true }).map(c => (
-                              <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`text-[12px] font-black active:scale-95 transition-all ${c.color}`}>{c.label}</a>
+                              <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`text-xs font-black active:scale-95 transition-all ${c.color}`}>{c.label}</a>
                             ))}
                           </div>
                         )}
@@ -5560,7 +5566,7 @@ export default function App() {
                           <div className="flex items-center gap-2 px-1">
                             <Store size={14} className="text-iogga-accent" />
                             <h3 className="text-xs font-black text-white uppercase tracking-widest">Promociones activas</h3>
-                            <span className="text-[10px] font-black text-zinc-500">({myPromos.filter(pr => promoLive(pr)).length})</span>
+                            <span className="text-[11px] font-black text-zinc-500">({myPromos.filter(pr => promoLive(pr)).length})</span>
                           </div>
                           <div className="grid grid-cols-3 gap-1">
                             {(gridExpanded ? myPromos.filter(pr => promoLive(pr)) : myPromos.filter(pr => promoLive(pr)).slice(0, 6)).map(pr => (
@@ -5571,12 +5577,12 @@ export default function App() {
                               >
                                 <img src={pr.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                                <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{pr.title}</span>
+                                <span className="absolute bottom-1 left-1.5 right-1.5 text-[11px] font-bold text-white truncate text-left">{pr.title}</span>
                               </button>
                             ))}
                           </div>
                           {myPromos.filter(pr => promoLive(pr)).length > 6 && (
-                            <button onClick={() => setGridExpanded(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                            <button onClick={() => setGridExpanded(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all">
                               {gridExpanded ? 'Ver menos' : `Ver más (${myPromos.filter(pr => promoLive(pr)).length - 6})`}
                             </button>
                           )}
@@ -5602,21 +5608,21 @@ export default function App() {
                           <img src={userProfile.photoURL || GENERIC_AVATAR} className="w-20 h-20 rounded-full border-2 border-white/10 object-cover" referrerPolicy="no-referrer" />
                         </button>
                         <button onClick={() => setShowEditProfile(true)} className="absolute -bottom-1 -right-1 p-1.5 bg-zinc-800 rounded-full shadow-lg text-iogga-primary border border-white/10 active:scale-90 transition-transform">
-                          <Edit3 size={13} />
+                          <Edit3 size={12} />
                         </button>
                       </div>
                       <div className="flex-1 flex items-center justify-around">
                         <button onClick={() => setActiveTab('active')} className="flex flex-col items-center active:scale-95 transition-transform">
                           <span className="text-lg font-black text-white">{plans.filter(p => isMyPlan(p)).length}</span>
-                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Planes</span>
+                          <span className="text-[11px] text-zinc-500 uppercase tracking-widest font-bold">Planes</span>
                         </button>
                         <button onClick={() => setShowFriends('followers')} className="flex flex-col items-center active:scale-95 transition-transform">
                           <span className="text-lg font-black text-white">{followersAll.length}</span>
-                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Seguidores</span>
+                          <span className="text-[11px] text-zinc-500 uppercase tracking-widest font-bold">Seguidores</span>
                         </button>
                         <button onClick={() => setShowFriends('following')} className="flex flex-col items-center active:scale-95 transition-transform">
                           <span className="text-lg font-black text-white">{followingAll.length}</span>
-                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Seguidos</span>
+                          <span className="text-[11px] text-zinc-500 uppercase tracking-widest font-bold">Seguidos</span>
                         </button>
                       </div>
                     </div>
@@ -5626,7 +5632,7 @@ export default function App() {
                       <h2 className="text-lg font-black text-white flex items-center gap-2">
                         {currentUser?.name || GUEST_NAME}
                         {currentUser && !currentUser.isAnonymous && (
-                          <span className="text-[11px] text-yellow-500 font-bold flex items-center gap-0.5"><Star size={11} fill="currentColor" /> {bayesianRating((userProfile as any).ratingSum, (userProfile as any).ratingCount).toFixed(1)}</span>
+                          <span className="text-[11px] text-yellow-500 font-bold flex items-center gap-0.5"><Star size={12} fill="currentColor" /> {bayesianRating((userProfile as any).ratingSum, (userProfile as any).ratingCount).toFixed(1)}</span>
                         )}
                       </h2>
                       <p className="text-zinc-500 text-xs">@{(currentUser?.name || GUEST_NAME).toLowerCase().replace(/\s+/g, '')}</p>
@@ -5634,7 +5640,7 @@ export default function App() {
                       {socialChips(userProfile).length > 0 && (
                         <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2">
                           {socialChips(userProfile).map(c => (
-                            <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`text-[12px] font-black active:scale-95 transition-all ${c.color}`}>{c.label}</a>
+                            <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`text-xs font-black active:scale-95 transition-all ${c.color}`}>{c.label}</a>
                           ))}
                         </div>
                       )}
@@ -5693,7 +5699,7 @@ export default function App() {
                           <img src={pl.image || `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=300&q=80`} className={`w-full h-full object-cover ${gris ? 'grayscale opacity-60' : ''}`} referrerPolicy="no-referrer" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                           {gris && <span className="absolute top-1 right-1 text-[7px] font-black text-zinc-300 bg-zinc-800/90 px-1.5 py-0.5 rounded-full uppercase tracking-widest">{pl.closed ? 'Cerrado' : 'Terminó'}</span>}
-                          <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{pl.activity}</span>
+                          <span className="absolute bottom-1 left-1.5 right-1.5 text-[11px] font-bold text-white truncate text-left">{pl.activity}</span>
                         </button>
                       );
                       return (
@@ -5701,7 +5707,7 @@ export default function App() {
                           <div className="flex items-center gap-2 px-1">
                             <LayoutGrid size={14} className="text-iogga-primary" />
                             <h3 className="text-xs font-black text-white uppercase tracking-widest">Mis planes</h3>
-                            <span className="text-[10px] font-black text-zinc-500">({activos.length})</span>
+                            <span className="text-[11px] font-black text-zinc-500">({activos.length})</span>
                           </div>
                           {activos.length > 0 ? (
                             <div className="grid grid-cols-3 gap-1">
@@ -5717,7 +5723,7 @@ export default function App() {
                                   {pasados.map(pl => <Cuadro key={pl.id} pl={pl} gris />)}
                                 </div>
                               )}
-                              <button onClick={() => setShowPastPlans(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                              <button onClick={() => setShowPastPlans(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all">
                                 {showPastPlans ? 'Ver menos' : `Ver más — planes pasados (${pasados.length})`}
                               </button>
                             </>
@@ -5733,7 +5739,7 @@ export default function App() {
                         <div className="flex items-center gap-2 px-1">
                           <QrCode size={14} className="text-iogga-accent" />
                           <h3 className="text-xs font-black text-white uppercase tracking-widest">Mis promos activas</h3>
-                          <span className="text-[10px] font-black text-zinc-500">({myActivePurchases.length})</span>
+                          <span className="text-[11px] font-black text-zinc-500">({myActivePurchases.length})</span>
                         </div>
                         {myActivePurchases.length > 0 ? (
                           <div className="grid grid-cols-3 gap-1">
@@ -5741,8 +5747,8 @@ export default function App() {
                               <button key={r.code} onClick={() => setViewQR(r)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
                                 <img src={promos.find(p => p.id === r.promoId)?.image || 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=300&q=80'} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                                <span className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white"><QrCode size={10} /></span>
-                                <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{r.promoTitle}</span>
+                                <span className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white"><QrCode size={12} /></span>
+                                <span className="absolute bottom-1 left-1.5 right-1.5 text-[11px] font-bold text-white truncate text-left">{r.promoTitle}</span>
                               </button>
                             ))}
                           </div>
@@ -5759,12 +5765,12 @@ export default function App() {
                                     <img src={promos.find(p => p.id === r.promoId)?.image || 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=300&q=80'} className="w-full h-full object-cover grayscale opacity-60" referrerPolicy="no-referrer" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                                     <span className="absolute top-1 right-1 text-[7px] font-black text-zinc-300 bg-zinc-800/90 px-1.5 py-0.5 rounded-full uppercase tracking-widest">{r.status === 'redeemed' ? 'Usada' : 'Caducó'}</span>
-                                    <span className="absolute bottom-1 left-1.5 right-1.5 text-[9px] font-bold text-white truncate text-left">{r.promoTitle}</span>
+                                    <span className="absolute bottom-1 left-1.5 right-1.5 text-[11px] font-bold text-white truncate text-left">{r.promoTitle}</span>
                                   </button>
                                 ))}
                               </div>
                             )}
-                            <button onClick={() => setShowPastPromos(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                            <button onClick={() => setShowPastPromos(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all">
                               {showPastPromos ? 'Ver menos' : `Ver más — caducadas y usadas (${myPastPurchases.length})`}
                             </button>
                           </>
@@ -5821,10 +5827,10 @@ export default function App() {
                         </div>
                         <div className="text-left">
                           <p className="font-bold text-white text-sm">Instalar iogga en tu celular</p>
-                          <p className="text-[10px] text-zinc-500">Gratis · No ocupa espacio · Sin tiendas</p>
+                          <p className="text-[11px] text-zinc-500">Gratis · No ocupa espacio · Sin tiendas</p>
                         </div>
                       </div>
-                      <ChevronRight size={18} className="text-zinc-500" />
+                      <ChevronRight size={16} className="text-zinc-500" />
                     </button>
                   </div>
                 )}
@@ -5835,10 +5841,10 @@ export default function App() {
                       <Sparkles size={16} className="text-indigo-400" />
                       <h3 className="text-xs font-black text-white uppercase tracking-widest">Análisis de Perfil IA</h3>
                     </div>
-                    <p className="text-[10px] text-zinc-400 leading-relaxed">
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
                       Tu perfil tiene un <span className="text-indigo-400 font-bold">85% de compatibilidad</span> con planes de aventura y café. ¡Sigue así!
                     </p>
-                    <button onClick={() => comingSoon("Insights detallados")} className="w-full py-2 bg-indigo-500/20 text-indigo-400 rounded-xl text-[10px] font-bold border border-indigo-500/30">
+                    <button onClick={() => comingSoon("Insights detallados")} className="w-full py-2 bg-indigo-500/20 text-indigo-400 rounded-xl text-[11px] font-bold border border-indigo-500/30">
                       Ver Insights Detallados
                     </button>
                   </section>
@@ -5851,7 +5857,7 @@ export default function App() {
                       </div>
                       <div className="text-left">
                         <p className="font-bold text-white text-sm">Tengo negocio</p>
-                        <p className="text-[10px] text-zinc-500 leading-tight">Actívalo para crear el perfil de tu negocio</p>
+                        <p className="text-[11px] text-zinc-500 leading-tight">Actívalo para crear el perfil de tu negocio</p>
                       </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -5941,9 +5947,9 @@ export default function App() {
                 onClick={() => setActiveTab('home')}
                 icon={
                   <div className="relative">
-                    <Home size={26} />
+                    <Home size={24} />
                     {(() => { const n = plans.filter(p => isInviteForMe(p) && isLivePlan(p) && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id)).length; return n > 0 ? (
-                      <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 bg-red-500 rounded-full border border-zinc-950 flex items-center justify-center text-[9px] font-black text-white">{n}</span>
+                      <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 bg-red-500 rounded-full border border-zinc-950 flex items-center justify-center text-[11px] font-black text-white">{n}</span>
                     ) : null; })()}
                   </div>
                 }
@@ -5954,7 +5960,7 @@ export default function App() {
                 id="nav-search"
                 active={activeTab === 'search'}
                 onClick={() => setActiveTab('search')}
-                icon={<Globe size={26} />}
+                icon={<Globe size={24} />}
                 label="Explora"
                 color="text-iogga-primary"
               />
@@ -5964,14 +5970,14 @@ export default function App() {
                 onClick={() => setShowCreatePlan(true)}
                 className="relative -mt-8 w-16 h-16 rounded-full bg-iogga-primary text-white flex flex-col items-center justify-center shadow-2xl shadow-iogga-primary/40 border-4 border-zinc-950 active:scale-90 transition-transform"
               >
-                <Plus size={28} />
-                <span className="absolute -bottom-5 text-[9px] font-black uppercase tracking-widest text-iogga-primary">Crear</span>
+                <Plus size={24} />
+                <span className="absolute -bottom-5 text-[11px] font-black uppercase tracking-widest text-iogga-primary">Crear</span>
               </button>
               <NavButton
                 id="nav-active"
                 active={activeTab === 'active'}
                 onClick={() => setActiveTab('active')}
-                icon={<LayoutGrid size={26} />}
+                icon={<LayoutGrid size={24} />}
                 label="Mis Planes"
                 color="text-iogga-primary"
               />
@@ -5984,7 +5990,7 @@ export default function App() {
                   <div className="relative">
                     <img src={userProfile.photoURL || GENERIC_AVATAR} className="w-7 h-7 rounded-full border border-white/20 object-cover" referrerPolicy="no-referrer" />
                     <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-iogga-primary rounded-full border border-zinc-950 flex items-center justify-center shadow-lg">
-                      <User size={8} className="text-white" />
+                      <User size={12} className="text-white" />
                     </div>
                   </div>
                 } 
@@ -5998,7 +6004,7 @@ export default function App() {
                 id="nav-analytics"
                 active={activeTab === 'analytics'} 
                 onClick={() => setActiveTab('analytics')} 
-                icon={<BarChart3 size={26} />} 
+                icon={<BarChart3 size={24} />} 
                 label="Analítica" 
                 color="text-iogga-accent" 
               />
@@ -6006,7 +6012,7 @@ export default function App() {
                 id="nav-search"
                 active={activeTab === 'search'}
                 onClick={() => setActiveTab('search')}
-                icon={<Globe size={26} />}
+                icon={<Globe size={24} />}
                 label="Explora"
                 color="text-iogga-accent"
               />
@@ -6016,14 +6022,14 @@ export default function App() {
                 onClick={() => ensureLoggedIn(() => setShowValidateModal(true))}
                 className="relative -mt-8 w-16 h-16 rounded-full bg-iogga-accent text-white flex flex-col items-center justify-center shadow-2xl shadow-iogga-accent/40 border-4 border-zinc-950 active:scale-90 transition-transform"
               >
-                <QrCode size={26} />
-                <span className="absolute -bottom-5 text-[9px] font-black uppercase tracking-widest text-iogga-accent">Escanear</span>
+                <QrCode size={24} />
+                <span className="absolute -bottom-5 text-[11px] font-black uppercase tracking-widest text-iogga-accent">Escanear</span>
               </button>
               <NavButton
                 id="nav-active"
                 active={activeTab === 'active'}
                 onClick={() => setActiveTab('active')}
-                icon={<LayoutGrid size={26} />}
+                icon={<LayoutGrid size={24} />}
                 label="Mis Ofertas"
                 color="text-iogga-accent"
               />
@@ -6036,7 +6042,7 @@ export default function App() {
                   <div className="relative">
                     <img src={businessProfile.logo || "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=150&q=80"} className="w-7 h-7 rounded-lg border border-white/20 object-cover" referrerPolicy="no-referrer" />
                     <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-iogga-accent rounded-full border border-zinc-950 flex items-center justify-center shadow-lg">
-                      <Store size={8} className="text-white" />
+                      <Store size={12} className="text-white" />
                     </div>
                   </div>
                 } 
@@ -6078,32 +6084,32 @@ export default function App() {
                     <div className="space-y-3">
                       <div className="flex items-start gap-3">
                         <div className="relative shrink-0">
-                          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"><Edit3 size={18} className="text-zinc-300" /></div>
+                          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"><Edit3 size={16} className="text-zinc-300" /></div>
                           <div className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-iogga-primary text-white text-[11px] font-black flex items-center justify-center">1</div>
                         </div>
                         <div className="pt-0.5">
                           <p className="text-sm font-black text-white leading-tight">Escríbelo</p>
-                          <p className="text-[12px] text-zinc-400 leading-snug mt-0.5">Como siempre: teclea qué quieres hacer.</p>
+                          <p className="text-xs text-zinc-400 leading-snug mt-0.5">Como siempre: teclea qué quieres hacer.</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="relative shrink-0">
-                          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"><Mic size={18} className="text-iogga-primary" /></div>
+                          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"><Mic size={16} className="text-iogga-primary" /></div>
                           <div className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-iogga-primary text-white text-[11px] font-black flex items-center justify-center">2</div>
                         </div>
                         <div className="pt-0.5">
                           <p className="text-sm font-black text-white leading-tight">Díctalo</p>
-                          <p className="text-[12px] text-zinc-400 leading-snug mt-0.5">Toca el micrófono <Mic size={11} className="inline align-middle text-iogga-primary" /> de cualquier caja y habla: se escribe solo.</p>
+                          <p className="text-xs text-zinc-400 leading-snug mt-0.5">Toca el micrófono <Mic size={12} className="inline align-middle text-iogga-primary" /> de cualquier caja y habla: se escribe solo.</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="relative shrink-0">
-                          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"><AudioLines size={18} className="text-iogga-primary" /></div>
+                          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"><AudioLines size={16} className="text-iogga-primary" /></div>
                           <div className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-iogga-primary text-white text-[11px] font-black flex items-center justify-center">3</div>
                         </div>
                         <div className="pt-0.5">
                           <p className="text-sm font-black text-white leading-tight">Platícalo</p>
-                          <p className="text-[12px] text-zinc-400 leading-snug mt-0.5">Toca las ondas <AudioLines size={11} className="inline align-middle text-iogga-primary" /> y iogga te va preguntando: tú solo contesta hablando y el plan se arma solo.</p>
+                          <p className="text-xs text-zinc-400 leading-snug mt-0.5">Toca las ondas <AudioLines size={12} className="inline align-middle text-iogga-primary" /> y iogga te va preguntando: tú solo contesta hablando y el plan se arma solo.</p>
                         </div>
                       </div>
                     </div>
@@ -6167,14 +6173,14 @@ export default function App() {
                           <span className="absolute -inset-2 rounded-full border-2 border-red-400/40 animate-pulse" />
                         </>
                       )}
-                      <Mic size={28} className="relative z-10" />
+                      <Mic size={24} className="relative z-10" />
                     </div>
                   </div>
                   ); })()}
                   <p className="text-sm font-bold text-white leading-snug min-h-[40px] flex items-center justify-center">{platicaStatus || 'Preparando…'}</p>
                   <button
                     onClick={() => { platicaCancel.current = true; abortListen(); try { window.speechSynthesis?.cancel(); } catch {} setPlaticaOn(false); setPlaticaStatus(''); }}
-                    className="text-[10px] font-black text-zinc-400 uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full active:scale-95"
+                    className="text-[11px] font-black text-zinc-400 uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full active:scale-95"
                   >
                     Terminar platica
                   </button>
@@ -6249,9 +6255,9 @@ export default function App() {
                         >
                           <Sparkles size={14} className="text-iogga-primary shrink-0 mt-0.5" />
                           <p className="text-[11px] text-zinc-300 leading-snug flex-1">
-                            Toca <Mic size={11} className="inline align-middle text-iogga-primary" /> para <b className="text-white">dictar</b>, o <AudioLines size={11} className="inline align-middle text-iogga-primary" /> para <b className="text-white">platicarlo por voz</b> y armar tu plan solo.
+                            Toca <Mic size={12} className="inline align-middle text-iogga-primary" /> para <b className="text-white">dictar</b>, o <AudioLines size={12} className="inline align-middle text-iogga-primary" /> para <b className="text-white">platicarlo por voz</b> y armar tu plan solo.
                           </p>
-                          <button onClick={dismissBarHint} className="text-[10px] font-black text-iogga-primary uppercase tracking-widest shrink-0">Ok</button>
+                          <button onClick={dismissBarHint} className="text-[11px] font-black text-iogga-primary uppercase tracking-widest shrink-0">Ok</button>
                         </motion.div>
                       )}
                       {(!currentUser || currentUser.isAnonymous) && (
@@ -6455,11 +6461,11 @@ export default function App() {
                         <VoicePair step={4} onDicta={t => setNewPlan(p => ({ ...p, location: t }))} />
                       </div>
                       <div className="flex items-center gap-1.5 px-1">
-                        <Lock size={11} className="text-iogga-primary" />
+                        <Lock size={12} className="text-iogga-primary" />
                         <p className="text-[11px] text-zinc-400">Punto exacto <span className="text-white font-bold">privado</span>: solo lo verá quien aceptes.</p>
                       </div>
                       <div className="relative">
-                        <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                        <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
                         <input
                           type="text"
                           placeholder="Punto exacto. Ej. Starbucks Plaza Galerías"
@@ -6476,7 +6482,7 @@ export default function App() {
                         <a
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(newPlan.location || '')}`}
                           target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-iogga-primary/15 text-iogga-primary text-[12px] font-black active:scale-95 transition-all"
+                          className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-iogga-primary/15 text-iogga-primary text-xs font-black active:scale-95 transition-all"
                         >
                           <MapPin size={14} /> Buscar en Maps
                         </a>
@@ -6484,7 +6490,7 @@ export default function App() {
                           type="button"
                           disabled={gettingLocation}
                           onClick={() => useCurrentLocation(t => setNewPlan(p => ({ ...p, location: t })))}
-                          className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-[12px] font-black active:scale-95 transition-all disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-xs font-black active:scale-95 transition-all disabled:opacity-50"
                         >
                           <Navigation size={14} className={gettingLocation ? 'animate-pulse' : ''} /> {gettingLocation ? 'Ubicando…' : 'Ubicación actual'}
                         </button>
@@ -6492,7 +6498,7 @@ export default function App() {
                       {/* Pista PÚBLICA: la zona que sí verán todos en la invitación y el estado */}
                       <div className="space-y-1.5 pt-1">
                         <div className="flex items-center gap-1.5 px-1">
-                          <Globe size={11} className="text-zinc-400" />
+                          <Globe size={12} className="text-zinc-400" />
                           <p className="text-[11px] text-zinc-400">Pista pública (la ve todos): la <span className="text-white font-bold">zona</span>, sin dar el punto exacto.</p>
                         </div>
                         <div className="relative">
@@ -6555,21 +6561,21 @@ export default function App() {
                           className={`p-4 rounded-2xl border text-center transition-all ${newPlan.isPublic ? 'bg-iogga-primary/20 border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
                         >
                           <p className="font-bold text-sm">Público</p>
-                          <p className="text-[10px] opacity-60">Todos</p>
+                          <p className="text-[11px] opacity-60">Todos</p>
                         </button>
                         <button 
                           onClick={() => setNewPlan({...newPlan, isPublic: false, guests: 'friends'})}
                           className={`p-4 rounded-2xl border text-center transition-all ${!newPlan.isPublic && newPlan.guests === 'friends' ? 'bg-iogga-primary/20 border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
                         >
                           <p className="font-bold text-sm">Amigos</p>
-                          <p className="text-[10px] opacity-60">Contactos</p>
+                          <p className="text-[11px] opacity-60">Contactos</p>
                         </button>
                         <button 
                           onClick={() => setNewPlan({...newPlan, isPublic: false, guests: 'groups'})}
                           className={`p-4 rounded-2xl border text-center transition-all ${!newPlan.isPublic && newPlan.guests === 'groups' ? 'bg-iogga-primary/20 border-iogga-primary text-white' : 'bg-white/5 border-white/10 text-zinc-400'}`}
                         >
                           <p className="font-bold text-sm">Grupos</p>
-                          <p className="text-[10px] opacity-60">Seleccionar</p>
+                          <p className="text-[11px] opacity-60">Seleccionar</p>
                         </button>
                       </div>
 
@@ -6583,7 +6589,7 @@ export default function App() {
                           <p className="text-xs font-bold text-iogga-primary uppercase tracking-widest">Invitar amigos de iogga</p>
                           {/* Buscador */}
                           <div className="relative">
-                            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
                             <input
                               value={friendSearch}
                               onChange={(e) => setFriendSearch(e.target.value)}
@@ -6629,7 +6635,7 @@ export default function App() {
                               </div>
                             );
                           })()}
-                          <p className="text-[10px] text-zinc-600">Les llegará una notificación en iogga. También podrás compartir por WhatsApp al publicar.</p>
+                          <p className="text-[11px] text-zinc-600">Les llegará una notificación en iogga. También podrás compartir por WhatsApp al publicar.</p>
                         </motion.div>
                       )}
 
@@ -6640,7 +6646,7 @@ export default function App() {
                           animate={{ opacity: 1, height: 'auto' }}
                           className="p-5 rounded-2xl bg-white/5 border border-white/10 text-center"
                         >
-                          <Users size={26} className="mx-auto text-zinc-500 mb-2" />
+                          <Users size={24} className="mx-auto text-zinc-500 mb-2" />
                           <p className="text-sm text-zinc-300 font-bold">No hay grupos creados</p>
                           <p className="text-[11px] text-zinc-500 mt-1">Al rato vemos cómo crearlos.</p>
                         </motion.div>
@@ -6684,7 +6690,7 @@ export default function App() {
                             title="Quitar foto"
                             className="absolute top-3 right-3 w-9 h-9 rounded-full bg-red-500/90 text-white flex items-center justify-center shadow-xl border border-white/20 active:scale-90 transition-all z-10"
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={14} />
                           </button>
                         )}
                       </div>
@@ -6695,7 +6701,7 @@ export default function App() {
                         onPaste={(img) => setNewPlan(p => ({ ...p, image: img }))}
                         onEmpty={() => triggerBeta('Copia una imagen primero', 'En Google mantén presionada la imagen, toca "Copiar imagen", y vuelve aquí a "Pegar imagen".')}
                       />
-                      <p className="text-[10px] text-zinc-500 text-center leading-snug">En Google <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen" → vuelve y toca <span className="text-white font-bold">"Pegar imagen"</span>.</p>
+                      <p className="text-[11px] text-zinc-500 text-center leading-snug">En Google <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen" → vuelve y toca <span className="text-white font-bold">"Pegar imagen"</span>.</p>
                       {newPlan.image && (
                         <button
                           onClick={() => setNewPlan({...newPlan, image: undefined})}
@@ -6719,7 +6725,7 @@ export default function App() {
                           ))}
                         </div>
                       </div>
-                      <p className="text-[10px] text-zinc-600 text-center">Elige una sugerencia, sube la tuya, o cópiala de Google con los 2 pasos de arriba.</p>
+                      <p className="text-[11px] text-zinc-600 text-center">Elige una sugerencia, sube la tuya, o cópiala de Google con los 2 pasos de arriba.</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -6799,7 +6805,7 @@ export default function App() {
                     onPaste={setPromoImage}
                     onEmpty={() => triggerBeta('Copia una imagen primero', 'En Google mantén presionada la imagen, toca "Copiar imagen", y vuelve aquí a "Pegar imagen".')}
                   />
-                  <p className="text-[10px] text-zinc-500 text-center leading-snug">En Google <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen" → vuelve y toca <span className="text-white font-bold">"Pegar imagen"</span>.</p>
+                  <p className="text-[11px] text-zinc-500 text-center leading-snug">En Google <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen" → vuelve y toca <span className="text-white font-bold">"Pegar imagen"</span>.</p>
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -6809,12 +6815,12 @@ export default function App() {
                         setNewPromo({
                           ...newPromo,
                           title: "Combo Especial de Verano",
-                          description: "Disfruta de nuestra selección premium con un descuento exclusivo por tiempo limitado. ¡No te lo pierdas!",
+                          description: "Descuento por tiempo limitado en la selección premium.",
                           price: "$199",
                           offer: "20% OFF"
                         });
                       }}
-                      className="flex items-center gap-1 text-[10px] font-bold text-iogga-accent uppercase tracking-widest bg-iogga-accent/10 px-3 py-1.5 rounded-full border border-iogga-accent/20"
+                      className="flex items-center gap-1 text-[11px] font-bold text-iogga-accent uppercase tracking-widest bg-iogga-accent/10 px-3 py-1.5 rounded-full border border-iogga-accent/20"
                     >
                       <Sparkles size={12} />
                       Generar con IA
@@ -6874,7 +6880,7 @@ export default function App() {
                     {(() => {
                       const p = parsePrice(newPromo.price);
                       if (p <= 0) return (
-                        <p className="text-[10px] text-zinc-500 px-1">
+                        <p className="text-[11px] text-zinc-500 px-1">
                           Escribe el precio que pagará el cliente y aquí verás al instante cuánto recibes tú.
                         </p>
                       );
@@ -6888,11 +6894,11 @@ export default function App() {
                             ['Tú recibes en tu cuenta', money(p - fee), 'text-emerald-400'],
                           ].map(([k, v, cls], i, arr) => (
                             <div key={k} className={`flex items-center justify-between px-4 py-2.5 ${i === arr.length - 1 ? 'bg-emerald-500/5' : ''}`}>
-                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
+                              <span className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
                               <span className={`text-sm font-black ${cls}`}>{v}</span>
                             </div>
                           ))}
-                          <p className="px-4 py-2 text-[10px] text-zinc-500 leading-snug">
+                          <p className="px-4 py-2 text-[11px] text-zinc-500 leading-snug">
                             El cliente paga exactamente este precio, sin cargos extra. Tu neto se
                             deposita a la cuenta de tu perfil en cada corte.
                           </p>
@@ -6913,7 +6919,7 @@ export default function App() {
                       target="_blank" rel="noopener noreferrer"
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 px-3 h-10 rounded-full bg-iogga-accent/15 text-iogga-accent text-[11px] font-black active:scale-95"
                     >
-                      <MapPin size={13} /> Maps
+                      <MapPin size={12} /> Maps
                     </a>
                   </div>
                   {/* Direcciones sugeridas al escribir (como en Google Maps) */}
@@ -6922,7 +6928,7 @@ export default function App() {
                     type="button"
                     disabled={gettingLocation}
                     onClick={() => useCurrentLocation(t => setNewPromo(pr => ({ ...pr, location: t })))}
-                    className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-[12px] font-black active:scale-95 transition-all disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-xs font-black active:scale-95 transition-all disabled:opacity-50"
                   >
                     <Navigation size={14} className={gettingLocation ? 'animate-pulse' : ''} /> {gettingLocation ? 'Ubicando…' : 'Ubicación actual'}
                   </button>
@@ -6945,7 +6951,7 @@ export default function App() {
                         return next;
                       })}
                     />
-                    <p className="text-[10px] text-zinc-600 ml-1">Al pasar el fin, la oferta se marca vencida hasta que la actualices.</p>
+                    <p className="text-[11px] text-zinc-600 ml-1">Al pasar el fin, la oferta se marca vencida hasta que la actualices.</p>
                   </div>
                 </div>
                 <button
@@ -6992,7 +6998,7 @@ export default function App() {
 
                 {/* Hasta 3 fotos extra para conocerse mejor en planes públicos */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Fotos extra (opcional, máx. 3)</label>
+                  <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest ml-1">Fotos extra (opcional, máx. 3)</label>
                   <div className="grid grid-cols-3 gap-2">
                     {[0, 1, 2].map(i => {
                       const url = editPhotos[i];
@@ -7009,10 +7015,10 @@ export default function App() {
                           {url ? (
                             <>
                               <img src={url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                              <span className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500/90 text-white flex items-center justify-center"><X size={13} /></span>
+                              <span className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500/90 text-white flex items-center justify-center"><X size={12} /></span>
                             </>
                           ) : (
-                            <PlusCircle size={22} />
+                            <PlusCircle size={20} />
                           )}
                         </button>
                       );
@@ -7022,26 +7028,26 @@ export default function App() {
 
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Nombre Completo</label>
+                    <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest ml-4">Nombre Completo</label>
                     <input type="text" autoComplete="name" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Tu nombre" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Biografía</label>
+                    <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest ml-4">Biografía</label>
                     <textarea value={editBio} onChange={e => setEditBio(e.target.value)} placeholder="Cuéntanos de ti: ¿qué planes te gustan?" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-medium outline-none focus:ring-2 focus:ring-iogga-primary transition-all h-24 resize-none" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Ubicación</label>
+                    <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest ml-4">Ubicación</label>
                     <input type="text" autoComplete="address-level2" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="Ej. Chihuahua, MX" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">WhatsApp (10 dígitos)</label>
+                    <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest ml-4">WhatsApp (10 dígitos)</label>
                     <input type="tel" autoComplete="tel-national" value={editWhatsapp} onChange={e => setEditWhatsapp(e.target.value)} placeholder="Ej. 6141234567" className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
-                    <p className="text-[10px] text-zinc-600 ml-4">Solo lo verán quienes acepten tus planes, para coordinar directo.</p>
+                    <p className="text-[11px] text-zinc-600 ml-4">Solo lo verán quienes acepten tus planes, para coordinar directo.</p>
                   </div>
                   {/* Fecha de nacimiento (como Facebook/Instagram): privada, sirve
                       para mostrar planes acordes a tu edad. */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Fecha de nacimiento (opcional)</label>
+                    <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest ml-4">Fecha de nacimiento (opcional)</label>
                     <input
                       type="date"
                       value={editBirthday}
@@ -7050,17 +7056,17 @@ export default function App() {
                       onClick={(e) => { try { (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker?.(); } catch {} }}
                       className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all"
                     />
-                    <p className="text-[10px] text-zinc-600 ml-4">No se muestra a nadie. Nos ayuda a recomendarte planes de gente de tu edad.</p>
+                    <p className="text-[11px] text-zinc-600 ml-4">No se muestra a nadie. Nos ayuda a recomendarte planes de gente de tu edad.</p>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Instagram (opcional)</label>
+                    <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest ml-4">Instagram (opcional)</label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 font-bold">@</span>
                       <input type="text" value={editInstagram} onChange={e => setEditInstagram(e.target.value.replace(/[@\s]/g, ''))} placeholder="tu_usuario" className="w-full p-4 pl-9 rounded-2xl bg-white/5 border border-white/10 text-white font-bold outline-none focus:ring-2 focus:ring-iogga-primary transition-all" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Sitios y redes (opcional)</label>
+                    <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest ml-4">Sitios y redes (opcional)</label>
                     {/* Autollenado pokayoke: pega el link de "Compartir perfil" de tu app
                         y iogga detecta la red y llena la caja correcta sola. */}
                     <button
@@ -7079,9 +7085,9 @@ export default function App() {
                       }}
                       className="w-full py-3 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/25 text-iogga-primary font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
                     >
-                      <PlusCircle size={13} /> Pegar mi link copiado
+                      <PlusCircle size={12} /> Pegar mi link copiado
                     </button>
-                    <p className="text-[10px] text-zinc-600 ml-4 leading-snug">En tu app: Perfil → <span className="text-zinc-400 font-bold">Compartir perfil</span> → Copiar link → vuelve y toca "Pegar". iogga detecta la red y la llena sola.</p>
+                    <p className="text-[11px] text-zinc-600 ml-4 leading-snug">En tu app: Perfil → <span className="text-zinc-400 font-bold">Compartir perfil</span> → Copiar link → vuelve y toca "Pegar". iogga detecta la red y la llena sola.</p>
                     {[{k:'website',ph:'Sitio web (https://…)'},{k:'facebook',ph:'Facebook'},{k:'tiktok',ph:'TikTok'},{k:'linkedin',ph:'LinkedIn'}].map(({k,ph}) => (
                       <input key={k} type="text" value={(editLinks as any)[k]} onChange={e => setEditLinks({...editLinks, [k]: e.target.value})} placeholder={ph} className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-medium outline-none focus:ring-2 focus:ring-iogga-primary transition-all text-sm" />
                     ))}
@@ -7132,10 +7138,10 @@ export default function App() {
                     {businessProfile.cover ? (
                       <img src={businessProfile.cover} className="w-full h-full object-cover" />
                     ) : (
-                      <><PlusCircle size={28} /><span className="text-[10px] font-bold uppercase tracking-widest mt-2">Subir portada</span></>
+                      <><PlusCircle size={24} /><span className="text-[11px] font-bold uppercase tracking-widest mt-2">Subir portada</span></>
                     )}
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-[10px] font-bold text-white uppercase tracking-widest">{businessProfile.cover ? 'Cambiar portada' : 'Subir portada'}</span>
+                      <span className="text-[11px] font-bold text-white uppercase tracking-widest">{businessProfile.cover ? 'Cambiar portada' : 'Subir portada'}</span>
                     </div>
                   </button>
                   {/* Logo debajo */}
@@ -7149,14 +7155,14 @@ export default function App() {
                     {businessProfile.logo ? (
                       <img src={businessProfile.logo} className="w-full h-full object-cover" />
                     ) : (
-                      <><PlusCircle size={18} /><span className="text-[7px] font-bold uppercase tracking-widest mt-1">Logo</span></>
+                      <><PlusCircle size={16} /><span className="text-[7px] font-bold uppercase tracking-widest mt-1">Logo</span></>
                     )}
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <span className="text-[7px] font-bold text-white uppercase tracking-widest text-center">{businessProfile.logo ? 'Cambiar' : 'Logo'}</span>
                     </div>
                   </button>
                   {/* Galería del negocio: hasta 5 fotos (mismo patrón que las fotos de perfil) */}
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 block">Fotos del negocio (máx. 5)</label>
+                  <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest ml-1 block">Fotos del negocio (máx. 5)</label>
                   <div className="grid grid-cols-5 gap-2">
                     {[0, 1, 2, 3, 4].map(i => {
                       const bizPhotos = (businessProfile.photos || []);
@@ -7174,7 +7180,7 @@ export default function App() {
                           {url ? (
                             <>
                               <img src={url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                              <span className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-500/90 text-white flex items-center justify-center"><X size={11} /></span>
+                              <span className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-500/90 text-white flex items-center justify-center"><X size={12} /></span>
                             </>
                           ) : (
                             <PlusCircle size={16} />
@@ -7239,13 +7245,13 @@ export default function App() {
                   {userProfile.mpConnected ? (
                     <>
                       <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0"><CheckCircle2 size={18} /></div>
+                        <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0"><CheckCircle2 size={16} /></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-black text-emerald-400">Mercado Pago conectado</p>
                           {userProfile.mpAccount
                             ? <p className="text-[11px] text-white font-bold truncate">Cuenta: {userProfile.mpAccount}</p>
-                            : <p className="text-[10px] text-emerald-200/60 leading-snug">Verificando cuenta…</p>}
-                          <p className="text-[10px] text-emerald-200/80 leading-snug">Tus ventas se te depositan solas. iogga solo retiene su comisión.</p>
+                            : <p className="text-[11px] text-emerald-200/60 leading-snug">Verificando cuenta…</p>}
+                          <p className="text-[11px] text-emerald-200/80 leading-snug">Tus ventas se te depositan solas. iogga solo retiene su comisión.</p>
                         </div>
                       </div>
                       {/* Cambiar de cuenta: desvincula la actual para conectar otra */}
@@ -7276,16 +7282,16 @@ export default function App() {
                       >
                         <Wallet size={16} /> Conectar Mercado Pago
                       </a>
-                      <p className="text-[10px] text-zinc-500 leading-snug">
+                      <p className="text-[11px] text-zinc-500 leading-snug">
                         Conecta tu cuenta de Mercado Pago (gratis) y recibe el dinero de tus ventas
-                        al instante, ya con la comisión de iogga descontada. Si no la conectas, te
-                        depositamos por transferencia con los datos de abajo.
+                        al instante, ya con la comisión de iogga descontada. Si no la conectas, el
+                        pago llega por transferencia a los datos de abajo.
                       </p>
                     </>
                   )}
                 </div>
 
-                {/* Cobro por transferencia (respaldo): a dónde le depositamos si no
+                {/* Cobro por transferencia (respaldo): a dónde llega el dinero si no
                     conecta Mercado Pago. Privado. */}
                 <div className="space-y-3">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Cobro por transferencia (respaldo)</label>
@@ -7320,7 +7326,7 @@ export default function App() {
                     />
                   </div>
                   {businessProfile.payoutClabe && businessProfile.payoutClabe.length !== 18 && (
-                    <p className="text-[10px] text-amber-300">La CLABE debe tener 18 dígitos ({businessProfile.payoutClabe.length}/18).</p>
+                    <p className="text-[11px] text-amber-300">La CLABE debe tener 18 dígitos ({businessProfile.payoutClabe.length}/18).</p>
                   )}
                   {/* Opción sin teclear: subir la carátula de la cuenta o foto de la
                       tarjeta (como al dar de alta una cuenta en el banco) */}
@@ -7341,11 +7347,11 @@ export default function App() {
                         onClick={() => setBusinessProfile({ ...businessProfile, payoutDocImage: '' })}
                         className="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500/90 text-white flex items-center justify-center active:scale-90"
                       >
-                        <X size={13} />
+                        <X size={12} />
                       </button>
                     </div>
                   )}
-                  <p className="text-[10px] text-zinc-500 leading-snug">
+                  <p className="text-[11px] text-zinc-500 leading-snug">
                     Con cualquiera de las dos (datos escritos o imagen) iogga puede depositarte tus ventas.
                     Consejo: si subes foto de tarjeta, tapa el CVV.
                   </p>
@@ -7370,9 +7376,9 @@ export default function App() {
                     }}
                     className="w-full py-3 rounded-2xl bg-iogga-accent/10 border border-iogga-accent/25 text-iogga-accent font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
                   >
-                    <PlusCircle size={13} /> Pegar mi link copiado
+                    <PlusCircle size={12} /> Pegar mi link copiado
                   </button>
-                  <p className="text-[10px] text-zinc-600 leading-snug">En la app de tu red: Perfil → <span className="text-zinc-400 font-bold">Compartir perfil</span> → Copiar link → vuelve y toca "Pegar". iogga detecta la red y la llena sola.</p>
+                  <p className="text-[11px] text-zinc-600 leading-snug">En la app de tu red: Perfil → <span className="text-zinc-400 font-bold">Compartir perfil</span> → Copiar link → vuelve y toca "Pegar". iogga detecta la red y la llena sola.</p>
                   {[
                     { k: 'website', ph: 'Sitio web (https://…)' },
                     { k: 'facebook', ph: 'Facebook (usuario o link)' },
@@ -7454,7 +7460,7 @@ export default function App() {
                         }}
                       >
                         <span className="text-sm font-bold text-white block">{selectedPlanForDetails.userName}</span>
-                        <span className="text-[10px] text-white/60 uppercase tracking-widest">Anfitrión</span>
+                        <span className="text-[11px] text-white/60 uppercase tracking-widest">Anfitrión</span>
                       </div>
                     </div>
                     {isMyPlan(selectedPlanForDetails) && (
@@ -7495,7 +7501,7 @@ export default function App() {
                           }}
                           className="py-3.5 bg-white/5 border border-white/10 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
                         >
-                          <Edit3 size={15} /> Editar
+                          <Edit3 size={14} /> Editar
                         </button>
                         <button
                           onClick={() => {
@@ -7504,7 +7510,7 @@ export default function App() {
                           }}
                           className="py-3.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
                         >
-                          <Trash2 size={15} /> Cancelar plan
+                          <Trash2 size={14} /> Cancelar plan
                         </button>
                       </div>
                     </div>
@@ -7513,7 +7519,7 @@ export default function App() {
                   {/* Quiénes se unieron: visible con cuenta; borroso si publicaste sin registrarte */}
                   {isMyPlan(selectedPlanForDetails) && (selectedPlanForDetails.acceptedBy?.length || 0) > 0 && (
                     <div className="space-y-2">
-                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                      <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">
                         Se unieron ({selectedPlanForDetails.acceptedBy!.length})
                       </p>
                       {currentUser?.isAnonymous ? (
@@ -7561,7 +7567,7 @@ export default function App() {
                                   >
                                     {a.photo ? <img src={a.photo} className="w-9 h-9 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-9 h-9 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center text-xs font-black">{a.name.charAt(0).toUpperCase()}</div>}
                                     <span className="text-sm font-bold text-white">{a.name}</span>
-                                    <ChevronRight size={15} className="text-zinc-500 ml-auto" />
+                                    <ChevronRight size={14} className="text-zinc-500 ml-auto" />
                                   </button>
                                 </div>
                               );
@@ -7608,14 +7614,14 @@ export default function App() {
                       onClick={() => addPlanToCalendar(selectedPlanForDetails)}
                       className="w-full py-3.5 rounded-2xl bg-white/5 border border-white/10 text-zinc-300 font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
-                      <CalendarPlus size={15} /> Agregar a mi calendario
+                      <CalendarPlus size={14} /> Agregar a mi calendario
                     </button>
                   )}
 
                   {/* Aviso de privacidad de ubicación: aún no eres aceptado */}
                   {!canSeeExactPlace(selectedPlanForDetails) && (
                     <div className="flex items-center gap-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
-                      <MapPin size={15} className="text-amber-400 shrink-0" />
+                      <MapPin size={14} className="text-amber-400 shrink-0" />
                       <p className="text-[11px] text-amber-200 leading-snug">Por seguridad, el punto exacto se revela cuando el anfitrión te acepta.</p>
                     </div>
                   )}
@@ -7695,11 +7701,11 @@ export default function App() {
                   
                   <div className="absolute bottom-0 left-0 right-0 p-6 space-y-3">
                     <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 bg-iogga-accent text-white text-[9px] font-black uppercase tracking-widest rounded-full shadow-lg">
+                      <span className="px-3 py-1 bg-iogga-accent text-white text-[11px] font-black uppercase tracking-widest rounded-full shadow-lg">
                         Oferta Exclusiva
                       </span>
                       {selectedPromo.price && (
-                        <span className="px-3 py-1 bg-white/10 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest rounded-full border border-white/10">
+                        <span className="px-3 py-1 bg-white/10 backdrop-blur-md text-white text-[11px] font-black uppercase tracking-widest rounded-full border border-white/10">
                           {selectedPromo.price}
                         </span>
                       )}
@@ -7718,7 +7724,7 @@ export default function App() {
                       <div className="relative">
                         <img src={selectedPromo.businessLogo} className="w-14 h-14 rounded-2xl object-cover border border-white/10 shadow-lg" referrerPolicy="no-referrer" />
                         <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-iogga-accent rounded-full border-2 border-zinc-900 flex items-center justify-center">
-                          <CheckCircle2 size={10} className="text-white" />
+                          <CheckCircle2 size={12} className="text-white" />
                         </div>
                       </div>
                       <div>
@@ -7744,13 +7750,13 @@ export default function App() {
                   {/* Tags & Social Proof */}
                   <div className="flex flex-wrap gap-2">
                     {selectedPromo.tags.map(tag => (
-                      <span key={tag} className="text-[8px] font-black text-white/40 uppercase tracking-widest border border-white/10 px-2 py-1 rounded-full">
+                      <span key={tag} className="text-[11px] font-black text-white/40 uppercase tracking-widest border border-white/10 px-2 py-1 rounded-full">
                         #{tag}
                       </span>
                     ))}
                     <div className="flex items-center gap-1.5 bg-iogga-accent/10 px-2 py-1 rounded-full border border-iogga-accent/20">
-                      <Check size={10} className="text-iogga-accent" />
-                      <span className="text-[8px] font-black text-iogga-accent uppercase tracking-widest">
+                      <Check size={12} className="text-iogga-accent" />
+                      <span className="text-[11px] font-black text-iogga-accent uppercase tracking-widest">
                         {selectedPromo.salesCount}+ canjeados hoy
                       </span>
                     </div>
@@ -7773,7 +7779,7 @@ export default function App() {
                           <MapPin size={16} className="text-iogga-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block">Ubicación</span>
+                          <span className="text-[11px] font-black text-zinc-500 uppercase tracking-widest block">Ubicación</span>
                           <span className="text-xs font-bold text-white leading-snug block">{selectedPromo.location}</span>
                         </div>
                         <ChevronRight size={16} className="text-zinc-500 shrink-0" />
@@ -7782,7 +7788,7 @@ export default function App() {
                         onClick={() => openExternal(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${selectedPromo.businessName} ${selectedPromo.location}`)}`)}
                         className="w-full py-2.5 border-t border-white/5 text-iogga-accent text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 active:bg-white/5 transition-colors"
                       >
-                        <Navigation size={13} /> Cómo llegar
+                        <Navigation size={12} /> Cómo llegar
                       </button>
                     </div>
                   )}
@@ -7833,7 +7839,7 @@ export default function App() {
                           <QrCode size={20} />
                           {parsePrice(selectedPromo.price) > 0 ? `Obtener por $${parsePrice(selectedPromo.price).toLocaleString('es-MX')}` : 'Obtener promoción'}
                         </button>
-                        <p className="text-[10px] text-zinc-500 text-center leading-snug">
+                        <p className="text-[11px] text-zinc-500 text-center leading-snug">
                           {parsePrice(selectedPromo.price) > 0
                             ? 'Pagas exactamente ese precio, sin cargos extra. Recibes tu QR y lo presentas en el local.'
                             : 'Generas tu código QR y lo puedes descargar para presentarlo en el local.'}
@@ -7858,23 +7864,23 @@ export default function App() {
                   className={`w-full p-5 rounded-3xl flex items-center justify-between transition-all active:scale-[0.98] ${mode === 'person' ? 'bg-iogga-accent text-white shadow-xl shadow-iogga-accent/20' : 'bg-iogga-primary text-white shadow-xl shadow-iogga-primary/20'}`}
                 >
                   <div className="flex items-center gap-3">
-                    {mode === 'person' ? <Store size={22} /> : <User size={22} />}
+                    {mode === 'person' ? <Store size={20} /> : <User size={20} />}
                     <div className="text-left">
                       <p className="font-black text-sm uppercase tracking-wide">{mode === 'person' ? 'Cambiar a Negocio' : 'Cambiar a Personal'}</p>
-                      <p className="text-[10px] opacity-80">{mode === 'person' ? 'Publica ofertas y valida canjes QR' : 'Vuelve a tus planes personales'}</p>
+                      <p className="text-[11px] opacity-80">{mode === 'person' ? 'Publica ofertas y valida canjes QR' : 'Vuelve a tus planes personales'}</p>
                     </div>
                   </div>
-                  <ArrowRight size={18} />
+                  <ArrowRight size={16} />
                 </button>
 
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2">Cuenta y Seguridad</p>
+                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest px-2">Cuenta y Seguridad</p>
                   <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden">
                     {/* Cada modo edita SU perfil (para no confundir): en persona el
                         personal, en negocio el del negocio. */}
                     {mode === 'person' ? (
                       <SettingsItem
-                        icon={<User size={18} />}
+                        icon={<User size={16} />}
                         label="Editar Perfil"
                         tone="personal"
                         onClick={() => {
@@ -7884,7 +7890,7 @@ export default function App() {
                       />
                     ) : (
                       <SettingsItem
-                        icon={<Store size={18} />}
+                        icon={<Store size={16} />}
                         label="Editar Perfil de Negocio"
                         tone="business"
                         onClick={() => {
@@ -7893,21 +7899,21 @@ export default function App() {
                         }}
                       />
                     )}
-                    <SettingsItem icon={<Download size={18} />} label="Instalar la app en tu celular" onClick={() => { setShowSettingsMenu(false); setShowInstall(true); }} />
-                    <SettingsItem icon={<Bell size={18} />} label="Notificaciones" />
-                    <SettingsItem icon={<Smartphone size={18} />} label="Dispositivos" />
+                    <SettingsItem icon={<Download size={16} />} label="Instalar la app en tu celular" onClick={() => { setShowSettingsMenu(false); setShowInstall(true); }} />
+                    <SettingsItem icon={<Bell size={16} />} label="Notificaciones" />
+                    <SettingsItem icon={<Smartphone size={16} />} label="Dispositivos" />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2">Pagos y Negocio</p>
+                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest px-2">Pagos y Negocio</p>
                   <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden">
                     {/* UNA sola entrada de dinero por modo (antes "Métodos de pago"
                         y "Billetera" abrían exactamente lo mismo). Cada modo usa
                         el nombre de su lado del dinero, como en Uber: quien paga
                         ve "Métodos de pago"; quien cobra ve "Cobros y depósitos". */}
                     <SettingsItem
-                      icon={mode === 'business' ? <Wallet size={18} /> : <CreditCard size={18} />}
+                      icon={mode === 'business' ? <Wallet size={16} /> : <CreditCard size={16} />}
                       label={mode === 'business' ? 'Cobros y depósitos' : 'Métodos de pago'}
                       onClick={() => {
                         setShowSettingsMenu(false);
@@ -7915,7 +7921,7 @@ export default function App() {
                       }}
                     />
                     <SettingsItem
-                      icon={<TrendingUp size={18} />}
+                      icon={<TrendingUp size={16} />}
                       label="Suscripción Premium"
                       onClick={() => {
                         setShowSettingsMenu(false);
@@ -7926,10 +7932,10 @@ export default function App() {
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2">General</p>
+                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest px-2">General</p>
                   <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden">
                     <SettingsItem 
-                      icon={<Globe size={18} />} 
+                      icon={<Globe size={16} />} 
                       label="Idioma y Región" 
                       onClick={() => {
                         setShowSettingsMenu(false);
@@ -7939,7 +7945,7 @@ export default function App() {
                     {/* Panel de administrador: SOLO lo ven los usuarios asignados */}
                     {isAdmin && (
                       <SettingsItem
-                        icon={<BarChart3 size={18} />}
+                        icon={<BarChart3 size={16} />}
                         label="Panel de administrador"
                         onClick={() => { setShowSettingsMenu(false); openAdmin(); }}
                       />
@@ -7951,10 +7957,10 @@ export default function App() {
                       className="w-full p-4 flex items-center justify-between transition-colors border-b border-white/5 group hover:bg-white/5"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="text-zinc-500 group-hover:text-iogga-primary transition-colors">{soundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}</div>
+                        <div className="text-zinc-500 group-hover:text-iogga-primary transition-colors">{soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}</div>
                         <div className="text-left">
                           <span className="text-sm font-bold text-zinc-300 block">Sonidos</span>
-                          <span className="text-[10px] text-zinc-500">{soundOn ? 'Activados: se escuchan al abrir y al lograr algo' : 'Apagados: la app no suena'}</span>
+                          <span className="text-[11px] text-zinc-500">{soundOn ? 'Activados: se escuchan al abrir y al lograr algo' : 'Apagados: la app no suena'}</span>
                         </div>
                       </div>
                       <span className={`w-11 h-6 rounded-full relative transition-all shrink-0 ${soundOn ? 'bg-iogga-primary' : 'bg-white/15'}`}>
@@ -7968,10 +7974,10 @@ export default function App() {
                       className="w-full p-4 flex items-center justify-between transition-colors border-b border-white/5 group hover:bg-white/5"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="text-zinc-500 group-hover:text-iogga-primary transition-colors"><Sparkles size={18} /></div>
+                        <div className="text-zinc-500 group-hover:text-iogga-primary transition-colors"><Sparkles size={16} /></div>
                         <div className="text-left">
                           <span className="text-sm font-bold text-zinc-300 block">Datos de prueba</span>
-                          <span className="text-[10px] text-zinc-500">{hideSeed ? 'Ocultos: solo ves datos reales' : 'Visibles: ejemplos con etiqueta "Prueba"'}</span>
+                          <span className="text-[11px] text-zinc-500">{hideSeed ? 'Ocultos: solo ves datos reales' : 'Visibles: ejemplos con etiqueta "Prueba"'}</span>
                         </div>
                       </div>
                       <span className={`w-11 h-6 rounded-full relative transition-all shrink-0 ${hideSeed ? 'bg-white/15' : 'bg-iogga-primary'}`}>
@@ -7979,7 +7985,7 @@ export default function App() {
                       </span>
                     </button>
                     <SettingsItem
-                      icon={<PackagePlus size={18} />}
+                      icon={<PackagePlus size={16} />}
                       label="Novedades"
                       onClick={() => {
                         setShowSettingsMenu(false);
@@ -7993,12 +7999,12 @@ export default function App() {
                     Modelo del pie de Ajustes de Instagram / Uber Eats: primero las
                     filas, y debajo los enlaces en texto, discretos. */}
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2">Información</p>
+                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest px-2">Información</p>
                   <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden">
-                    <SettingsItem icon={<Shield size={18} />} label="Aviso de privacidad" onClick={() => { setShowSettingsMenu(false); setShowLegal('privacy'); }} />
-                    <SettingsItem icon={<CheckCircle2 size={18} />} label="Términos y condiciones" onClick={() => { setShowSettingsMenu(false); setShowLegal('terms'); }} />
+                    <SettingsItem icon={<Shield size={16} />} label="Aviso de privacidad" onClick={() => { setShowSettingsMenu(false); setShowLegal('privacy'); }} />
+                    <SettingsItem icon={<CheckCircle2 size={16} />} label="Términos y condiciones" onClick={() => { setShowSettingsMenu(false); setShowLegal('terms'); }} />
                     <SettingsItem
-                      icon={<HelpCircle size={18} />}
+                      icon={<HelpCircle size={16} />}
                       label="Ayuda"
                       onClick={() => {
                         setShowSettingsMenu(false);
@@ -8072,10 +8078,10 @@ export default function App() {
                 <div className="pt-2 space-y-4">
                   <div className="flex items-center justify-center gap-3">
                     {[
-                      IOGGA_INFO.instagram && { key: 'ig', label: 'Instagram', href: `https://instagram.com/${IOGGA_INFO.instagram}`, icon: <InstagramMark size={19} /> },
-                      IOGGA_INFO.tiktok && { key: 'tt', label: 'TikTok', href: `https://tiktok.com/@${IOGGA_INFO.tiktok}`, icon: <TikTokMark size={19} /> },
-                      IOGGA_INFO.facebook && { key: 'fb', label: 'Facebook', href: `https://facebook.com/${IOGGA_INFO.facebook}`, icon: <FacebookMark size={19} /> },
-                      IOGGA_INFO.website && { key: 'web', label: 'Sitio web', href: `https://${IOGGA_INFO.website}`, icon: <Globe size={19} /> },
+                      IOGGA_INFO.instagram && { key: 'ig', label: 'Instagram', href: `https://instagram.com/${IOGGA_INFO.instagram}`, icon: <InstagramMark size={20} /> },
+                      IOGGA_INFO.tiktok && { key: 'tt', label: 'TikTok', href: `https://tiktok.com/@${IOGGA_INFO.tiktok}`, icon: <TikTokMark size={20} /> },
+                      IOGGA_INFO.facebook && { key: 'fb', label: 'Facebook', href: `https://facebook.com/${IOGGA_INFO.facebook}`, icon: <FacebookMark size={20} /> },
+                      IOGGA_INFO.website && { key: 'web', label: 'Sitio web', href: `https://${IOGGA_INFO.website}`, icon: <Globe size={20} /> },
                     ].filter(Boolean).map((s: any) => (
                       <a
                         key={s.key}
@@ -8090,9 +8096,9 @@ export default function App() {
                     ))}
                   </div>
                   <div className="space-y-1">
-                    <p className="text-center text-[10px] text-zinc-600 font-medium">iogga v{APP_VERSION} • Hecho con amor en Chihuahua{updateReady ? ' • hay una versión nueva' : ''}</p>
+                    <p className="text-center text-[11px] text-zinc-600 font-medium">iogga v{APP_VERSION} • Hecho con amor en Chihuahua{updateReady ? ' • hay una versión nueva' : ''}</p>
                     {/* Marca y derechos: al pie, discreto, como el "Acerca de" de WhatsApp */}
-                    <p className="text-center text-[10px] text-zinc-700 leading-snug px-4">{IOGGA_LEGAL}</p>
+                    <p className="text-center text-[11px] text-zinc-700 leading-snug px-4">{IOGGA_LEGAL}</p>
                   </div>
                 </div>
               </div>
@@ -8175,7 +8181,7 @@ export default function App() {
                                     {g.members.slice(0, 3).map((m, i) => (
                                       m.photo
                                         ? <img key={i} src={m.photo} className="w-6 h-6 rounded-full object-cover border-2 border-zinc-900" referrerPolicy="no-referrer" />
-                                        : <div key={i} className="w-6 h-6 rounded-full bg-iogga-primary/25 text-iogga-primary border-2 border-zinc-900 flex items-center justify-center text-[8px] font-black">{m.name.charAt(0).toUpperCase()}</div>
+                                        : <div key={i} className="w-6 h-6 rounded-full bg-iogga-primary/25 text-iogga-primary border-2 border-zinc-900 flex items-center justify-center text-[11px] font-black">{m.name.charAt(0).toUpperCase()}</div>
                                     ))}
                                   </div>
                                   <span className="text-[11px] font-bold text-white max-w-[80px] truncate">{g.name}</span>
@@ -8187,7 +8193,7 @@ export default function App() {
                         )}
                         {/* Buscar a cualquier usuario de iogga para invitarlo (no solo amigos) */}
                         <div className="relative">
-                          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
                           <input
                             value={inviteSearch}
                             onChange={e => setInviteSearch(e.target.value)}
@@ -8245,7 +8251,7 @@ export default function App() {
                           disabled={pendingFriendIds.length === 0 || ioggaSent}
                           className={`w-full py-4 rounded-[24px] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${ioggaSent ? 'bg-green-500/20 text-green-300 border border-green-400/30' : pendingFriendIds.length === 0 ? 'bg-white/5 text-zinc-600 border border-white/10' : 'bg-iogga-primary text-white shadow-lg shadow-iogga-primary/20 active:scale-95'}`}
                         >
-                          {ioggaSent ? <><Check size={18} /> Enviado</> : <><Send size={18} /> Enviar en iogga {pendingFriendIds.length > 0 ? `(${pendingFriendIds.length})` : ''}</>}
+                          {ioggaSent ? <><Check size={16} /> Enviado</> : <><Send size={16} /> Enviar en iogga {pendingFriendIds.length > 0 ? `(${pendingFriendIds.length})` : ''}</>}
                         </button>
                       </>
                     )}
@@ -8261,14 +8267,14 @@ export default function App() {
                   <div className="p-4 space-y-3">
                     <div className="rounded-2xl bg-[#0b141a] p-3">
                       <div className="max-w-[88%] ml-auto bg-[#005c4b] rounded-2xl rounded-tr-md px-3 py-2 shadow">
-                        <p className="text-[13px] text-white whitespace-pre-line leading-snug">{inviteText(lastPublishedPlan)}</p>
+                        <p className="text-sm text-white whitespace-pre-line leading-snug">{inviteText(lastPublishedPlan)}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => sharePlanWhatsApp(lastPublishedPlan)}
                       className="w-full py-4 bg-green-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
                     >
-                      <UserPlus size={18} />
+                      <UserPlus size={16} />
                       Invitar por WhatsApp
                     </button>
                   </div>
@@ -8299,7 +8305,7 @@ export default function App() {
                       disabled={!statusImg}
                       className="w-full py-4 bg-fuchsia-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-fuchsia-500/20 flex items-center justify-center gap-2 disabled:opacity-40"
                     >
-                      <Camera size={18} />
+                      <Camera size={16} />
                       Compartir en tu estado
                     </button>
                     <button
@@ -8326,7 +8332,7 @@ export default function App() {
                     Listo
                   </button>
                 </div>
-                <p className="text-center text-[10px] text-zinc-600">Tu plan ya está publicado y guardado. Puedes cerrar sin perderlo.</p>
+                <p className="text-center text-[11px] text-zinc-600">Tu plan ya está publicado y guardado. Puedes cerrar sin perderlo.</p>
               </div>
             </Modal>
           )}
@@ -8366,13 +8372,13 @@ export default function App() {
                           <img src={mPlan.userAvatar} className="w-10 h-10 rounded-xl object-cover" referrerPolicy="no-referrer" />
                           <div className="flex-1 min-w-0">
                             <span className="font-bold text-xs text-white block">{mPlan.userName}</span>
-                            <p className="text-[10px] text-zinc-400 truncate font-semibold italic mt-0.5">"Planea: {mPlan.activity}"</p>
-                            <p className="text-[9px] text-zinc-500 mt-0.5">{mPlan.isPublic ? 'Toca para ver el plan completo →' : 'Plan privado entre amigos: solo ves la actividad.'}</p>
+                            <p className="text-[11px] text-zinc-400 truncate font-semibold italic mt-0.5">"Planea: {mPlan.activity}"</p>
+                            <p className="text-[11px] text-zinc-500 mt-0.5">{mPlan.isPublic ? 'Toca para ver el plan completo →' : 'Plan privado entre amigos: solo ves la actividad.'}</p>
                           </div>
-                          {picked && <span className="shrink-0 px-2 py-1 rounded-full bg-iogga-accent text-zinc-950 text-[8px] font-black uppercase tracking-widest">Te eligió</span>}
+                          {picked && <span className="shrink-0 px-2 py-1 rounded-full bg-iogga-accent text-zinc-950 text-[11px] font-black uppercase tracking-widest">Te eligió</span>}
                         </button>
                         <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                          <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest font-sans">{picked ? 'Ya tiene tu oferta en su plan' : 'Medio: Cupón por Match'}</span>
+                          <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-widest font-sans">{picked ? 'Ya tiene tu oferta en su plan' : 'Medio: Cupón por Match'}</span>
                           <button
                             disabled={alreadyNotified}
                             onClick={() => setCouponDraft({
@@ -8383,7 +8389,7 @@ export default function App() {
                               description: `Cupón especial para tu plan "${mPlan.activity}"`,
                               image: selectedPromoForMatches.image,
                             })}
-                            className={`px-4 py-2.5 text-[9px] font-black uppercase rounded-xl transition-all min-h-[32px] ${alreadyNotified ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-iogga-accent text-zinc-950 font-black hover:scale-105 active:scale-95'}`}
+                            className={`px-4 py-2.5 text-[11px] font-black uppercase rounded-xl transition-all min-h-[32px] ${alreadyNotified ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-iogga-accent text-zinc-950 font-black hover:scale-105 active:scale-95'}`}
                           >
                             {alreadyNotified ? '¡Cupón Enviado!' : picked ? 'Enviar cupón especial' : 'Ofrecer Cupón'}
                           </button>
@@ -8397,7 +8403,7 @@ export default function App() {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 px-1">
                             <CheckCircle2 size={14} className="text-iogga-accent" />
-                            <span className="text-[10px] font-black text-iogga-accent uppercase tracking-widest font-sans">Te seleccionaron ({chosen.length})</span>
+                            <span className="text-[11px] font-black text-iogga-accent uppercase tracking-widest font-sans">Te seleccionaron ({chosen.length})</span>
                           </div>
                           <div className="space-y-2">{chosen.map(mPlan => <MatchRow key={mPlan.id} mPlan={mPlan} picked />)}</div>
                         </div>
@@ -8405,7 +8411,7 @@ export default function App() {
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 px-1">
                           <Users size={14} className="text-zinc-500" />
-                          <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest font-sans">Planes que coinciden ({rest.length})</span>
+                          <span className="text-[11px] font-black text-zinc-500 uppercase tracking-widest font-sans">Planes que coinciden ({rest.length})</span>
                         </div>
                         <div className="space-y-2 max-h-[300px] overflow-y-auto no-scrollbar">
                           {rest.map(mPlan => <MatchRow key={mPlan.id} mPlan={mPlan} />)}
@@ -8422,7 +8428,7 @@ export default function App() {
 
                 <button
                   onClick={() => setSelectedPromoForMatches(null)}
-                  className="w-full py-4 bg-zinc-900 border border-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 min-h-[44px]"
+                  className="w-full py-4 bg-zinc-900 border border-white/10 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest active:scale-95 min-h-[44px]"
                 >
                   Volver a Mis Ofertas
                 </button>
@@ -8520,7 +8526,7 @@ export default function App() {
             <Modal onClose={() => setShowBetaModal(false)} title={betaMessage.title || "Módulo Beta"}>
               <div className="space-y-6 text-center py-4">
                 <div className="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-full mx-auto flex items-center justify-center border border-amber-500/20">
-                  <Sparkles size={28} className="animate-pulse" />
+                  <Sparkles size={24} className="animate-pulse" />
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-md font-black text-white uppercase tracking-tight">{betaMessage.title || 'Módulo en Beta'}</h3>
@@ -8531,7 +8537,7 @@ export default function App() {
 
                 {suggestionSent ? (
                   <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/25 text-green-400 text-sm font-bold flex items-center justify-center gap-2">
-                    <CheckCircle2 size={18} /> ¡Gracias! Recibimos tu idea
+                    <CheckCircle2 size={16} /> ¡Gracias! Recibimos tu idea
                   </div>
                 ) : (
                   <div className="space-y-3 text-left">
@@ -8574,7 +8580,7 @@ export default function App() {
                 )}
                 <button
                   onClick={() => setShowBetaModal(false)}
-                  className="w-full py-3 text-zinc-500 hover:text-white text-[10px] uppercase tracking-widest font-bold transition-all"
+                  className="w-full py-3 text-zinc-500 hover:text-white text-[11px] uppercase tracking-widest font-bold transition-all"
                 >
                   Cerrar
                 </button>
@@ -8588,7 +8594,7 @@ export default function App() {
               <div className="space-y-6">
                 <div className="text-center space-y-2">
                   <div className="inline-flex p-4 rounded-full bg-iogga-primary/10 text-iogga-primary border border-iogga-primary/20 mb-2">
-                    <User size={28} />
+                    <User size={24} />
                   </div>
                   <h3 className="font-lexend font-black text-xl text-white tracking-tight uppercase">
                     {isRegistering ? "Regístrate en iogga" : "Bienvenido de vuelta"}
@@ -8628,7 +8634,7 @@ export default function App() {
                 )}
                 <div className="relative flex items-center">
                   <div className="flex-grow border-t border-white/5"></div>
-                  <span className="flex-shrink mx-4 text-zinc-600 text-[10px] font-bold uppercase tracking-widest font-sans">o con tu correo</span>
+                  <span className="flex-shrink mx-4 text-zinc-600 text-[11px] font-bold uppercase tracking-widest font-sans">o con tu correo</span>
                   <div className="flex-grow border-t border-white/5"></div>
                 </div>
 
@@ -8719,7 +8725,7 @@ export default function App() {
                         title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                         className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
                       >
-                        <Eye size={18} />
+                        <Eye size={16} />
                       </button>
                     </div>
                   </div>
@@ -8758,7 +8764,7 @@ export default function App() {
                         if (!isFirebaseEnabled) { triggerBeta('Modo demo', 'La recuperación de contraseña funciona con la base de datos conectada.'); return; }
                         try {
                           await resetPassword(loginEmail.trim());
-                          triggerBeta('Revisa tu correo', `Te enviamos un enlace a ${loginEmail.trim()} para restablecer tu contraseña.`);
+                          triggerBeta('Revisa tu correo', `Se envió un enlace a ${loginEmail.trim()} para crear una contraseña nueva.`);
                         } catch (err) {
                           setAuthError(authErrorMessage(err));
                         }
@@ -8855,7 +8861,7 @@ export default function App() {
                       </div>
                       <div className="text-right shrink-0 space-y-1">
                         <p className="text-sm font-black text-white">{r.priceAmount > 0 ? `$${r.priceAmount.toLocaleString('es-MX')}` : 'Gratis'}</p>
-                        <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${st.cls}`}>{st.txt}</span>
+                        <span className={`inline-block text-[11px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${st.cls}`}>{st.txt}</span>
                       </div>
                     </button>
                   );
@@ -8895,7 +8901,7 @@ export default function App() {
                   </div>
                   {/* Total del periodo (arriba, como el saldo del banco) */}
                   <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
-                    <span className="text-[10px] font-black text-emerald-300/80 uppercase tracking-widest">{rows.length} {rows.length === 1 ? 'venta' : 'ventas'}</span>
+                    <span className="text-[11px] font-black text-emerald-300/80 uppercase tracking-widest">{rows.length} {rows.length === 1 ? 'venta' : 'ventas'}</span>
                     <span className="text-xl font-black text-emerald-400">+${total.toLocaleString('es-MX')}</span>
                   </div>
                   {rows.length === 0 ? (
@@ -8922,16 +8928,16 @@ export default function App() {
                     <button
                       disabled={rows.length === 0}
                       onClick={() => downloadTxt(`iogga-estado-de-cuenta-${new Date().toISOString().slice(0, 10)}.txt`, txt())}
-                      className="py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
+                      className="py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
                     >
-                      <FileDown size={13} /> Descargar
+                      <FileDown size={12} /> Descargar
                     </button>
                     <button
                       disabled={rows.length === 0}
                       onClick={() => openExternal(`https://wa.me/?text=${encodeURIComponent(txt())}`)}
-                      className="py-3 rounded-2xl bg-green-500/15 border border-green-500/30 text-green-400 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
+                      className="py-3 rounded-2xl bg-green-500/15 border border-green-500/30 text-green-400 font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
                     >
-                      <Send size={13} /> Por WhatsApp
+                      <Send size={12} /> Por WhatsApp
                     </button>
                   </div>
                 </div>
@@ -8947,7 +8953,7 @@ export default function App() {
             <div className="space-y-5">
               <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/25">
                 <p className="text-sm font-black text-red-400 mb-1">Esta acción es permanente</p>
-                <p className="text-[12px] text-red-200/90 leading-snug">
+                <p className="text-xs text-red-200/90 leading-snug">
                   Se eliminará tu cuenta y toda tu información (perfil, planes, promociones)
                   de forma permanente. No se puede deshacer.
                 </p>
@@ -9017,13 +9023,13 @@ export default function App() {
             <div className="space-y-5">
               <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/25">
                 <p className="text-base font-black text-white leading-snug">Manda estos datos a tu IA</p>
-                <p className="text-[12px] text-zinc-300 leading-snug mt-1">
+                <p className="text-xs text-zinc-300 leading-snug mt-1">
                   Comparte el archivo con ChatGPT, Claude o Gemini y pregúntale lo que quieras saber:
                   tendencias, qué mejorar, cómo crecer. Son {exportPack.rows.length} registros.
                 </p>
               </div>
               <div className="space-y-2">
-                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Elige el formato</p>
+                <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest px-1">Elige el formato</p>
                 {([
                   ['json', 'JSON', 'El mejor para analizar con IA: datos completos y estructurados'],
                   ['csv', 'CSV', 'Para abrir en Excel o Google Sheets'],
@@ -9040,10 +9046,10 @@ export default function App() {
                     }}
                     className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3 active:scale-[0.98] transition-transform text-left"
                   >
-                    <div className="w-11 h-11 rounded-2xl bg-iogga-primary/15 text-iogga-primary flex items-center justify-center shrink-0 text-[10px] font-black">{fmt.toUpperCase()}</div>
+                    <div className="w-11 h-11 rounded-2xl bg-iogga-primary/15 text-iogga-primary flex items-center justify-center shrink-0 text-[11px] font-black">{fmt.toUpperCase()}</div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-black text-white">{title}</p>
-                      <p className="text-[10px] text-zinc-500 leading-snug">{desc}</p>
+                      <p className="text-[11px] text-zinc-500 leading-snug">{desc}</p>
                     </div>
                     <ChevronRight size={16} className="text-zinc-500 shrink-0" />
                   </button>
@@ -9054,7 +9060,7 @@ export default function App() {
                 onClick={async () => {
                   const cols: string[] = Array.from(exportPack.rows.reduce((s: Set<string>, r) => { Object.keys(r).forEach(k => s.add(k)); return s; }, new Set<string>()));
                   const texto = [
-                    `IOGGA · ${exportPack.title.toUpperCase()} (${exportPack.rows.length} registros)`,
+                    `iogga · ${exportPack.title.toUpperCase()} (${exportPack.rows.length} registros)`,
                     '',
                     ...exportPack.rows.slice(0, 60).map((r, i) => `${i + 1}. ` + cols.map(c => `${c}: ${r[c] ?? '—'}`).join(' | ')),
                   ].join('\n');
@@ -9089,7 +9095,7 @@ export default function App() {
                 ['Neto al negocio', `$${(adminPayDetail.payoutAmount || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`],
               ].map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between gap-3 px-4 py-3">
-                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest shrink-0">{k}</span>
+                  <span className="text-[11px] font-black text-zinc-500 uppercase tracking-widest shrink-0">{k}</span>
                   <span className="text-sm font-bold text-white text-right truncate">{v}</span>
                 </div>
               ))}
@@ -9101,7 +9107,7 @@ export default function App() {
           <Modal onClose={() => setShowWallet(false)} title={mode === 'business' ? 'Cobros y depósitos' : 'Métodos de pago'}>
             {mode === 'business' ? (
               <div className="space-y-4">
-                <p className="text-[11px] text-zinc-400 leading-snug">Aquí es donde te depositamos el dinero de tus ventas en cada corte (transferencia SPEI).</p>
+                <p className="text-[11px] text-zinc-400 leading-snug">Aquí llega el dinero de tus ventas en cada corte (transferencia SPEI).</p>
                 <div className="rounded-3xl bg-white/5 border border-white/10 divide-y divide-white/5 overflow-hidden">
                   {[
                     ['Titular', businessProfile.payoutHolder || '—'],
@@ -9109,7 +9115,7 @@ export default function App() {
                     ['CLABE', businessProfile.payoutClabe ? `•••• ${businessProfile.payoutClabe.slice(-4)}` : '—'],
                   ].map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between gap-3 px-4 py-3">
-                      <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
+                      <span className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
                       <span className="text-sm font-bold text-white truncate">{v}</span>
                     </div>
                   ))}
@@ -9141,10 +9147,10 @@ export default function App() {
               <div className="space-y-4">
                 {/* Forma de pago (como la billetera de Uber): hoy, Mercado Pago */}
                 <div className="p-4 rounded-3xl bg-white/5 border border-white/10 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#009EE3]/15 text-[#009EE3] flex items-center justify-center shrink-0"><CreditCard size={18} /></div>
+                  <div className="w-10 h-10 rounded-2xl bg-[#009EE3]/15 text-[#009EE3] flex items-center justify-center shrink-0"><CreditCard size={16} /></div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-white">Mercado Pago</p>
-                    <p className="text-[10px] text-zinc-500 leading-snug">Tarjeta, dinero en cuenta, transferencia u OXXO</p>
+                    <p className="text-[11px] text-zinc-500 leading-snug">Tarjeta, dinero en cuenta, transferencia u OXXO</p>
                   </div>
                   <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
                 </div>
@@ -9184,7 +9190,7 @@ export default function App() {
                   ['Estado', purchaseDetail.status === 'redeemed' ? 'Canjeado ✓' : purchaseActive(purchaseDetail) ? 'Vigente' : 'Vencido'],
                 ].map(([k, v]) => (
                   <div key={k as string} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest shrink-0">{k}</span>
+                    <span className="text-[11px] font-black text-zinc-500 uppercase tracking-widest shrink-0">{k}</span>
                     <span className="text-sm font-bold text-white text-right truncate">{v}</span>
                   </div>
                 ))}
@@ -9268,7 +9274,7 @@ export default function App() {
                   </button>
                 </div>
 
-                <p className="text-[10px] text-zinc-600 text-center leading-relaxed">
+                <p className="text-[11px] text-zinc-600 text-center leading-relaxed">
                   Al aceptar solo se comparte tu nombre — nada más. iogga es web:
                   no se descarga, no ocupa espacio y tus datos están protegidos.
                 </p>
@@ -9309,7 +9315,7 @@ export default function App() {
                   }}
                   className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-base active:scale-95 transition-all shadow-xl shadow-iogga-primary/30 flex items-center justify-center gap-2"
                 >
-                  <Download size={22} /> Instalar ahora
+                  <Download size={20} /> Instalar ahora
                 </button>
               ) : isIOS ? (
                 // iPhone (Safari): Apple no permite instalar solo; animación en bucle
@@ -9391,8 +9397,8 @@ export default function App() {
               {/* GRUPOS arriba (como WhatsApp): un toque selecciona a todo el grupo */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest">Tus grupos</p>
-                  <button onClick={() => { setGroupDraft({ name: '', members: [] }); setGroupSearch(''); }} className="text-[10px] font-black text-iogga-primary flex items-center gap-1 bg-iogga-primary/10 px-2.5 py-1 rounded-full border border-iogga-primary/20"><Plus size={11} /> Nuevo grupo</button>
+                  <p className="text-[11px] font-black text-iogga-primary uppercase tracking-widest">Tus grupos</p>
+                  <button onClick={() => { setGroupDraft({ name: '', members: [] }); setGroupSearch(''); }} className="text-[11px] font-black text-iogga-primary flex items-center gap-1 bg-iogga-primary/10 px-2.5 py-1 rounded-full border border-iogga-primary/20"><Plus size={12} /> Nuevo grupo</button>
                 </div>
                 {myGroups.length > 0 ? (
                   <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -9405,14 +9411,14 @@ export default function App() {
                               {g.members.slice(0, 3).map((m, i) => (
                                 m.photo
                                   ? <img key={i} src={m.photo} className="w-8 h-8 rounded-full object-cover border-2 border-zinc-900" referrerPolicy="no-referrer" />
-                                  : <div key={i} className="w-8 h-8 rounded-full bg-iogga-primary/25 text-iogga-primary border-2 border-zinc-900 flex items-center justify-center text-[10px] font-black">{m.name.charAt(0).toUpperCase()}</div>
+                                  : <div key={i} className="w-8 h-8 rounded-full bg-iogga-primary/25 text-iogga-primary border-2 border-zinc-900 flex items-center justify-center text-[11px] font-black">{m.name.charAt(0).toUpperCase()}</div>
                               ))}
-                              {g.members.length > 3 && <div className="w-8 h-8 rounded-full bg-white/10 text-white border-2 border-zinc-900 flex items-center justify-center text-[9px] font-black">+{g.members.length - 3}</div>}
+                              {g.members.length > 3 && <div className="w-8 h-8 rounded-full bg-white/10 text-white border-2 border-zinc-900 flex items-center justify-center text-[11px] font-black">+{g.members.length - 3}</div>}
                             </div>
                             <span className="text-[11px] font-bold text-white max-w-[90px] truncate">{g.name}</span>
-                            <span className={`text-[9px] font-black uppercase tracking-widest ${allIn ? 'text-iogga-primary' : 'text-zinc-500'}`}>{allIn ? '✓ Todos' : `${g.members.length} personas`}</span>
+                            <span className={`text-[11px] font-black uppercase tracking-widest ${allIn ? 'text-iogga-primary' : 'text-zinc-500'}`}>{allIn ? '✓ Todos' : `${g.members.length} personas`}</span>
                           </button>
-                          <button onClick={() => { setGroupDraft({ id: g.id, name: g.name, members: [...g.members] }); setGroupSearch(''); }} className="w-full py-1 text-[8px] font-black text-zinc-500 uppercase tracking-widest border-t border-white/5 active:scale-95">Editar</button>
+                          <button onClick={() => { setGroupDraft({ id: g.id, name: g.name, members: [...g.members] }); setGroupSearch(''); }} className="w-full py-1 text-[11px] font-black text-zinc-500 uppercase tracking-widest border-t border-white/5 active:scale-95">Editar</button>
                         </div>
                       );
                     })}
@@ -9425,8 +9431,8 @@ export default function App() {
               {/* Opción 1: invitar amigos de iogga (les llega notificación real) */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest">O elige individual</p>
-                  <button onClick={() => { setInvitePlan(null); setInviteSel([]); setShowFriends('following'); }} className="text-[10px] font-black text-iogga-primary flex items-center gap-1 bg-iogga-primary/10 px-2.5 py-1 rounded-full border border-iogga-primary/20"><UserPlus size={11} /> Agregar</button>
+                  <p className="text-[11px] font-black text-iogga-primary uppercase tracking-widest">O elige individual</p>
+                  <button onClick={() => { setInvitePlan(null); setInviteSel([]); setShowFriends('following'); }} className="text-[11px] font-black text-iogga-primary flex items-center gap-1 bg-iogga-primary/10 px-2.5 py-1 rounded-full border border-iogga-primary/20"><UserPlus size={12} /> Agregar</button>
                 </div>
                 {followingAll.length > 0 ? (
                   <div className="space-y-2 max-h-44 overflow-y-auto no-scrollbar">
@@ -9460,7 +9466,7 @@ export default function App() {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-white/10" /><span className="text-[10px] text-zinc-600 font-bold">O</span><div className="flex-1 h-px bg-white/10" />
+                <div className="flex-1 h-px bg-white/10" /><span className="text-[11px] text-zinc-600 font-bold">O</span><div className="flex-1 h-px bg-white/10" />
               </div>
 
               {/* Opción 2: WhatsApp */}
@@ -9486,7 +9492,7 @@ export default function App() {
             <div className="space-y-6">
               {!adminData ? (
                 <div className="py-16 text-center">
-                  <RefreshCw size={26} className="text-iogga-primary mx-auto animate-spin" />
+                  <RefreshCw size={24} className="text-iogga-primary mx-auto animate-spin" />
                   <p className="text-xs text-zinc-500 mt-3">Cargando datos de iogga…</p>
                 </div>
               ) : (
@@ -9592,12 +9598,12 @@ export default function App() {
                         }] })}
                         className="p-4 rounded-2xl bg-white/5 border border-white/10 text-left active:scale-95 transition-transform"
                       >
-                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{k.label}</p>
+                        <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">{k.label}</p>
                         <p className={`text-2xl font-black mt-1 ${k.color}`}>{k.value}</p>
                       </button>
                     ))}
                   </div>
-                  <p className="text-[10px] text-zinc-500 text-center">Toca cualquier dato para compartirlo o analizarlo con IA.</p>
+                  <p className="text-[11px] text-zinc-500 text-center">Toca cualquier dato para compartirlo o analizarlo con IA.</p>
                   <button
                     onClick={() => setExportPack({ title: 'Analítica', rows: [{
                       usuarios_registrados: adminData.userCount,
@@ -9611,7 +9617,7 @@ export default function App() {
                       comision_iogga_mp: adminData.paidFees,
                       comentarios_soporte: adminData.feedback.length,
                     }] })}
-                    className="w-full py-3 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+                    className="w-full py-3 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
                   >
                     <FileDown size={14} /> Exportar analítica
                   </button>
@@ -9619,14 +9625,14 @@ export default function App() {
 
                   {adminTab === 'contenido' && (
                   <div className="space-y-2">
-                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Últimas ofertas concretadas</p>
+                    <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest px-1">Últimas ofertas concretadas</p>
                     {adminData.recentRedemptions.length === 0 && <p className="text-xs text-zinc-500 px-1">Aún no hay canjes concretados.</p>}
                     {adminData.recentRedemptions.map((r, i) => (
                       <div key={i} className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0"><QrCode size={16} /></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold text-white truncate">{r.promoTitle} · {r.businessName}</p>
-                          <p className="text-[10px] text-zinc-500">Folio {r.code} · {r.userName} · {r.redeemedAtMs ? new Date(r.redeemedAtMs).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</p>
+                          <p className="text-[11px] text-zinc-500">Folio {r.code} · {r.userName} · {r.redeemedAtMs ? new Date(r.redeemedAtMs).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</p>
                         </div>
                         <span className="text-sm font-black text-emerald-400 shrink-0">${r.priceAmount || 0}</span>
                       </div>
@@ -9638,7 +9644,7 @@ export default function App() {
                         cliente: r.userName, monto: r.priceAmount || 0,
                       })) })}
                       disabled={adminData.recentRedemptions.length === 0}
-                      className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
+                      className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
                     >
                       <FileDown size={14} /> Exportar canjes
                     </button>
@@ -9657,7 +9663,7 @@ export default function App() {
                     const list = adminData.recentPayments;
                     const shown = adminPayAll ? list : list.slice(0, 5);
                     const exportTxt = () => {
-                      const lines = ['IOGGA · MOVIMIENTOS (MERCADO PAGO)', `CORTE: ${new Date().toLocaleString('es-MX')}`, '='.repeat(42), ''];
+                      const lines = ['iogga · MOVIMIENTOS (MERCADO PAGO)', `CORTE: ${new Date().toLocaleString('es-MX')}`, '='.repeat(42), ''];
                       lines.push('RESUMEN', '-'.repeat(42),
                         `INGRESO TOTAL:        ${money(totIngreso)}`,
                         `COMISION IOGGA:       ${money(totIogga)}`,
@@ -9679,7 +9685,7 @@ export default function App() {
                     return (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
-                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Movimientos</p>
+                          <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">Movimientos</p>
                           <button
                             onClick={() => setExportPack({ title: 'Movimientos', rows: list.map(p => ({
                               fecha: new Date(p.approvedAtMs || p.createdAtMs || Date.now()).toLocaleString('es-MX'),
@@ -9688,7 +9694,7 @@ export default function App() {
                               ingreso: p.amount || 0, comision_iogga: p.feeAmount || 0, neto_negocio: p.payoutAmount || 0,
                             })) })}
                             disabled={list.length === 0}
-                            className="px-3 py-1.5 rounded-full bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
+                            className="px-3 py-1.5 rounded-full bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary text-[11px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
                           >
                             <FileDown size={12} /> Exportar
                           </button>
@@ -9702,19 +9708,19 @@ export default function App() {
                             ['Traspaso a negocios', money(totNegocio), 'text-emerald-400'],
                           ].map(([k, v, cls]) => (
                             <div key={k} className="flex items-center justify-between px-4 py-2.5">
-                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
+                              <span className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
                               <span className={`text-sm font-black ${cls}`}>{v}</span>
                             </div>
                           ))}
                         </div>
-                        <p className="text-[9px] text-zinc-600 px-1 leading-snug">La comisión de iogga cae en la cuenta de Mercado Pago dueña de la app. La comisión de Mercado Pago es referencia (~3.49%); el monto exacto lo define Mercado Pago.</p>
+                        <p className="text-[11px] text-zinc-600 px-1 leading-snug">La comisión de iogga cae en la cuenta de Mercado Pago dueña de la app. La comisión de Mercado Pago es referencia (~3.49%); el monto exacto lo define Mercado Pago.</p>
                         {list.length === 0 && <p className="text-xs text-zinc-500 px-1">Aún no hay movimientos.</p>}
                         {shown.map((p, i) => (
                           <button key={i} onClick={() => setAdminPayDetail(p)} className="w-full p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-3 active:scale-[0.99] transition-transform text-left">
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${p.status === 'approved' ? 'bg-sky-500/15 text-sky-400' : 'bg-white/10 text-zinc-400'}`}><CreditCard size={16} /></div>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-bold text-white truncate">{p.title || 'Pago'} · {p.userName || '—'}</p>
-                              <p className="text-[10px] text-zinc-500 truncate">
+                              <p className="text-[11px] text-zinc-500 truncate">
                                 {p.status === 'approved' ? 'Aprobado' : p.status === 'created' ? 'Iniciado' : p.status || '—'}
                                 {p.code ? ` · Folio ${p.code}` : ''}
                                 {typeof p.payoutAmount === 'number' ? ` · Neto $${p.payoutAmount.toLocaleString('es-MX')}` : ''}
@@ -9724,7 +9730,7 @@ export default function App() {
                           </button>
                         ))}
                         {list.length > 5 && (
-                          <button onClick={() => setAdminPayAll(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                          <button onClick={() => setAdminPayAll(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all">
                             {adminPayAll ? 'Ver menos' : `Ver más (${list.length - 5})`}
                           </button>
                         )}
@@ -9739,7 +9745,7 @@ export default function App() {
                     return (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
-                          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Comentarios y soporte ({fb.length})</p>
+                          <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">Comentarios y soporte ({fb.length})</p>
                           <button
                             onClick={() => setExportPack({ title: 'Comentarios', rows: fb.map(f => ({
                               fecha: f.createdAtMs ? new Date(f.createdAtMs).toLocaleString('es-MX') : '',
@@ -9748,7 +9754,7 @@ export default function App() {
                               pantalla: f.context || '', mensaje: f.text || '',
                             })) })}
                             disabled={fb.length === 0}
-                            className="px-3 py-1.5 rounded-full bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
+                            className="px-3 py-1.5 rounded-full bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary text-[11px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
                           >
                             <FileDown size={12} /> Exportar
                           </button>
@@ -9757,33 +9763,33 @@ export default function App() {
                         {shown.map((f, i) => (
                           <div key={i} className="p-3 rounded-2xl bg-white/5 border border-white/5 space-y-2">
                             <p className="text-xs text-zinc-200 leading-snug">"{f.text}"</p>
-                            <p className="text-[10px] text-zinc-500">{f.userName}{f.email ? ` · ${f.email}` : ''} · {f.context}{f.createdAtMs ? ` · ${new Date(f.createdAtMs).toLocaleDateString('es-MX')}` : ''}</p>
+                            <p className="text-[11px] text-zinc-500">{f.userName}{f.email ? ` · ${f.email}` : ''} · {f.context}{f.createdAtMs ? ` · ${new Date(f.createdAtMs).toLocaleDateString('es-MX')}` : ''}</p>
                             {(f.device || f.location || f.version) && (
-                              <p className="text-[10px] text-zinc-600">{[f.device, f.location, f.version ? `v${f.version}` : ''].filter(Boolean).join(' · ')}</p>
+                              <p className="text-[11px] text-zinc-600">{[f.device, f.location, f.version ? `v${f.version}` : ''].filter(Boolean).join(' · ')}</p>
                             )}
                             <div className="flex flex-wrap gap-2">
                               {f.email && (
                                 <a
                                   href={`mailto:${f.email}?subject=${encodeURIComponent('iogga — respuesta a tu comentario')}&body=${encodeURIComponent(`Hola ${f.userName || ''},\n\nSobre tu mensaje: "${f.text}"\n\n`)}`}
-                                  className="inline-flex items-center gap-1.5 text-[10px] font-black text-iogga-primary uppercase tracking-widest bg-iogga-primary/10 border border-iogga-primary/25 px-3 py-1.5 rounded-full active:scale-95 transition-all"
+                                  className="inline-flex items-center gap-1.5 text-[11px] font-black text-iogga-primary uppercase tracking-widest bg-iogga-primary/10 border border-iogga-primary/25 px-3 py-1.5 rounded-full active:scale-95 transition-all"
                                 >
-                                  <Send size={11} /> Correo
+                                  <Send size={12} /> Correo
                                 </a>
                               )}
                               {f.whatsapp && (
                                 <a
                                   href={`https://wa.me/52${String(f.whatsapp).replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${f.userName || ''}, somos el equipo de iogga. Sobre tu mensaje: "${f.text}"`)}`}
                                   target="_blank" rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 text-[10px] font-black text-green-400 uppercase tracking-widest bg-green-500/10 border border-green-500/25 px-3 py-1.5 rounded-full active:scale-95 transition-all"
+                                  className="inline-flex items-center gap-1.5 text-[11px] font-black text-green-400 uppercase tracking-widest bg-green-500/10 border border-green-500/25 px-3 py-1.5 rounded-full active:scale-95 transition-all"
                                 >
-                                  <Send size={11} /> WhatsApp
+                                  <Send size={12} /> WhatsApp
                                 </a>
                               )}
                             </div>
                           </div>
                         ))}
                         {fb.length > 5 && (
-                          <button onClick={() => setAdminFbAll(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                          <button onClick={() => setAdminFbAll(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all">
                             {adminFbAll ? 'Ver menos' : `Ver más (${fb.length - 5})`}
                           </button>
                         )}
@@ -9795,14 +9801,14 @@ export default function App() {
                   {adminTab === 'usuarios' && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between px-1">
-                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Usuarios ({adminData.usersList.length})</p>
+                        <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">Usuarios ({adminData.usersList.length})</p>
                         <button
                           onClick={() => setExportPack({ title: 'Usuarios', rows: adminData.usersList.map(u => ({
                             nombre: u.name || '', correo: u.email || '', whatsapp: u.whatsapp || '',
                             ciudad: u.location || '', edad: u.edad ?? '', alta: u.alta || '', negocio: u.business || '',
                           })) })}
                           disabled={adminData.usersList.length === 0}
-                          className="px-3 py-1.5 rounded-full bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
+                          className="px-3 py-1.5 rounded-full bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary text-[11px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-40"
                         >
                           <FileDown size={12} /> Exportar
                         </button>
@@ -9816,20 +9822,20 @@ export default function App() {
                         ].map(([k, v]) => (
                           <div key={k as string} className="p-3 rounded-2xl bg-white/5 border border-white/10 text-center">
                             <p className="text-lg font-black text-white">{v as number}</p>
-                            <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-tight">{k}</p>
+                            <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest leading-tight">{k}</p>
                           </div>
                         ))}
                       </div>
                       {/* Cómo se registran (para saber en qué invertir) */}
                       <div className="rounded-2xl bg-white/5 border border-white/10 divide-y divide-white/5 overflow-hidden">
-                        <p className="px-4 py-2 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Cómo se registran</p>
+                        <p className="px-4 py-2 text-[11px] font-black text-zinc-500 uppercase tracking-widest">Cómo se registran</p>
                         {[
                           ['Con Google', adminData.signupStats.google, 'text-white'],
                           ['Con correo', adminData.signupStats.email, 'text-white'],
                           ['Antes de medir', adminData.signupStats.sinDato, 'text-zinc-500'],
                         ].map(([k, v, cls]) => (
                           <div key={k as string} className="flex items-center justify-between px-4 py-2.5">
-                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
+                            <span className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">{k}</span>
                             <span className={`text-sm font-black ${cls}`}>{v as number}</span>
                           </div>
                         ))}
@@ -9841,7 +9847,7 @@ export default function App() {
                         const prom = Math.round(edades.reduce((a, b) => a + b, 0) / edades.length);
                         return (
                           <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
-                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Edad promedio ({edades.length} personas)</span>
+                            <span className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">Edad promedio ({edades.length} personas)</span>
                             <span className="text-lg font-black text-white">{prom} años</span>
                           </div>
                         );
@@ -9852,12 +9858,12 @@ export default function App() {
                           <div className="w-9 h-9 rounded-full bg-iogga-primary/15 text-iogga-primary flex items-center justify-center shrink-0 font-black text-sm">{(u.name || '?').charAt(0).toUpperCase()}</div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-white truncate">{u.name || 'Sin nombre'}{u.business ? ` · ${u.business}` : ''}</p>
-                            <p className="text-[10px] text-zinc-500 truncate">{[u.email, u.whatsapp, u.location, u.edad ? `${u.edad} años` : '', u.alta].filter(Boolean).join(' · ') || 'Sin datos de contacto'}</p>
+                            <p className="text-[11px] text-zinc-500 truncate">{[u.email, u.whatsapp, u.location, u.edad ? `${u.edad} años` : '', u.alta].filter(Boolean).join(' · ') || 'Sin datos de contacto'}</p>
                           </div>
                         </div>
                       ))}
                       {adminData.usersList.length > 8 && (
-                        <button onClick={() => setAdminPayAll(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                        <button onClick={() => setAdminPayAll(v => !v)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all">
                           {adminPayAll ? 'Ver menos' : `Ver más (${adminData.usersList.length - 8})`}
                         </button>
                       )}
@@ -9867,17 +9873,17 @@ export default function App() {
                   {/* Administradores: agregar/quitar por correo */}
                   {adminTab === 'resumen' && (<>
                   <div className="space-y-2">
-                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Administradores</p>
+                    <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest px-1">Administradores</p>
                     <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-3">
                       <Shield size={14} className="text-amber-300 shrink-0" />
                       <span className="text-xs font-bold text-white flex-1 truncate">omareduardo_@hotmail.com</span>
-                      <span className="text-[9px] font-black text-amber-300 uppercase tracking-widest">Fundador</span>
+                      <span className="text-[11px] font-black text-amber-300 uppercase tracking-widest">Fundador</span>
                     </div>
                     {adminData.admins.map(a => (
                       <div key={a} className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-3">
                         <Shield size={14} className="text-zinc-500 shrink-0" />
                         <span className="text-xs font-bold text-white flex-1 truncate">{a}</span>
-                        <button onClick={() => { void removeAdmin(a).then(openAdmin); }} className="w-8 h-8 rounded-full bg-white/10 text-zinc-400 flex items-center justify-center active:scale-95"><X size={13} /></button>
+                        <button onClick={() => { void removeAdmin(a).then(openAdmin); }} className="w-8 h-8 rounded-full bg-white/10 text-zinc-400 flex items-center justify-center active:scale-95"><X size={12} /></button>
                       </div>
                     ))}
                     <div className="flex gap-2">
@@ -9902,8 +9908,8 @@ export default function App() {
                       (client_id y client_secret). Se guardan cifradas en el backend
                       para el reparto automático; solo el admin las pega aquí. */}
                   <div className="space-y-2">
-                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Marketplace de Mercado Pago (reparto automático)</p>
-                    <p className="text-[10px] text-zinc-500 px-1 leading-snug">Pega el client_id y client_secret de tu app de Mercado Pago (Tus integraciones → tu app → Credenciales). Con esto los negocios podrán conectar su cuenta y cobrar solos.</p>
+                    <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest px-1">Marketplace de Mercado Pago (reparto automático)</p>
+                    <p className="text-[11px] text-zinc-500 px-1 leading-snug">Pega el client_id y client_secret de tu app de Mercado Pago (Tus integraciones → tu app → Credenciales). Con esto los negocios podrán conectar su cuenta y cobrar solos.</p>
                     <input
                       value={mpClientId}
                       onChange={e => setMpClientId(e.target.value)}
@@ -9928,7 +9934,7 @@ export default function App() {
 
                   {/* Control de versiones */}
                   <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">
-                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Versión en producción</span>
+                    <span className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">Versión en producción</span>
                     <span className="text-xs font-black text-white">v{APP_VERSION}</span>
                   </div>
                   </>)}
@@ -9973,7 +9979,7 @@ export default function App() {
                 onClick={() => addPlanToCalendar(joinedFlow)}
                 className="w-full py-3.5 rounded-[20px] bg-white/5 border border-white/10 text-zinc-300 font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
               >
-                <CalendarPlus size={15} /> Agregar a mi calendario
+                <CalendarPlus size={14} /> Agregar a mi calendario
               </button>
 
               <p className="text-[11px] text-zinc-500 text-center leading-snug">Cuando {joinedFlow.userName.split(' ')[0]} te elija, te avisaremos y podrás ver la ubicación exacta{joinedFlow.whatsapp ? '' : ' y su WhatsApp'}.</p>
@@ -9994,7 +10000,7 @@ export default function App() {
             <div className="space-y-5">
               {/* Nombre del grupo */}
               <div className="relative">
-                <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
                 <input
                   autoFocus={!groupDraft.id}
                   value={groupDraft.name}
@@ -10011,9 +10017,9 @@ export default function App() {
                     <button key={m.uid} onClick={() => setGroupDraft({ ...groupDraft, members: groupDraft.members.filter(x => x.uid !== m.uid) })} className="shrink-0 flex flex-col items-center gap-1 w-14 active:scale-95 transition-transform">
                       <div className="relative">
                         {m.photo ? <img src={m.photo} className="w-11 h-11 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-11 h-11 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center text-sm font-black">{m.name.charAt(0).toUpperCase()}</div>}
-                        <span className="absolute -top-1 -right-1 w-4.5 h-4.5 w-[18px] h-[18px] rounded-full bg-zinc-700 text-white flex items-center justify-center border border-zinc-900"><X size={10} /></span>
+                        <span className="absolute -top-1 -right-1 w-4.5 h-4.5 w-[18px] h-[18px] rounded-full bg-zinc-700 text-white flex items-center justify-center border border-zinc-900"><X size={12} /></span>
                       </div>
-                      <span className="text-[9px] text-zinc-400 truncate w-full text-center">{m.name.split(' ')[0]}</span>
+                      <span className="text-[11px] text-zinc-400 truncate w-full text-center">{m.name.split(' ')[0]}</span>
                     </button>
                   ))}
                 </div>
@@ -10070,7 +10076,7 @@ export default function App() {
               {groupDraft.id && (
                 <button
                   onClick={() => { saveGroups(myGroups.filter(x => x.id !== groupDraft.id)); setGroupDraft(null); }}
-                  className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+                  className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all"
                 >
                   Eliminar grupo
                 </button>
@@ -10098,7 +10104,7 @@ export default function App() {
                     onClick={() => setShowFriends(key)}
                     className={`flex-1 pb-3 pt-1 text-xs font-black uppercase tracking-widest transition-all relative ${showFriends === key ? 'text-white' : 'text-zinc-500'}`}
                   >
-                    {label} <span className="text-[10px]">({count})</span>
+                    {label} <span className="text-[11px]">({count})</span>
                     {showFriends === key && <motion.div layoutId="socialTab" className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-iogga-primary" />}
                   </button>
                 ))}
@@ -10107,7 +10113,7 @@ export default function App() {
               {/* Buscador debajo de las pestañas */}
               {showFriends !== 'groups' && (
                 <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
                   <input
                     value={friendSearch}
                     onChange={e => setFriendSearch(e.target.value)}
@@ -10141,7 +10147,7 @@ export default function App() {
                         {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
                         <div className="flex-1 min-w-0">
                           <span className="text-sm font-bold text-white block truncate">{f.name}</span>
-                          {typeof f.rating === 'number' && <span className="text-[10px] text-yellow-500 font-bold flex items-center gap-0.5"><Star size={9} fill="currentColor" /> {f.rating.toFixed(1)}</span>}
+                          {typeof f.rating === 'number' && <span className="text-[11px] text-yellow-500 font-bold flex items-center gap-0.5"><Star size={12} fill="currentColor" /> {f.rating.toFixed(1)}</span>}
                         </div>
                       </button>
                       {right}
@@ -10159,10 +10165,10 @@ export default function App() {
                     if (list.length === 0) return null;
                     return (
                       <div className="space-y-2 pt-2">
-                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Más personas en iogga</p>
+                        <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest px-1">Más personas en iogga</p>
                         {list.map(f => (
                           <Row key={f.uid} f={f} right={
-                            <button onClick={() => toggleFollow(f)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all ${followState(f.uid) === 'requested' ? 'bg-white/5 text-zinc-500 border border-white/15' : 'bg-iogga-primary text-white'}`}>
+                            <button onClick={() => toggleFollow(f)} className={`px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all ${followState(f.uid) === 'requested' ? 'bg-white/5 text-zinc-500 border border-white/15' : 'bg-iogga-primary text-white'}`}>
                               {followState(f.uid) === 'requested' ? 'Solicitado' : 'Seguir'}
                             </button>
                           } />
@@ -10178,15 +10184,15 @@ export default function App() {
                         {/* Solicitudes (como Instagram): confirmar o eliminar */}
                         {followRequests.length > 0 && (
                           <div className="space-y-2">
-                            <p className="text-[10px] font-black text-iogga-primary uppercase tracking-widest px-1">Solicitudes ({followRequests.length})</p>
+                            <p className="text-[11px] font-black text-iogga-primary uppercase tracking-widest px-1">Solicitudes ({followRequests.length})</p>
                             {followRequests.map(f => (
                               <div key={f.uid} className="flex items-center gap-3 p-3 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/25">
                                 {f.photo ? <img src={f.photo} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="w-10 h-10 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center font-black">{f.name.charAt(0).toUpperCase()}</div>}
                                 <div className="flex-1 min-w-0">
                                   <span className="text-sm font-bold text-white block truncate">{f.name}</span>
-                                  <span className="text-[10px] text-zinc-400">quiere seguirte</span>
+                                  <span className="text-[11px] text-zinc-400">quiere seguirte</span>
                                 </div>
-                                <button onClick={() => { if (currentUser) void acceptFollower(currentUser, f.uid); }} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-iogga-primary text-white active:scale-95">Confirmar</button>
+                                <button onClick={() => { if (currentUser) void acceptFollower(currentUser, f.uid); }} className="px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest bg-iogga-primary text-white active:scale-95">Confirmar</button>
                                 <button onClick={() => { if (currentUser) void removeFollower(currentUser.uid, f.uid); }} className="w-9 h-9 rounded-full bg-white/10 text-zinc-400 flex items-center justify-center active:scale-95"><X size={14} /></button>
                               </div>
                             ))}
@@ -10196,9 +10202,9 @@ export default function App() {
                           {list.map(f => (
                             <Row key={f.uid} f={f} right={
                               <>
-                                {followState(f.uid) === 'none' && <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-iogga-primary text-white active:scale-95">Seguir también</button>}
-                                {followState(f.uid) === 'requested' && <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/5 text-zinc-500 border border-white/15 active:scale-95">Solicitado</button>}
-                                {followState(f.uid) === 'friends' && <span className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-zinc-500">Siguiendo</span>}
+                                {followState(f.uid) === 'none' && <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest bg-iogga-primary text-white active:scale-95">Seguir también</button>}
+                                {followState(f.uid) === 'requested' && <button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest bg-white/5 text-zinc-500 border border-white/15 active:scale-95">Solicitado</button>}
+                                {followState(f.uid) === 'friends' && <span className="px-3 py-2 text-[11px] font-black uppercase tracking-widest text-zinc-500">Siguiendo</span>}
                                 {!isSeedUid(f.uid) && (
                                   <button onClick={() => { if (currentUser) void removeFollower(currentUser.uid, f.uid); }} title="Quitar seguidor" className="w-9 h-9 rounded-full bg-white/10 text-zinc-400 flex items-center justify-center active:scale-95"><X size={14} /></button>
                                 )}
@@ -10212,7 +10218,7 @@ export default function App() {
                         {blockedUids.length > 0 && (
                           <div className="pt-2 border-t border-white/5 space-y-2">
                             <button onClick={() => setShowBlockedList(v => !v)} className="w-full flex items-center justify-between px-1 py-1">
-                              <span className="text-[10px] font-black text-red-400/80 uppercase tracking-widest">Bloqueados ({blockedUids.length})</span>
+                              <span className="text-[11px] font-black text-red-400/80 uppercase tracking-widest">Bloqueados ({blockedUids.length})</span>
                               <ChevronRight size={14} className={`text-zinc-500 transition-transform ${showBlockedList ? 'rotate-90' : ''}`} />
                             </button>
                             {showBlockedList && blockedUids.map(uid => {
@@ -10222,7 +10228,7 @@ export default function App() {
                                 <div key={uid} className="flex items-center gap-3 p-3 rounded-2xl bg-red-500/5 border border-red-500/15">
                                   <div className="w-9 h-9 rounded-full bg-red-500/15 text-red-400 flex items-center justify-center font-black">{name.charAt(0).toUpperCase()}</div>
                                   <span className="text-sm font-bold text-zinc-300 flex-1 truncate">{name}</span>
-                                  <button onClick={() => void doUnblock(uid)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/10 text-white active:scale-95">Desbloquear</button>
+                                  <button onClick={() => void doUnblock(uid)} className="px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest bg-white/10 text-white active:scale-95">Desbloquear</button>
                                 </div>
                               );
                             })}
@@ -10238,10 +10244,10 @@ export default function App() {
                       <>
                         <div className="space-y-2">
                           {reqs.map(f => (
-                            <Row key={f.uid} f={f} right={<button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/5 text-zinc-500 border border-white/15 active:scale-95">Solicitado</button>} />
+                            <Row key={f.uid} f={f} right={<button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest bg-white/5 text-zinc-500 border border-white/15 active:scale-95">Solicitado</button>} />
                           ))}
                           {list.map(f => (
-                            <Row key={f.uid} f={f} right={<button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/10 text-zinc-300 active:scale-95">Siguiendo</button>} />
+                            <Row key={f.uid} f={f} right={<button onClick={() => toggleFollow(f)} className="px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest bg-white/10 text-zinc-300 active:scale-95">Siguiendo</button>} />
                           ))}
                           {list.length + reqs.length === 0 && <p className="text-xs text-zinc-500 text-center py-6">Aún no sigues a nadie. Busca arriba para descubrir gente.</p>}
                         </div>
@@ -10253,7 +10259,7 @@ export default function App() {
                   return (
                     <div className="space-y-3">
                       <button onClick={() => { setGroupDraft({ name: '', members: [] }); setGroupSearch(''); }} className="w-full py-3.5 rounded-2xl bg-iogga-primary/10 border border-dashed border-iogga-primary/40 text-iogga-primary font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2">
-                        <Plus size={15} /> Nuevo grupo
+                        <Plus size={14} /> Nuevo grupo
                       </button>
                       {myGroups.map(g => (
                         <button key={g.id} onClick={() => { setGroupDraft({ id: g.id, name: g.name, members: [...g.members] }); setGroupSearch(''); }} className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 active:scale-[0.98] transition-all text-left">
@@ -10266,7 +10272,7 @@ export default function App() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="text-sm font-bold text-white block truncate">{g.name}</span>
-                            <span className="text-[10px] text-zinc-500">{g.members.length} {g.members.length === 1 ? 'persona' : 'personas'} · {g.members.slice(0, 2).map(m => m.name.split(' ')[0]).join(', ')}{g.members.length > 2 ? '…' : ''}</span>
+                            <span className="text-[11px] text-zinc-500">{g.members.length} {g.members.length === 1 ? 'persona' : 'personas'} · {g.members.slice(0, 2).map(m => m.name.split(' ')[0]).join(', ')}{g.members.length > 2 ? '…' : ''}</span>
                           </div>
                           <Edit3 size={14} className="text-zinc-500 shrink-0" />
                         </button>
@@ -10285,7 +10291,7 @@ export default function App() {
           <Modal onClose={() => setPendingClose(null)} title="¿Ya está tu grupo?">
             <div className="space-y-4 text-center">
               <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
-                <CheckCircle2 size={30} />
+                <CheckCircle2 size={32} />
               </div>
               <p className="text-sm text-zinc-300 leading-relaxed px-2">Ya avisaste a las personas que aceptaste. ¿Cierras el plan o lo dejas abierto por si se suman más?</p>
               <button
@@ -10323,12 +10329,12 @@ export default function App() {
               <div className="flex items-center justify-center gap-2">
                 {[1, 2, 3, 4, 5].map(s => (
                   <button key={s} onClick={() => submitRating(pendingRating, s)} className="p-1 active:scale-90 transition-transform text-yellow-500 hover:scale-110" title={`${s} estrellas`}>
-                    <Star size={38} fill="currentColor" />
+                    <Star size={40} fill="currentColor" />
                   </button>
                 ))}
               </div>
               <p className="text-[11px] text-zinc-500">Toca una estrella. Tu opinión ayuda a que iogga sea confiable.</p>
-              <button onClick={() => submitRating(pendingRating)} className="w-full py-2.5 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Ahora no</button>
+              <button onClick={() => submitRating(pendingRating)} className="w-full py-2.5 text-zinc-500 text-[11px] font-bold uppercase tracking-widest">Ahora no</button>
             </div>
           </Modal>
         )}
@@ -10348,12 +10354,12 @@ export default function App() {
               <div className="flex items-center justify-center gap-2">
                 {[1, 2, 3, 4, 5].map(s => (
                   <button key={s} onClick={() => finishHostRating(pendingHostRating.plan, pendingHostRating.person, s)} className="p-1 active:scale-90 transition-transform text-yellow-500 hover:scale-110" title={`${s} estrellas`}>
-                    <Star size={38} fill="currentColor" />
+                    <Star size={40} fill="currentColor" />
                   </button>
                 ))}
               </div>
               <p className="text-[11px] text-zinc-500">Tu opinión ayuda a que iogga sea confiable para todos.</p>
-              <button onClick={() => finishHostRating(pendingHostRating.plan, pendingHostRating.person)} className="w-full py-2.5 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Ahora no</button>
+              <button onClick={() => finishHostRating(pendingHostRating.plan, pendingHostRating.person)} className="w-full py-2.5 text-zinc-500 text-[11px] font-bold uppercase tracking-widest">Ahora no</button>
             </div>
           </Modal>
         )}
@@ -10382,7 +10388,7 @@ export default function App() {
                   {friendProfile && socialChips(friendProfile, { includeWhatsapp: true }).length > 0 && (
                     <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
                       {socialChips(friendProfile, { includeWhatsapp: true }).map(c => (
-                        <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`text-[12px] font-black active:scale-95 transition-all ${c.color}`}>{c.label}</a>
+                        <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`text-xs font-black active:scale-95 transition-all ${c.color}`}>{c.label}</a>
                       ))}
                     </div>
                   )}
@@ -10435,11 +10441,11 @@ export default function App() {
               </button>
               {!isSeedUid(selectedFriend.uid) && (
                 isBlocked(selectedFriend.uid) ? (
-                  <button onClick={() => void doUnblock(selectedFriend.uid)} className="w-full py-3 rounded-2xl bg-white/5 text-zinc-400 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                  <button onClick={() => void doUnblock(selectedFriend.uid)} className="w-full py-3 rounded-2xl bg-white/5 text-zinc-400 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all">
                     Desbloquear
                   </button>
                 ) : (
-                  <button onClick={() => { void doBlock(selectedFriend.uid, selectedFriend.name); setSelectedFriend(null); }} className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                  <button onClick={() => { void doBlock(selectedFriend.uid, selectedFriend.name); setSelectedFriend(null); }} className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all">
                     Bloquear a {selectedFriend.name.split(' ')[0]}
                   </button>
                 )
@@ -10459,7 +10465,7 @@ export default function App() {
               className="fixed bottom-24 left-4 right-4 z-[290] max-w-md mx-auto p-5 rounded-3xl bg-zinc-900 border border-iogga-primary/40 shadow-2xl space-y-3"
             >
               <p className="text-lg font-black text-white leading-tight">Hay datos de prueba</p>
-              <p className="text-[12px] text-zinc-400 leading-snug">
+              <p className="text-xs text-zinc-400 leading-snug">
                 Los planes y ofertas con etiqueta <span className="text-white font-bold">"Prueba"</span> son
                 ejemplos para que entiendas la app. Déjalos mientras aprendes, o quítalos si ya la dominas.
               </p>
@@ -10477,7 +10483,7 @@ export default function App() {
                   Dejarlos por ahora
                 </button>
               </div>
-              <p className="text-[10px] text-zinc-600 leading-snug flex items-center gap-1.5">
+              <p className="text-[11px] text-zinc-600 leading-snug flex items-center gap-1.5">
                 <Menu size={12} className="shrink-0" /> También puedes activarlos o quitarlos en el menú → "Datos de prueba".
               </p>
             </motion.div>
@@ -10499,11 +10505,11 @@ export default function App() {
                 className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/5 text-white/60 hover:bg-white/10 active:scale-90 transition-all"
                 aria-label="Cerrar"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
               <div className="flex justify-center">
                 <div className="p-4 rounded-3xl bg-iogga-accent/15 border border-iogga-accent/30 text-iogga-accent">
-                  <Store size={34} />
+                  <Store size={32} />
                 </div>
               </div>
               <h2 className="font-black text-white leading-[1.05]" style={{ fontSize: '2.1rem' }}>
@@ -10546,7 +10552,7 @@ export default function App() {
             >
               <div className="flex justify-center">
                 <div className="p-4 rounded-3xl bg-iogga-primary/15 border border-iogga-primary/30 text-iogga-primary">
-                  <Sparkles size={34} />
+                  <Sparkles size={32} />
                 </div>
               </div>
               <h2 className="font-black text-white leading-[1.05]" style={{ fontSize: '2.1rem' }}>
@@ -10576,16 +10582,16 @@ export default function App() {
                   {showLegal === 'privacy' ? 'Aviso de Privacidad' : 'Términos y Condiciones'}
                 </h3>
                 <button onClick={() => setShowLegal(null)} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 text-white/60">
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
               {showLegal === 'privacy' ? (
                 <div className="space-y-3 text-xs text-zinc-400 leading-relaxed">
                   <p><span className="text-white font-bold">Responsable:</span> {IOGGA_INFO.owner} (iogga), en adelante "la Plataforma", es responsable del tratamiento de tus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP).</p>
                   <p><span className="text-white font-bold">Domicilio:</span> {IOGGA_INFO.address}. Teléfono {IOGGA_INFO.phone}. Correo <span className="text-white">{IOGGA_INFO.email}</span>. Sitio <span className="text-white">{IOGGA_INFO.website}</span>.</p>
-                  <p><span className="text-white font-bold">Datos que recabamos:</span> nombre, correo electrónico, número de WhatsApp (opcional), fotografía de perfil (opcional), fecha de nacimiento (opcional), ubicación aproximada y la actividad que publiques en la Plataforma (planes, promociones y canjes).</p>
+                  <p><span className="text-white font-bold">Datos que recaba iogga:</span> nombre, correo electrónico, número de WhatsApp (opcional), fotografía de perfil (opcional), fecha de nacimiento (opcional), ubicación aproximada y la actividad que publiques en la Plataforma (planes, promociones y canjes).</p>
                   <p><span className="text-white font-bold">Finalidades:</span> crear y administrar tu cuenta; conectar planes personales con promociones comerciales; validar códigos de canje entre usuarios y negocios; mostrar estadísticas de uso a los negocios; realizar analítica de mercadotecnia; y enviarte ofertas y oportunidades relacionadas con la Plataforma.</p>
-                  <p><span className="text-white font-bold">No vendemos ni publicamos tus datos.</span> Tus datos no se venden, no se rentan ni se hacen públicos. Solo se usan para las finalidades descritas arriba.</p>
+                  <p><span className="text-white font-bold">iogga no vende ni publica tus datos.</span> Tus datos no se venden, no se rentan ni se hacen públicos. Solo se usan para las finalidades descritas arriba.</p>
                   <p><span className="text-white font-bold">Compartición:</span> tu nombre y foto son visibles para otros usuarios dentro de la Plataforma. Tu WhatsApp solo se muestra a quienes aceptas en tus planes, para coordinar directamente.</p>
                   <p><span className="text-white font-bold">Comunicaciones:</span> puedes dejar de recibir ofertas y avisos cuando quieras, desactivando las notificaciones en tu teléfono o escribiendo a <span className="text-white">{IOGGA_INFO.email}</span>. Darte de baja no afecta el uso de la Plataforma.</p>
                   <p><span className="text-white font-bold">Derechos ARCO:</span> tienes derecho a <span className="text-white">Acceder</span> a tus datos, <span className="text-white">Rectificarlos</span> si son inexactos, <span className="text-white">Cancelarlos</span> cuando consideres que no se requieren, y <span className="text-white">Oponerte</span> a su tratamiento; así como a revocar tu consentimiento y a limitar su uso o divulgación. Para ejercerlos escribe a <span className="text-white">{IOGGA_INFO.email}</span> indicando tu nombre, el derecho que deseas ejercer y un medio de contacto. Se responde en un plazo máximo de 20 días hábiles. También puedes eliminar tu cuenta y toda tu información desde Configuración, con el botón "Eliminar mi cuenta".</p>
@@ -10599,7 +10605,7 @@ export default function App() {
                   <p><span className="text-white font-bold">1. El servicio.</span> iogga conecta planes personales con promociones de negocios en tiempo real. iogga no es parte de las transacciones entre usuarios y negocios: los precios, la calidad y la entrega de productos o servicios son responsabilidad exclusiva del negocio.</p>
                   <p><span className="text-white font-bold">2. Tu cuenta.</span> Debes ser mayor de 18 años. Eres responsable de la información que publiques y de mantener la confidencialidad de tu acceso.</p>
                   <p><span className="text-white font-bold">3. Códigos de canje.</span> Los códigos QR generados por la Plataforma son personales, válidos por 24 horas y de un solo uso. Su validación es realizada por el negocio correspondiente. iogga no garantiza la disponibilidad de una promoción al momento del canje.</p>
-                  <p><span className="text-white font-bold">4. Encuentros entre usuarios.</span> Los planes se realizan bajo tu propia responsabilidad. Te recomendamos reunirte en lugares públicos y verificar la identidad de las personas. iogga no supervisa los encuentros ni se hace responsable de lo que ocurra en ellos.</p>
+                  <p><span className="text-white font-bold">4. Encuentros entre usuarios.</span> Los planes se realizan bajo tu propia responsabilidad. iogga recomienda reunirse en lugares públicos y verificar la identidad de las personas. iogga no supervisa los encuentros ni se hace responsable de lo que ocurra en ellos.</p>
                   <p><span className="text-white font-bold">5. Contenido.</span> No publiques contenido ilegal, ofensivo o engañoso. Podemos retirar contenido y suspender cuentas que violen estos términos.</p>
                   <p><span className="text-white font-bold">6. Responsabilidad.</span> La Plataforma se ofrece "tal cual", en etapa MVP. En la medida permitida por la ley, iogga no será responsable por daños indirectos derivados del uso del servicio.</p>
                   <p><span className="text-white font-bold">7. Propiedad intelectual.</span> <span className="text-white">iogga®</span> es una marca registrada. El nombre, el logotipo, el diseño, los textos y el software de la Plataforma están protegidos por derechos de autor registrados a nombre de {IOGGA_INFO.owner}. No se permite copiarlos, reproducirlos ni usarlos sin autorización por escrito.</p>
@@ -10714,10 +10720,10 @@ function BusinessEvalOverlay({ redemption, onRate, onSkip }: { redemption: Redem
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-t-[32px] sm:rounded-[32px] overflow-hidden shadow-2xl p-6 text-center space-y-4"
       >
-        <div className="w-14 h-14 rounded-2xl bg-iogga-accent/15 flex items-center justify-center mx-auto"><Store size={26} className="text-iogga-accent" /></div>
+        <div className="w-14 h-14 rounded-2xl bg-iogga-accent/15 flex items-center justify-center mx-auto"><Store size={24} className="text-iogga-accent" /></div>
         <div>
           <p className="text-xl font-black text-white tracking-tight leading-tight">¿Cómo estuvo {redemption.businessName}?</p>
-          <p className="text-[12px] text-zinc-400 mt-1">Tu opinión sobre "{redemption.promoTitle}" ayuda a otros en iogga.</p>
+          <p className="text-xs text-zinc-400 mt-1">Tu opinión sobre "{redemption.promoTitle}" ayuda a otros en iogga.</p>
         </div>
         <div className="flex items-center justify-center gap-2 py-2">
           {[1, 2, 3, 4, 5].map(n => (
@@ -10727,7 +10733,7 @@ function BusinessEvalOverlay({ redemption, onRate, onSkip }: { redemption: Redem
               onClick={() => onRate(n)}
               className="active:scale-90 transition-transform"
             >
-              <Star size={38} className={n <= hover ? 'text-amber-400 fill-amber-400' : 'text-zinc-600'} />
+              <Star size={40} className={n <= hover ? 'text-amber-400 fill-amber-400' : 'text-zinc-600'} />
             </button>
           ))}
         </div>
@@ -10794,7 +10800,7 @@ function StatusHelpOverlay({ preview, onClose, onShare }: { preview: string | nu
                 </div>
                 <div className="pt-0.5">
                   <p className="text-sm font-black text-white leading-tight">{s.title}</p>
-                  <p className="text-[12px] text-zinc-400 leading-snug mt-0.5">{s.body}</p>
+                  <p className="text-xs text-zinc-400 leading-snug mt-0.5">{s.body}</p>
                 </div>
               </div>
             ))}
@@ -10806,7 +10812,7 @@ function StatusHelpOverlay({ preview, onClose, onShare }: { preview: string | nu
             onClick={onShare}
             className="w-full py-4 bg-fuchsia-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-fuchsia-500/20 flex items-center justify-center gap-2"
           >
-            <Camera size={18} />
+            <Camera size={16} />
             Compartir ahora
           </button>
           <button
@@ -11060,7 +11066,7 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
               </div>
               <button 
                 onClick={onClose}
-                className="text-[10px] font-black text-zinc-500 uppercase tracking-widest hover:text-white transition-colors"
+                className="text-[11px] font-black text-zinc-500 uppercase tracking-widest hover:text-white transition-colors"
               >
                 Saltar
               </button>
@@ -11139,7 +11145,7 @@ function PlanCard({ plan, onAccept, onIgnore, preview = false }: { plan: Plan, o
       {isAiRecommended && (
         <div className="absolute top-0 right-0 bg-iogga-primary/20 px-4 py-1.5 rounded-bl-2xl border-l border-b border-iogga-primary/30 flex items-center gap-1.5 z-10 backdrop-blur-md">
           <Sparkles size={12} className="text-iogga-primary animate-pulse" />
-          <span className="text-[9px] font-black text-iogga-primary uppercase tracking-[0.2em]">Match IA</span>
+          <span className="text-[11px] font-black text-iogga-primary uppercase tracking-[0.2em]">Match IA</span>
         </div>
       )}
       
@@ -11156,24 +11162,24 @@ function PlanCard({ plan, onAccept, onIgnore, preview = false }: { plan: Plan, o
             <span className="font-black text-lg text-white truncate group-hover/avatar:text-iogga-primary transition-colors tracking-tight">{plan.userName}</span>
             <div className="flex items-center gap-0.5 text-yellow-500">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} size={10} fill={i < 4 ? "currentColor" : "none"} className={i < 4 ? "" : "opacity-30"} />
+                <Star key={i} size={12} fill={i < 4 ? "currentColor" : "none"} className={i < 4 ? "" : "opacity-30"} />
               ))}
             </div>
           </div>
         </button>
         <div className="flex flex-col items-end">
-          <span className="text-[10px] text-zinc-500 font-black uppercase tracking-widest shrink-0">Hace 15 min</span>
+          <span className="text-[11px] text-zinc-500 font-black uppercase tracking-widest shrink-0">Hace 15 min</span>
           <div className="flex items-center gap-1 text-iogga-primary mt-1">
             <div className="w-1 h-1 rounded-full bg-iogga-primary animate-ping"></div>
-            <span className="text-[8px] font-black uppercase tracking-widest">En línea</span>
+            <span className="text-[11px] font-black uppercase tracking-widest">En línea</span>
           </div>
         </div>
       </div>
 
       <div className="p-5 rounded-[24px] bg-white/5 border border-white/10 shadow-inner">
         <div className="flex items-center justify-between mb-4">
-          <h4 className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em]">Propuesta de Plan</h4>
-          <div className="px-2 py-0.5 rounded-md bg-white/10 text-[8px] font-bold text-white/60 uppercase tracking-widest">Verificado</div>
+          <h4 className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em]">Propuesta de Plan</h4>
+          <div className="px-2 py-0.5 rounded-md bg-white/10 text-[11px] font-bold text-white/60 uppercase tracking-widest">Verificado</div>
         </div>
         {renderPlanTechnicalDetails(plan, undefined, (plan.locationHint && plan.locationHint.trim()) || 'Zona por confirmar')}
       </div>
@@ -11231,11 +11237,11 @@ function GroupedPlanCard({ group, rank, locked, onUnlock }: { group: any, rank: 
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 bg-black/40 backdrop-blur-xl px-3 py-1.5 rounded-full border border-white/10 w-fit">
               <div className={`w-1.5 h-1.5 rounded-full ${isFirst ? 'bg-iogga-primary animate-pulse' : 'bg-iogga-accent'}`} />
-              <span className="text-[9px] font-black text-white uppercase tracking-[0.2em]">
+              <span className="text-[11px] font-black text-white uppercase tracking-[0.2em]">
                 {isFirst ? 'Tendencia #1' : 'En Alza'}
               </span>
             </div>
-            <span className="text-[10px] font-black text-iogga-primary uppercase tracking-[0.2em] bg-iogga-primary/20 px-3 py-1.5 rounded-full border border-iogga-primary/30 backdrop-blur-md w-fit">
+            <span className="text-[11px] font-black text-iogga-primary uppercase tracking-[0.2em] bg-iogga-primary/20 px-3 py-1.5 rounded-full border border-iogga-primary/30 backdrop-blur-md w-fit">
               {group.category}
             </span>
           </div>
@@ -11256,17 +11262,17 @@ function GroupedPlanCard({ group, rank, locked, onUnlock }: { group: any, rank: 
             </h3>
             <div className="flex items-center gap-2 text-white/80">
               <MapPin size={14} className="text-iogga-primary" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">{group.location}</span>
+              <span className="text-[11px] font-black uppercase tracking-[0.2em]">{group.location}</span>
             </div>
           </div>
 
           {/* Insight Bar - Elegant Glassmorphism */}
           <div className="flex items-center gap-3 bg-black/40 backdrop-blur-xl px-4 py-4 rounded-[24px] border border-white/10 group-hover:bg-black/60 transition-colors">
             <div className="p-2 bg-iogga-primary/20 rounded-xl shrink-0">
-              <Sparkles size={18} className="text-iogga-primary" />
+              <Sparkles size={16} className="text-iogga-primary" />
             </div>
             <p className="text-xs font-bold text-white/90 leading-snug">
-              Análisis en vivo: <span onClick={locked ? (e) => { e.stopPropagation(); onUnlock?.(); } : undefined} className={`text-iogga-primary ${locked ? 'blur-[5px] select-none cursor-pointer' : ''}`}>{group.count} personas</span> están buscando {group.subCategory.toLowerCase()} en este momento.{locked && <span className="block text-[9px] text-zinc-500 mt-1">Inicia sesión para ver los números en vivo</span>}
+              Análisis en vivo: <span onClick={locked ? (e) => { e.stopPropagation(); onUnlock?.(); } : undefined} className={`text-iogga-primary ${locked ? 'blur-[5px] select-none cursor-pointer' : ''}`}>{group.count} personas</span> están buscando {group.subCategory.toLowerCase()} en este momento.{locked && <span className="block text-[11px] text-zinc-500 mt-1">Inicia sesión para ver los números en vivo</span>}
             </p>
           </div>
 
@@ -11307,7 +11313,7 @@ const PromoCard: React.FC<PromoCardProps> = ({ promo, onClick, onBusinessClick }
         {promo.isSeed && <SeedTag />}
         <img src={promo.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
         {promo.offer && (
-          <span className="absolute bottom-2 left-2 px-2.5 py-1 rounded-full bg-iogga-accent text-white text-[10px] font-black uppercase tracking-wide shadow-lg">
+          <span className="absolute bottom-2 left-2 px-2.5 py-1 rounded-full bg-iogga-accent text-white text-[11px] font-black uppercase tracking-wide shadow-lg">
             {promo.offer}
           </span>
         )}
@@ -11324,8 +11330,8 @@ const PromoCard: React.FC<PromoCardProps> = ({ promo, onClick, onBusinessClick }
           <span className="text-[11px] font-bold text-zinc-400 truncate">{promo.businessName}</span>
         </button>
         {promo.location && (
-          <div className="flex items-center gap-1 text-[10px] text-zinc-500 min-w-0">
-            <MapPin size={10} className="shrink-0" />
+          <div className="flex items-center gap-1 text-[11px] text-zinc-500 min-w-0">
+            <MapPin size={12} className="shrink-0" />
             <span className="truncate">{promo.location}</span>
           </div>
         )}
@@ -11382,7 +11388,7 @@ function NavButton({ active, onClick, onDoubleClick, icon, label, color, id }: {
       <div className={`transition-all duration-300 ${active ? 'scale-110' : 'scale-100'}`}>
         {icon}
       </div>
-      <span className={`text-[8px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${active ? 'opacity-100 translate-y-0' : 'opacity-60 translate-y-0.5'}`}>
+      <span className={`text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${active ? 'opacity-100 translate-y-0' : 'opacity-60 translate-y-0.5'}`}>
         {label}
       </span>
       {active && (
@@ -11448,7 +11454,7 @@ function Modal({ children, onClose: rawClose, onBack, title }: { children: React
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5, ease: 'easeInOut' }}
+      transition={APPEAR}
       // Tocar fuera de la tarjeta también cierra (universal en iOS y Android).
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end"
@@ -11458,7 +11464,7 @@ function Modal({ children, onClose: rawClose, onBack, title }: { children: React
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 40, opacity: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 0.61, 0.36, 1] }}
+        transition={APPEAR}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -11534,22 +11540,22 @@ function UserProfileModal({ user, onClose, onComingSoon, trusted = false, follow
         <div className="grid grid-cols-3 gap-4">
           <div className="p-4 rounded-3xl bg-white/5 border border-white/10 text-center">
             <span className="text-2xl font-black text-white block">{user.userStats?.plans || 0}</span>
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Planes</span>
+            <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-widest">Planes</span>
           </div>
           <div className="p-4 rounded-3xl bg-white/5 border border-white/10 text-center">
             <span className="text-2xl font-black text-white block">{user.userStats?.friends || 0}</span>
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Amigos</span>
+            <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-widest">Amigos</span>
           </div>
           <div className="p-4 rounded-3xl bg-white/5 border border-white/10 text-center">
             <span className="text-2xl font-black text-white block">100%</span>
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Confianza</span>
+            <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-widest">Confianza</span>
           </div>
         </div>
 
         <div className="space-y-4">
           <h4 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em]">Sobre mí</h4>
           <p className="text-lg text-white/80 leading-relaxed font-medium italic">
-            "{user.userBio || '¡Hola! Soy nuevo en Iogga y estoy listo para crear planes increíbles.'}"
+            "{user.userBio || 'Nuevo en iogga.'}"
           </p>
         </div>
 
@@ -11579,7 +11585,7 @@ function UserProfileModal({ user, onClose, onComingSoon, trusted = false, follow
           <p className="text-[11px] text-zinc-500 text-center">Su WhatsApp y redes se muestran cuando te acepte como amigo (como en Instagram).</p>
         )}
         {onBlock && (
-          <button onClick={onBlock} className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+          <button onClick={onBlock} className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all">
             Bloquear a esta persona
           </button>
         )}
@@ -11610,7 +11616,7 @@ function BusinessProfileModal({ business, offers = [], onOpenOffer, waLink, onCl
               <h3 className="text-3xl font-black text-white tracking-tighter">{business.businessName}</h3>
               <div className="flex items-center gap-2 text-iogga-accent mt-1">
                 <CheckCircle2 size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Negocio Verificado</span>
+                <span className="text-[11px] font-black uppercase tracking-widest">Negocio Verificado</span>
               </div>
             </div>
           </div>
@@ -11620,7 +11626,7 @@ function BusinessProfileModal({ business, offers = [], onOpenOffer, waLink, onCl
         {appMode === 'person' && (
           <div className="p-6 rounded-[32px] bg-gradient-to-r from-iogga-accent/20 via-indigo-500/10 to-iogga-accent/5 border border-iogga-accent/30 space-y-4">
             <div className="flex items-center gap-2.5 text-iogga-accent">
-              <Sparkles size={18} className="animate-pulse" />
+              <Sparkles size={16} className="animate-pulse" />
               <h4 className="font-lexend font-black text-sm uppercase tracking-wider text-white">¿Tienes un negocio en Chihuahua?</h4>
             </div>
             <p className="text-xs text-zinc-300 font-sans leading-relaxed">
@@ -11643,22 +11649,22 @@ function BusinessProfileModal({ business, offers = [], onOpenOffer, waLink, onCl
         <div className="pt-6 grid grid-cols-3 gap-4">
           <div className="p-4 rounded-3xl bg-white/5 border border-white/10 text-center">
             <span className="text-2xl font-black text-white block">{business.businessStats?.offers || 0}</span>
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Ofertas</span>
+            <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-widest">Ofertas</span>
           </div>
           <div className="p-4 rounded-3xl bg-white/5 border border-white/10 text-center">
             <span className="text-2xl font-black text-white block">{business.businessStats?.followers || 0}</span>
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Seguidores</span>
+            <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-widest">Seguidores</span>
           </div>
           <div className="p-4 rounded-3xl bg-white/5 border border-white/10 text-center">
             <span className="text-2xl font-black text-white block">{(business.businessStats?.rating ?? 5).toFixed(1)}</span>
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Rating</span>
+            <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-widest">Rating</span>
           </div>
         </div>
 
         <div className="space-y-4">
-          <h4 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em]">Nuestra Historia</h4>
+          <h4 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em]">Acerca de</h4>
           <p className="text-lg text-white/80 leading-relaxed font-medium italic">
-            "{business.businessBio || 'Ofreciendo lo mejor para nuestra comunidad.'}"
+            "{business.businessBio || 'Un negocio de Chihuahua en iogga.'}"
           </p>
         </div>
 
@@ -11691,7 +11697,7 @@ function BusinessProfileModal({ business, offers = [], onOpenOffer, waLink, onCl
                 <img src={o.image} className="w-14 h-14 rounded-xl object-cover shrink-0" referrerPolicy="no-referrer" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-black text-white truncate">{o.title}</p>
-                  <p className="text-[10px] text-iogga-accent font-black uppercase tracking-widest">{o.offer} · {o.price}</p>
+                  <p className="text-[11px] text-iogga-accent font-black uppercase tracking-widest">{o.offer} · {o.price}</p>
                 </div>
                 <ChevronRight size={16} className="text-zinc-500 shrink-0" />
               </button>
@@ -11705,10 +11711,10 @@ function BusinessProfileModal({ business, offers = [], onOpenOffer, waLink, onCl
             {askCall && (
               <div className="absolute bottom-full mb-2 left-0 right-0 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-10">
                 <a href={phone ? `tel:${phone}` : undefined} onClick={() => setAskCall(false)} className="w-full px-4 py-3 flex items-center gap-2 text-sm font-bold text-white hover:bg-white/5 border-b border-white/5">
-                  <Smartphone size={15} className="text-iogga-primary" /> Llamada telefónica
+                  <Smartphone size={14} className="text-iogga-primary" /> Llamada telefónica
                 </a>
                 <a href={phone && waLink ? waLink(phone, `¡Hola ${business.businessName}! Los vi en iogga.`) : undefined} target="_blank" rel="noopener noreferrer" onClick={() => setAskCall(false)} className="w-full px-4 py-3 flex items-center gap-2 text-sm font-bold text-white hover:bg-white/5">
-                  <MessageSquare size={15} className="text-green-400" /> WhatsApp
+                  <MessageSquare size={14} className="text-green-400" /> WhatsApp
                 </a>
               </div>
             )}
@@ -11724,7 +11730,7 @@ function BusinessProfileModal({ business, offers = [], onOpenOffer, waLink, onCl
           </button>
         </div>
         {onBlock && (
-          <button onClick={onBlock} className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+          <button onClick={onBlock} className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 font-black text-[11px] uppercase tracking-widest active:scale-95 transition-all">
             Bloquear a este negocio
           </button>
         )}

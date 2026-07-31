@@ -135,6 +135,7 @@ import {
 import { RedeemQRModal, ValidateCodeModal } from './components/qr';
 import { pickImage } from './lib/images';
 import { playIntroChime, sfx, isSoundOn, setSoundOn } from './lib/sound';
+import { IOGGA_FEE_PCT, netForBusiness } from './lib/payments';
 import { APP_VERSION } from './lib/version';
 
 interface AppNotification {
@@ -701,6 +702,31 @@ function GoogleMark({ size = 15 }: { size?: number }) {
       <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
       <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
       <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 40.4 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/>
+    </svg>
+  );
+}
+
+// ---- Marcas de las redes sociales (glifos oficiales, un solo trazo sólido) ----
+// Se usan tal cual las dibujan las propias apps: son los iconos que TODO el
+// mundo reconoce. Mismo tamaño y mismo peso visual entre las tres.
+function InstagramMark({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16ZM12 0C8.74 0 8.33.01 7.05.07c-1.28.06-2.15.26-2.91.56-.79.3-1.46.72-2.13 1.38C1.35 2.68.93 3.35.63 4.14c-.3.76-.5 1.63-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.28.26 2.15.56 2.91.3.79.72 1.46 1.38 2.13.67.66 1.34 1.08 2.13 1.38.76.3 1.63.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.28-.06 2.15-.26 2.91-.56.79-.3 1.46-.72 2.13-1.38.66-.67 1.08-1.34 1.38-2.13.3-.76.5-1.63.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.28-.26-2.15-.56-2.91-.3-.79-.72-1.46-1.38-2.13C21.32 1.35 20.65.93 19.86.63c-.76-.3-1.63-.5-2.91-.56C15.67.01 15.26 0 12 0Zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32ZM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm7.85-10.4a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0Z" />
+    </svg>
+  );
+}
+function TikTokMark({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 1 1-1.82-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48Z" />
+    </svg>
+  );
+}
+function FacebookMark({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.09 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.09 24 18.1 24 12.07Z" />
     </svg>
   );
 }
@@ -2609,7 +2635,7 @@ export default function App() {
   // Estado de cuenta en TEXTO tipo ticket (modelo recibo bancario): cada venta
   // como bloque con campos en MAYÚSCULAS, líneas y renglones vacíos. Sirve para
   // conciliar contra el banco folio por folio.
-  const STATEMENT_FEE = 0.10; // comisión iogga del MVP (igual que el backend)
+  const STATEMENT_FEE = IOGGA_FEE_PCT / 100; // comisión de iogga (un solo lugar: lib/payments)
   const buildStatementTxt = (rows: Redemption[], opts: { negocio: string; promo?: string }) => {
     const money = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const fecha = (ms: number) => new Date(ms).toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -3957,7 +3983,14 @@ export default function App() {
                                         </div>
 
                                         <div className="flex gap-3 pt-2">
-                                          {joined ? (
+                                          {(plan.closed || isExpiredPlan(plan)) ? (
+                                            /* Plan cerrado o que ya pasó: NO se puede unir nadie.
+                                               En vez del botón, el estado (modelo de los eventos
+                                               pasados de Facebook: "Este evento ya terminó"). */
+                                            <p className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-zinc-500 text-xs font-bold text-center">
+                                              {plan.closed ? 'Este plan ya se cerró' : 'Este plan ya pasó'}
+                                            </p>
+                                          ) : joined ? (
                                             /* Ya unido (como "Asistiré ✓" de Facebook): reabre Avisar */
                                             <button
                                               onClick={(e) => { e.stopPropagation(); setJoinedFlow(plan); }}
@@ -5375,10 +5408,9 @@ export default function App() {
                         </div>
                       </div>
                       {(() => {
-                        const FEE = 0.10; // comisión iogga del MVP (misma que el backend de pagos)
                         const rows = myRedemptions.filter(r => r.status === 'redeemed');
                         const total = rows.reduce((s, r) => s + (r.priceAmount || 0), 0);
-                        const fee = Math.round(total * FEE * 100) / 100;
+                        const fee = Math.round((total - netForBusiness(total)) * 100) / 100;
                         const money = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                         return (
                           <>
@@ -5386,7 +5418,7 @@ export default function App() {
                               {[
                                 ['Ventas canjeadas', String(rows.length)],
                                 ['Total vendido', money(total)],
-                                ['Comisión iogga (10%)', `− ${money(fee)}`],
+                                [`Comisión iogga (${IOGGA_FEE_PCT}%)`, `− ${money(fee)}`],
                                 ['Neto a depositar', money(total - fee)],
                               ].map(([k, v], i, arr) => (
                                 <div key={k} className="flex items-center justify-between px-4 py-2.5">
@@ -6846,13 +6878,13 @@ export default function App() {
                           Escribe el precio que pagará el cliente y aquí verás al instante cuánto recibes tú.
                         </p>
                       );
-                      const fee = Math.round(p * 10) / 100;
+                      const fee = Math.round((p - netForBusiness(p)) * 100) / 100;
                       const money = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                       return (
                         <div className="rounded-2xl bg-white/5 border border-white/10 divide-y divide-white/5 overflow-hidden">
                           {[
                             ['El cliente paga', money(p), 'text-white'],
-                            ['Comisión iogga (10%)', `− ${money(fee)}`, 'text-zinc-400'],
+                            [`Comisión iogga (${IOGGA_FEE_PCT}%)`, `− ${money(fee)}`, 'text-zinc-400'],
                             ['Tú recibes en tu cuenta', money(p - fee), 'text-emerald-400'],
                           ].map(([k, v, cls], i, arr) => (
                             <div key={k} className={`flex items-center justify-between px-4 py-2.5 ${i === arr.length - 1 ? 'bg-emerald-500/5' : ''}`}>
@@ -7612,7 +7644,13 @@ export default function App() {
                     </button>
                   </div>
                 ) : (
-                  acceptedPlanIds.includes(selectedPlanForDetails.id) ? (
+                  (selectedPlanForDetails.closed || isExpiredPlan(selectedPlanForDetails)) ? (
+                    // Ya pasó o se cerró: nadie se puede unir. Se muestra el estado,
+                    // no un botón que no va a funcionar (eventos pasados de Facebook).
+                    <p className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-zinc-500 text-xs font-bold text-center uppercase tracking-wider">
+                      {selectedPlanForDetails.closed ? 'Este plan ya se cerró' : 'Este plan ya pasó'}
+                    </p>
+                  ) : acceptedPlanIds.includes(selectedPlanForDetails.id) ? (
                     // Ya te uniste (como "Asistiré ✓"): tocar reabre Avisar por iogga/WhatsApp
                     <div className="flex gap-4">
                       <button
@@ -7864,18 +7902,13 @@ export default function App() {
                 <div className="space-y-2">
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2">Pagos y Negocio</p>
                   <div className="bg-white/5 rounded-3xl border border-white/10 overflow-hidden">
+                    {/* UNA sola entrada de dinero por modo (antes "Métodos de pago"
+                        y "Billetera" abrían exactamente lo mismo). Cada modo usa
+                        el nombre de su lado del dinero, como en Uber: quien paga
+                        ve "Métodos de pago"; quien cobra ve "Cobros y depósitos". */}
                     <SettingsItem
-                      icon={<CreditCard size={18} />}
-                      label="Métodos de Pago"
-                      onClick={() => {
-                        // Muestra la billetera, donde se ve con qué cuenta pagas
-                        setShowSettingsMenu(false);
-                        ensureLoggedIn(() => setShowWallet(true));
-                      }}
-                    />
-                    <SettingsItem
-                      icon={<Wallet size={18} />}
-                      label="Billetera iogga"
+                      icon={mode === 'business' ? <Wallet size={18} /> : <CreditCard size={18} />}
+                      label={mode === 'business' ? 'Cobros y depósitos' : 'Métodos de pago'}
                       onClick={() => {
                         setShowSettingsMenu(false);
                         ensureLoggedIn(() => setShowWallet(true));
@@ -7973,15 +8006,6 @@ export default function App() {
                       }}
                     />
                   </div>
-                  {/* Redes y contacto oficiales. Solo aparece lo que existe: las
-                      redes vacías en IOGGA_INFO no se muestran (cero enlaces rotos). */}
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 px-3 pt-1">
-                    {socialChips(IOGGA_INFO).map(c => (
-                      <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className={`text-[12px] font-black active:scale-95 transition-all ${c.color}`}>{c.label}</a>
-                    ))}
-                    <a href={`mailto:${IOGGA_INFO.email}`} className="text-[12px] font-black text-zinc-300 active:scale-95 transition-all">Correo</a>
-                    <a href={waLink(IOGGA_INFO.phone, 'Hola iogga, necesito ayuda.')} target="_blank" rel="noopener noreferrer" className="text-[12px] font-black text-green-400 active:scale-95 transition-all">WhatsApp</a>
-                  </div>
                 </div>
 
                 {isLoggedIn ? (
@@ -8041,10 +8065,35 @@ export default function App() {
                     <RefreshCw size={16} /> Actualizar a la última versión
                   </button>
                 )}
-                <div className="space-y-1">
-                  <p className="text-center text-[10px] text-zinc-600 font-medium">iogga v{APP_VERSION} • Hecho con amor en Chihuahua{updateReady ? ' • hay una versión nueva' : ''}</p>
-                  {/* Marca y derechos: al pie, discreto, como el "Acerca de" de WhatsApp */}
-                  <p className="text-center text-[10px] text-zinc-700 leading-snug px-4">{IOGGA_LEGAL}</p>
+                {/* PIE: redes de iogga en fila de iconos redondos centrados, con
+                    el glifo real de cada marca. Es el pie de "Síguenos" que usan
+                    Uber Eats, Netflix y Airbnb: iconos, nada de texto suelto.
+                    Solo aparece la red que tenga usuario en IOGGA_INFO. */}
+                <div className="pt-2 space-y-4">
+                  <div className="flex items-center justify-center gap-3">
+                    {[
+                      IOGGA_INFO.instagram && { key: 'ig', label: 'Instagram', href: `https://instagram.com/${IOGGA_INFO.instagram}`, icon: <InstagramMark size={19} /> },
+                      IOGGA_INFO.tiktok && { key: 'tt', label: 'TikTok', href: `https://tiktok.com/@${IOGGA_INFO.tiktok}`, icon: <TikTokMark size={19} /> },
+                      IOGGA_INFO.facebook && { key: 'fb', label: 'Facebook', href: `https://facebook.com/${IOGGA_INFO.facebook}`, icon: <FacebookMark size={19} /> },
+                      IOGGA_INFO.website && { key: 'web', label: 'Sitio web', href: `https://${IOGGA_INFO.website}`, icon: <Globe size={19} /> },
+                    ].filter(Boolean).map((s: any) => (
+                      <a
+                        key={s.key}
+                        href={s.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={s.label}
+                        className="w-11 h-11 rounded-full bg-white/5 border border-white/10 text-zinc-400 flex items-center justify-center active:scale-90 hover:text-white hover:bg-white/10 transition-all"
+                      >
+                        {s.icon}
+                      </a>
+                    ))}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-center text-[10px] text-zinc-600 font-medium">iogga v{APP_VERSION} • Hecho con amor en Chihuahua{updateReady ? ' • hay una versión nueva' : ''}</p>
+                    {/* Marca y derechos: al pie, discreto, como el "Acerca de" de WhatsApp */}
+                    <p className="text-center text-[10px] text-zinc-700 leading-snug px-4">{IOGGA_LEGAL}</p>
+                  </div>
                 </div>
               </div>
             </Modal>
@@ -9049,7 +9098,7 @@ export default function App() {
         )}
 
         {showWallet && (
-          <Modal onClose={() => setShowWallet(false)} title={mode === 'business' ? 'Cuentas de tu empresa' : 'Billetera'}>
+          <Modal onClose={() => setShowWallet(false)} title={mode === 'business' ? 'Cobros y depósitos' : 'Métodos de pago'}>
             {mode === 'business' ? (
               <div className="space-y-4">
                 <p className="text-[11px] text-zinc-400 leading-snug">Aquí es donde te depositamos el dinero de tus ventas en cada corte (transferencia SPEI).</p>

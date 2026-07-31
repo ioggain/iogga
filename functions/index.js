@@ -244,10 +244,36 @@ exports.mpWebhook = onRequest({ secrets: [MP_ACCESS_TOKEN], region: 'us-central1
   try {
     const paymentId = req.body?.data?.id || req.query['data.id'];
     if (req.body?.type === 'payment' || req.query.type === 'payment') {
-      const r = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-        headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN.value()}` },
-      });
-      const pay = await r.json();
+      const readPayment = async (token) => {
+        try {
+          const r = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          return await r.json();
+        } catch { return null; }
+      };
+      // Con qué token le preguntamos a Mercado Pago por este pago:
+      //  - Venta normal (cobra iogga): con el token de iogga.
+      //  - Venta REPARTIDA (marketplace): el pago vive en la cuenta del NEGOCIO
+      //    y SOLO su token puede leerlo. Mercado Pago manda el id de esa cuenta
+      //    en "user_id", así que buscamos al negocio por ahí y reintentamos.
+      //    Sin esto, las ventas repartidas nunca se marcaban como pagadas.
+      let pay = await readPayment(MP_ACCESS_TOKEN.value());
+      if (!pay?.id) {
+        const rawSeller = req.body?.user_id ?? req.query['user_id'] ?? null;
+        if (rawSeller !== null && rawSeller !== undefined && String(rawSeller) !== '') {
+          const col = admin.firestore().collection('mp_sellers');
+          // El id puede estar guardado como número o como texto: probamos ambos.
+          for (const v of [Number(rawSeller), String(rawSeller)]) {
+            if (typeof v === 'number' && !Number.isFinite(v)) continue;
+            const q = await col.where('mpUserId', '==', v).limit(1).get().catch(() => null);
+            const tok = q && !q.empty ? q.docs[0].data().access_token : null;
+            if (!tok) continue;
+            const alt = await readPayment(tok);
+            if (alt?.id) { pay = alt; break; }
+          }
+        }
+      }
       if (pay?.id) {
         const meta = pay.metadata || {};
         const amount = Number(pay.transaction_amount) || 0;

@@ -12,7 +12,7 @@ import {
   type Redemption,
   type ValidationResult,
 } from '../lib/firebase';
-import { PAYMENTS_ENABLED, createPaymentLink } from '../lib/payments';
+import { PAYMENTS_ENABLED, createPaymentLink, netForBusiness } from '../lib/payments';
 import { sfx } from '../lib/sound';
 
 // "sáb 19 jul, 9:30 p.m." — para decir claramente hasta cuándo vale el QR
@@ -164,12 +164,33 @@ export function RedeemQRModal({
     }
   }, [redemption, payStep]);
 
-  const downloadQR = () => {
+  // Guardar el QR en el teléfono. En iPhone el "descargar" de toda la vida NO
+  // funciona con imágenes generadas: hay que usar la hoja de compartir del
+  // sistema (Guardar en Fotos). Mismo arreglo que ya se hizo en la analítica.
+  const downloadQR = async () => {
     if (!canvasRef.current || !redemption) return;
-    const link = document.createElement('a');
-    link.download = `iogga-${redemption.code}.png`;
-    link.href = canvasRef.current.toDataURL('image/png');
-    link.click();
+    const name = `iogga-${redemption.code}.png`;
+    try {
+      const blob: Blob | null = await new Promise((res) => canvasRef.current!.toBlob(res, 'image/png'));
+      if (blob) {
+        const file = new File([blob], name, { type: 'image/png' });
+        const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean; share?: (d: any) => Promise<void> };
+        if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
+          await nav.share({ files: [file], title: name });
+          return;
+        }
+        // Android y computadora: descarga normal
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        return;
+      }
+    } catch { /* si el usuario cancela la hoja de compartir, no pasa nada */ }
   };
 
   // Mandar el QR por WhatsApp: la imagen si el teléfono lo permite (hoja de
@@ -369,7 +390,7 @@ export function ValidateCodeModal({ onClose, validatorUid }: { onClose: () => vo
     // Y dejar constancia al NEGOCIO en su campanita (venta + dinero en camino)
     if (res.ok && res.redemption.businessUid) {
       const amt = res.redemption.priceAmount || 0;
-      const neto = amt - Math.round(amt * 10) / 100;
+      const neto = netForBusiness(amt);
       void sendNotification({
         type: 'system',
         to: res.redemption.businessUid,

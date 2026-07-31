@@ -1116,10 +1116,12 @@ export async function validateRedemption(rawCode: string, validatorUid?: string 
         salesCount: increment(1),
         totalEarnings: increment(redemption.priceAmount || 0),
       }).catch(() => {});
-      // Libro contable de IOGGA: base para pagos en la app y comisión por transacción.
-      // Hoy la venta se cobra en el local (offline); cuando activemos pagos, aquí
-      // se registrará el cobro y la comisión ya está calculada.
-      const IOGGA_COMMISSION_RATE = 0.05;
+      // Libro contable de iogga. REGLA: en "amount" va SOLO lo que gana iogga.
+      // Un canje NO es ingreso de iogga: el dinero de la venta es del negocio.
+      // El ingreso real (la comisión) lo registra el webhook de Mercado Pago
+      // cuando el pago se aprueba, en ledger/mp_{pago}. Si aquí se apuntara el
+      // precio de la venta, el panel sumaría como "Ingresos iogga" dinero ajeno
+      // y lo contaría dos veces. Por eso amount = 0 y la venta va aparte.
       await setDoc(doc(db, 'ledger', code), {
         type: 'redemption',
         code,
@@ -1127,10 +1129,8 @@ export async function validateRedemption(rawCode: string, validatorUid?: string 
         promoTitle: redemption.promoTitle,
         businessUid: redemption.businessUid || null,
         businessName: redemption.businessName,
-        amount: redemption.priceAmount || 0,
-        commissionRate: IOGGA_COMMISSION_RATE,
-        commissionAmount: Math.round((redemption.priceAmount || 0) * IOGGA_COMMISSION_RATE * 100) / 100,
-        paymentStatus: 'offline', // 'offline' hoy; 'paid_in_app' cuando activemos pagos
+        amount: 0, // ingreso de iogga por este movimiento
+        saleAmount: redemption.priceAmount || 0, // lo que cobró el negocio
         createdAt: serverTimestamp(),
         createdAtMs: Date.now(),
       }).catch(() => {});

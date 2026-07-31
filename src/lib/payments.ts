@@ -7,6 +7,16 @@ export const MP_PUBLIC_KEY = 'APP_USR-3d540450-e4f5-41b2-b972-107a25654fb1'; // 
 // nadie se traba). En cuanto las Functions estén vivas, el cobro aparece solo.
 export const PAYMENTS_ENABLED = true;
 
+// Comisión de iogga sobre cada venta, en porcentaje. DEBE coincidir con
+// IOGGA_FEE_PCT del backend (functions/index.js), que es quien la cobra de
+// verdad. Aquí vive solo para MOSTRARLA; nunca se escribió a mano en pantalla.
+export const IOGGA_FEE_PCT = 10;
+
+// Lo que le queda al negocio de una venta (lo que ve en sus movimientos).
+export function netForBusiness(amount: number): number {
+  return Math.round((amount - (amount * IOGGA_FEE_PCT) / 100) * 100) / 100;
+}
+
 const FN_BASE = 'https://us-central1-iogga-b932b.cloudfunctions.net';
 
 // Pide al backend el link de pago para una promo; abre la pantalla segura de MP.

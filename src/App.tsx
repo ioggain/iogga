@@ -311,13 +311,18 @@ const IOGGA_WELCOME = 'iogga es la app para salir del móvil y vivir lo espontá
 // Si se deja vacío, esa red simplemente no aparece (así nunca hay enlaces rotos).
 const IOGGA_INFO = {
   website: 'iogga.com',
-  instagram: '',
-  tiktok: '',
-  facebook: '',
+  instagram: 'ioggain',
+  tiktok: 'ioggain',
+  facebook: 'ioggain',
   email: 'admin@iogga.com',
-  phone: '614 980 2402',
+  phone: '614 688 7271',
+  owner: 'Omar Eduardo Hernández Hernández',
   address: 'Tecnológico de Monterrey Campus Chihuahua, Av. H. Colegio Militar 4709, Nombre de Dios, 31150, Chihuahua, Chihuahua, México',
 };
+
+// Aviso de marca y derechos de autor. Una sola línea, al pie, como en el
+// "Acerca de" de WhatsApp e Instagram: discreta pero siempre visible.
+const IOGGA_LEGAL = `© ${new Date().getFullYear()} iogga® — Marca registrada. Derechos de autor registrados. Todos los derechos reservados.`;
 
 // ---- Voz: hablar (TTS) y escuchar (reconocimiento) para Platica y Dicta ----
 function speakEs(text: string): Promise<void> {
@@ -8036,7 +8041,11 @@ export default function App() {
                     <RefreshCw size={16} /> Actualizar a la última versión
                   </button>
                 )}
-                <p className="text-center text-[10px] text-zinc-600 font-medium">iogga v{APP_VERSION} • Hecho con amor en Chihuahua{updateReady ? ' • hay una versión nueva' : ''}</p>
+                <div className="space-y-1">
+                  <p className="text-center text-[10px] text-zinc-600 font-medium">iogga v{APP_VERSION} • Hecho con amor en Chihuahua{updateReady ? ' • hay una versión nueva' : ''}</p>
+                  {/* Marca y derechos: al pie, discreto, como el "Acerca de" de WhatsApp */}
+                  <p className="text-center text-[10px] text-zinc-700 leading-snug px-4">{IOGGA_LEGAL}</p>
+                </div>
               </div>
             </Modal>
           )}
@@ -10523,7 +10532,7 @@ export default function App() {
               </div>
               {showLegal === 'privacy' ? (
                 <div className="space-y-3 text-xs text-zinc-400 leading-relaxed">
-                  <p><span className="text-white font-bold">Responsable:</span> Omar Eduardo Hernández Holguín (iogga), en adelante "la Plataforma", es responsable del tratamiento de tus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP).</p>
+                  <p><span className="text-white font-bold">Responsable:</span> {IOGGA_INFO.owner} (iogga), en adelante "la Plataforma", es responsable del tratamiento de tus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP).</p>
                   <p><span className="text-white font-bold">Domicilio:</span> {IOGGA_INFO.address}. Teléfono {IOGGA_INFO.phone}. Correo <span className="text-white">{IOGGA_INFO.email}</span>. Sitio <span className="text-white">{IOGGA_INFO.website}</span>.</p>
                   <p><span className="text-white font-bold">Datos que recabamos:</span> nombre, correo electrónico, número de WhatsApp (opcional), fotografía de perfil (opcional), fecha de nacimiento (opcional), ubicación aproximada y la actividad que publiques en la Plataforma (planes, promociones y canjes).</p>
                   <p><span className="text-white font-bold">Finalidades:</span> crear y administrar tu cuenta; conectar planes personales con promociones comerciales; validar códigos de canje entre usuarios y negocios; mostrar estadísticas de uso a los negocios; realizar analítica de mercadotecnia; y enviarte ofertas y oportunidades relacionadas con la Plataforma.</p>
@@ -10544,8 +10553,10 @@ export default function App() {
                   <p><span className="text-white font-bold">4. Encuentros entre usuarios.</span> Los planes se realizan bajo tu propia responsabilidad. Te recomendamos reunirte en lugares públicos y verificar la identidad de las personas. iogga no supervisa los encuentros ni se hace responsable de lo que ocurra en ellos.</p>
                   <p><span className="text-white font-bold">5. Contenido.</span> No publiques contenido ilegal, ofensivo o engañoso. Podemos retirar contenido y suspender cuentas que violen estos términos.</p>
                   <p><span className="text-white font-bold">6. Responsabilidad.</span> La Plataforma se ofrece "tal cual", en etapa MVP. En la medida permitida por la ley, iogga no será responsable por daños indirectos derivados del uso del servicio.</p>
-                  <p><span className="text-white font-bold">7. Contacto.</span> {IOGGA_INFO.email} · {IOGGA_INFO.phone} · Chihuahua, México.</p>
+                  <p><span className="text-white font-bold">7. Propiedad intelectual.</span> <span className="text-white">iogga®</span> es una marca registrada. El nombre, el logotipo, el diseño, los textos y el software de la Plataforma están protegidos por derechos de autor registrados a nombre de {IOGGA_INFO.owner}. No se permite copiarlos, reproducirlos ni usarlos sin autorización por escrito.</p>
+                  <p><span className="text-white font-bold">8. Contacto.</span> {IOGGA_INFO.email} · {IOGGA_INFO.phone} · Chihuahua, México.</p>
                   <p className="text-zinc-600">Última actualización: julio de 2026.</p>
+                  <p className="text-zinc-600">{IOGGA_LEGAL}</p>
                 </div>
               )}
             </div>

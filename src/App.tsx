@@ -7656,7 +7656,65 @@ export default function App() {
           )}
 
           {selectedPlanForDetails && (
-            <Modal onClose={() => setSelectedPlanForDetails(null)} title="Detalles del Plan">
+            <Modal
+              onClose={() => setSelectedPlanForDetails(null)}
+              title="Detalles del plan"
+              footer={<>
+                  {isMyPlan(selectedPlanForDetails) ? (
+                    // Es TU plan: no puedes unirte al tuyo; muestra acciones útiles.
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => { const p = selectedPlanForDetails; setSelectedPlanForDetails(null); handleEditPlan(p); }}
+                        className="flex-1 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+                      >
+                        <Edit3 size={16} /> Editar
+                      </button>
+                      <button
+                        onClick={() => { const p = selectedPlanForDetails; setSelectedPlanForDetails(null); openInvite(p); }}
+                        className="flex-[2] py-4 rounded-2xl bg-green-500 text-white font-black shadow-lg shadow-green-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
+                      >
+                        <UserPlus size={16} /> Invitar personas
+                      </button>
+                    </div>
+                  ) : (
+                    (selectedPlanForDetails.closed || isExpiredPlan(selectedPlanForDetails)) ? (
+                      // Ya pasó o se cerró: nadie se puede unir. Se muestra el estado,
+                      // no un botón que no va a funcionar (eventos pasados de Facebook).
+                      <p className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-zinc-500 text-xs font-bold text-center uppercase tracking-wider">
+                        {selectedPlanForDetails.closed ? 'Este plan ya se cerró' : 'Este plan ya pasó'}
+                      </p>
+                    ) : acceptedPlanIds.includes(selectedPlanForDetails.id) ? (
+                      // Ya te uniste (como "Asistiré ✓"): tocar reabre Avisar por iogga/WhatsApp
+                      <div className="flex gap-4">
+                        <button
+                          onClick={() => { const p = selectedPlanForDetails; setSelectedPlanForDetails(null); setJoinedFlow(p); }}
+                          className="w-full py-4 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 font-black flex items-center justify-center gap-2 text-xs uppercase tracking-wider active:scale-[0.98] transition-all"
+                        >
+                          <CheckCircle2 size={16} /> Te uniste
+                        </button>
+                      </div>
+                    ) : (
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => {
+                          handleIgnorePlan(selectedPlanForDetails.id);
+                          setSelectedPlanForDetails(null);
+                        }}
+                        className="flex-1 py-4 rounded-2xl bg-white/5 text-zinc-400 font-bold hover:bg-white/10 transition-all text-xs uppercase"
+                      >
+                        Ignorar
+                      </button>
+                      <button
+                        onClick={() => handleAcceptPlan(selectedPlanForDetails.id)}
+                        className="flex-[2] py-4 rounded-2xl bg-iogga-primary text-white font-black shadow-lg shadow-iogga-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-center flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
+                      >
+                        <CheckCircle2 size={16} /> Unirme al plan
+                      </button>
+                    </div>
+                    )
+                  )}
+              </>}
+            >
               <div className="space-y-6">
                 <div className="relative aspect-video rounded-3xl overflow-hidden shadow-2xl">
                   {selectedPlanForDetails.isSeed && <SeedTag />}
@@ -7858,65 +7916,49 @@ export default function App() {
                   )}
                 </div>
 
-                {isMyPlan(selectedPlanForDetails) ? (
-                  // Es TU plan: no puedes unirte al tuyo; muestra acciones útiles.
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => { const p = selectedPlanForDetails; setSelectedPlanForDetails(null); handleEditPlan(p); }}
-                      className="flex-1 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2"
-                    >
-                      <Edit3 size={16} /> Editar
-                    </button>
-                    <button
-                      onClick={() => { const p = selectedPlanForDetails; setSelectedPlanForDetails(null); openInvite(p); }}
-                      className="flex-[2] py-4 rounded-2xl bg-green-500 text-white font-black shadow-lg shadow-green-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
-                    >
-                      <UserPlus size={16} /> Invitar personas
-                    </button>
-                  </div>
-                ) : (
-                  (selectedPlanForDetails.closed || isExpiredPlan(selectedPlanForDetails)) ? (
-                    // Ya pasó o se cerró: nadie se puede unir. Se muestra el estado,
-                    // no un botón que no va a funcionar (eventos pasados de Facebook).
-                    <p className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-zinc-500 text-xs font-bold text-center uppercase tracking-wider">
-                      {selectedPlanForDetails.closed ? 'Este plan ya se cerró' : 'Este plan ya pasó'}
-                    </p>
-                  ) : acceptedPlanIds.includes(selectedPlanForDetails.id) ? (
-                    // Ya te uniste (como "Asistiré ✓"): tocar reabre Avisar por iogga/WhatsApp
-                    <div className="flex gap-4">
-                      <button
-                        onClick={() => { const p = selectedPlanForDetails; setSelectedPlanForDetails(null); setJoinedFlow(p); }}
-                        className="w-full py-4 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 font-black flex items-center justify-center gap-2 text-xs uppercase tracking-wider active:scale-[0.98] transition-all"
-                      >
-                        <CheckCircle2 size={16} /> Te uniste
-                      </button>
-                    </div>
-                  ) : (
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => {
-                        handleIgnorePlan(selectedPlanForDetails.id);
-                        setSelectedPlanForDetails(null);
-                      }}
-                      className="flex-1 py-4 rounded-2xl bg-white/5 text-zinc-400 font-bold hover:bg-white/10 transition-all text-xs uppercase"
-                    >
-                      Ignorar
-                    </button>
-                    <button
-                      onClick={() => handleAcceptPlan(selectedPlanForDetails.id)}
-                      className="flex-[2] py-4 rounded-2xl bg-iogga-primary text-white font-black shadow-lg shadow-iogga-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-center flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
-                    >
-                      <CheckCircle2 size={16} /> Unirme al plan
-                    </button>
-                  </div>
-                  )
-                )}
               </div>
             </Modal>
           )}
 
           {selectedPromo && (
-            <Modal onClose={() => setSelectedPromo(null)} title="Detalle de la oferta">
+            <Modal
+              onClose={() => setSelectedPromo(null)}
+              title="Detalle de la oferta"
+              footer={
+                (() => {
+                  // Pokayoke: si ya la compró y su QR sigue vigente, no volver a
+                  // cobrarle sin querer — se le muestra SU QR y la opción de
+                  // comprar otra (por ejemplo, para alguien más).
+                  const owned = myActivePurchases.find(r => r.promoId === selectedPromo.id);
+                  if (owned) return (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => ensureLoggedIn(() => setRedeemPromo(selectedPromo))}
+                        className="flex-1 py-4 bg-white/5 border border-white/10 text-white rounded-[24px] font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+                      >
+                        Comprar otra
+                      </button>
+                      <button
+                        onClick={() => { setSelectedPromo(null); setViewQR(owned); }}
+                        className="flex-[2] py-4 bg-emerald-500 text-white rounded-[24px] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-emerald-500/30"
+                      >
+                        <CheckCircle2 size={16} />
+                        Ver mi QR
+                      </button>
+                    </div>
+                  );
+                  return (
+                    <button
+                      onClick={() => ensureLoggedIn(() => setRedeemPromo(selectedPromo))}
+                      className="w-full py-4 bg-iogga-accent text-white rounded-[24px] font-black text-base uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-iogga-accent/30"
+                    >
+                      <QrCode size={20} />
+                      {parsePrice(selectedPromo.price) > 0 ? `Obtener por $${parsePrice(selectedPromo.price).toLocaleString('es-MX')}` : 'Obtener promoción'}
+                    </button>
+                  );
+                })()
+              }
+            >
               <div className="space-y-6">
                 {/* Main Offer Card */}
                 <div className="relative rounded-[32px] overflow-hidden border border-white/10 shadow-2xl bg-zinc-900">
@@ -8032,46 +8074,6 @@ export default function App() {
                       {userSelectedOfferIds[expandedPlanId] === selectedPromo.id ? 'Promo Seleccionada' : 'Seleccionar Promo'}
                     </button>
                   )}
-                  {(() => {
-                    // Pokayoke: si ya la compró y su QR sigue vigente, no volver a
-                    // cobrarle sin querer — le mostramos SU QR y la opción de
-                    // comprar otra (p. ej. para alguien más).
-                    const owned = myActivePurchases.find(r => r.promoId === selectedPromo.id);
-                    if (owned) return (
-                      <>
-                        <button
-                          onClick={() => { setSelectedPromo(null); setViewQR(owned); }}
-                          className="w-full py-5 bg-emerald-500 text-white rounded-[24px] font-black text-base uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-emerald-500/30"
-                        >
-                          <CheckCircle2 size={20} />
-                          Ya tienes esta promo — Ver mi QR
-                        </button>
-                        <button
-                          onClick={() => ensureLoggedIn(() => setRedeemPromo(selectedPromo))}
-                          className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-[24px] font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
-                        >
-                          <QrCode size={16} />
-                          Comprar otra
-                        </button>
-                      </>
-                    );
-                    return (
-                      <>
-                        <button
-                          onClick={() => ensureLoggedIn(() => setRedeemPromo(selectedPromo))}
-                          className="w-full py-5 bg-iogga-accent text-white rounded-[24px] font-black text-base uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-iogga-accent/30"
-                        >
-                          <QrCode size={20} />
-                          {parsePrice(selectedPromo.price) > 0 ? `Obtener por $${parsePrice(selectedPromo.price).toLocaleString('es-MX')}` : 'Obtener promoción'}
-                        </button>
-                        <p className="text-[11px] text-zinc-500 text-center leading-snug">
-                          {parsePrice(selectedPromo.price) > 0
-                            ? 'Pagas exactamente ese precio, sin cargos extra. Recibes tu QR y lo presentas en el local.'
-                            : 'Generas tu código QR y lo puedes descargar para presentarlo en el local.'}
-                        </p>
-                      </>
-                    );
-                  })()}
                 </div>
               </div>
             </Modal>
@@ -8362,7 +8364,26 @@ export default function App() {
 
           {/* Coincidence / Match Celebration Modal for Users */}
           {showMatchCelebration && lastPublishedPlan && (
-            <Modal onClose={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); }} title="Revisa y publica">
+            <Modal
+              onClose={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); }}
+              title="Revisa y publica"
+              footer={
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { const p = lastPublishedPlan; setShowMatchCelebration(false); handleEditPlan(p); }}
+                    className="flex-1 py-4 rounded-[24px] bg-white/10 text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
+                  >
+                    Modificar
+                  </button>
+                  <button
+                    onClick={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); maybeOfferInstall(); }}
+                    className="flex-[2] py-4 rounded-[24px] bg-iogga-primary text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-iogga-primary/20"
+                  >
+                    Listo
+                  </button>
+                </div>
+              }
+            >
               <div className="space-y-6">
 
                 {/* ── CAJA IOGGA: vista previa + invitados + botón, TODO adentro ── */}
@@ -8542,21 +8563,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Tu plan YA está publicado; estos botones solo cierran esta pantalla */}
-                <div className="flex gap-3 pt-1">
-                  <button
-                    onClick={() => { const p = lastPublishedPlan; setShowMatchCelebration(false); handleEditPlan(p); }}
-                    className="flex-1 py-4 rounded-[24px] bg-white/10 text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
-                  >
-                    Regresar a modificar
-                  </button>
-                  <button
-                    onClick={() => { setPendingFriendIds([]); setShowMatchCelebration(false); setActiveTab('active'); maybeOfferInstall(); }}
-                    className="flex-1 py-4 rounded-[24px] bg-iogga-primary text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-iogga-primary/20"
-                  >
-                    Listo
-                  </button>
-                </div>
                 <p className="text-center text-[11px] text-zinc-600">Tu plan ya está publicado y guardado. Puedes cerrar sin perderlo.</p>
               </div>
             </Modal>
@@ -8663,7 +8669,58 @@ export default function App() {
 
           {/* Editor de cupón personalizado (igual a editar promo): ajusta y envía */}
           {couponDraft && (
-            <Modal onClose={() => setCouponDraft(null)} title="Cupón especial">
+            <Modal
+            onClose={() => setCouponDraft(null)}
+            title="Cupón especial"
+            footer={
+                  <button
+                    onClick={() => {
+                      const d = couponDraft;
+                      const idSeed = `${d.target.id}-${d.promo.id}`;
+                      setAcceptedPlanIds(prev => prev.includes(idSeed) ? prev : [...prev, idSeed]);
+                      // La invitación personalizada le llega como plan-invitación
+                      const newInv: Plan = {
+                        id: Math.random().toString(36).substr(2, 9),
+                        userName: d.promo.businessName || 'Negocio',
+                        userAvatar: d.promo.businessLogo || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=150&q=80',
+                        activity: `🎁 ${d.offer ? d.offer + ' — ' : ''}${d.title}`,
+                        comment: d.description,
+                        startTime: d.target.startTime,
+                        endTime: d.target.endTime,
+                        location: d.promo.location,
+                        acceptedCount: 1,
+                        timestamp: Date.now(),
+                        isPublic: false,
+                        image: d.image,
+                        tags: [],
+                        budget: 'no-money',
+                        transport: 'each-arrives',
+                        guests: 'public',
+                        isInvitation: true,
+                        invitedUids: d.target.uid ? [d.target.uid] : [],
+                      };
+                      void saveDocIn('plans', newInv.id, newInv);
+                      setPlans(prev => [newInv, ...prev]);
+                      // Notificación real al dueño del plan (campana + casita)
+                      if (d.target.uid) {
+                        void sendNotification({
+                          type: 'invite',
+                          to: d.target.uid,
+                          fromName: d.promo.businessName || 'Negocio',
+                          title: `${d.promo.businessName} te envió un cupón`,
+                          message: `${d.offer ? d.offer + ' — ' : ''}${d.title}. ${d.description}`,
+                          planId: newInv.id,
+                        });
+                      }
+                      setCouponDraft(null);
+                      triggerBeta('¡Cupón enviado!', `${d.target.userName.split(' ')[0]} recibirá tu cupón especial en sus invitaciones.`);
+                    }}
+                    className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-iogga-accent/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Send size={16} /> Enviar cupón
+                  </button>
+            }
+          >
               <div className="space-y-5">
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
                   <img src={couponDraft.target.userAvatar} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" />
@@ -8696,52 +8753,6 @@ export default function App() {
                   placeholder="Mensaje para la persona"
                   className="w-full h-24 px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-iogga-accent outline-none resize-none"
                 />
-                <button
-                  onClick={() => {
-                    const d = couponDraft;
-                    const idSeed = `${d.target.id}-${d.promo.id}`;
-                    setAcceptedPlanIds(prev => prev.includes(idSeed) ? prev : [...prev, idSeed]);
-                    // La invitación personalizada le llega como plan-invitación
-                    const newInv: Plan = {
-                      id: Math.random().toString(36).substr(2, 9),
-                      userName: d.promo.businessName || 'Negocio',
-                      userAvatar: d.promo.businessLogo || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=150&q=80',
-                      activity: `🎁 ${d.offer ? d.offer + ' — ' : ''}${d.title}`,
-                      comment: d.description,
-                      startTime: d.target.startTime,
-                      endTime: d.target.endTime,
-                      location: d.promo.location,
-                      acceptedCount: 1,
-                      timestamp: Date.now(),
-                      isPublic: false,
-                      image: d.image,
-                      tags: [],
-                      budget: 'no-money',
-                      transport: 'each-arrives',
-                      guests: 'public',
-                      isInvitation: true,
-                      invitedUids: d.target.uid ? [d.target.uid] : [],
-                    };
-                    void saveDocIn('plans', newInv.id, newInv);
-                    setPlans(prev => [newInv, ...prev]);
-                    // Notificación real al dueño del plan (campana + casita)
-                    if (d.target.uid) {
-                      void sendNotification({
-                        type: 'invite',
-                        to: d.target.uid,
-                        fromName: d.promo.businessName || 'Negocio',
-                        title: `${d.promo.businessName} te envió un cupón`,
-                        message: `${d.offer ? d.offer + ' — ' : ''}${d.title}. ${d.description}`,
-                        planId: newInv.id,
-                      });
-                    }
-                    setCouponDraft(null);
-                    triggerBeta('¡Cupón enviado!', `${d.target.userName.split(' ')[0]} recibirá tu cupón especial en sus invitaciones.`);
-                  }}
-                  className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-iogga-accent/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-                >
-                  <Send size={16} /> Enviar cupón
-                </button>
               </div>
             </Modal>
           )}
@@ -8815,7 +8826,22 @@ export default function App() {
 
           {/* Simple Login & Signup Modal */}
           {showLoginModal && (
-            <Modal onClose={() => setShowLoginModal(false)} title={isRegistering ? "Crear Cuenta" : "Iniciar Sesión"}>
+            <Modal
+              onClose={() => setShowLoginModal(false)}
+              title={isRegistering ? 'Crear cuenta' : 'Iniciar sesión'}
+              footer={
+                // El botón vive fuera del formulario pero lo envía igual gracias
+                // al atributo "form": así queda fijo abajo, siempre a la vista.
+                <button
+                  type="submit"
+                  form="login-form"
+                  disabled={authBusy}
+                  className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-sm uppercase tracking-widest shadow-lg shadow-iogga-primary/20 active:scale-95 transition-all min-h-[48px] disabled:opacity-50"
+                >
+                  {authBusy ? 'Un momento…' : isRegistering ? 'Crear mi cuenta' : 'Entrar'}
+                </button>
+              }
+            >
               <div className="space-y-6">
                 <div className="text-center space-y-2">
                   <div className="inline-flex p-4 rounded-full bg-iogga-primary/10 text-iogga-primary border border-iogga-primary/20 mb-2">
@@ -8917,7 +8943,7 @@ export default function App() {
                   } finally {
                     setAuthBusy(false);
                   }
-                }} className="space-y-4">
+                }} id="login-form" className="space-y-4">
                   {isRegistering && (
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest block font-sans">Tu Nombre</label>
@@ -8977,24 +9003,6 @@ export default function App() {
                     </p>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={authBusy}
-                    className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-sm uppercase tracking-widest shadow-lg shadow-iogga-primary/20 active:scale-95 transition-all min-h-[48px] mt-2 disabled:opacity-50"
-                  >
-                    {authBusy ? "Un momento…" : isRegistering ? "Crear mi Cuenta" : "Entrar ahora"}
-                  </button>
-
-                  {/* Registrarse SIEMPRE visible y destacado (para quien aún no tiene cuenta) */}
-                  {!isRegistering && (
-                    <button
-                      type="button"
-                      onClick={() => { setAuthError(''); setIsRegistering(true); }}
-                      className="w-full py-4 bg-violet-500/15 text-violet-300 border border-violet-400/40 rounded-[20px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all"
-                    >
-                      Regístrate ahora — es gratis
-                    </button>
-                  )}
 
                   {/* Recuperar contraseña (solo al iniciar sesión) */}
                   {!isRegistering && (
@@ -9326,7 +9334,51 @@ export default function App() {
         )}
 
         {showDeleteAccount && (
-          <Modal onClose={() => setShowDeleteAccount(false)} title="Eliminar mi cuenta">
+          <Modal
+            onClose={() => setShowDeleteAccount(false)}
+            title="Eliminar mi cuenta"
+            footer={
+                <div className="grid grid-cols-1 gap-2">
+                  <button
+                    disabled={!deleteReason || deletingAccount}
+                    onClick={async () => {
+                      if (!currentUser) return;
+                      setDeletingAccount(true);
+                      const res = await deleteMyAccount(currentUser.uid, deleteReason);
+                      setDeletingAccount(false);
+                      if (res.ok) {
+                        // Limpiar toda la sesión local (igual que cerrar sesión).
+                        setShowDeleteAccount(false);
+                        setIsLoggedIn(false);
+                        setCurrentUser(null);
+                        setUserProfile({});
+                        setHasBusiness(false);
+                        setMode('person');
+                        setFollowing([]); setFollowers([]); setAcceptedPlanIds([]);
+                        setActiveTab('home');
+                        setIsIntro(true);
+                        try { localStorage.clear(); } catch {}
+                        triggerBeta('Cuenta eliminada', res.needsRelogin
+                          ? 'Tu información fue borrada y tu sesión cerrada. Por seguridad, el cierre final de la cuenta se completa en breve.'
+                          : 'Tu cuenta y tu información se eliminaron. Gracias por haber usado iogga.');
+                      } else {
+                        triggerBeta('No se pudo eliminar', 'Vuelve a iniciar sesión e inténtalo de nuevo (por seguridad, borrar la cuenta requiere una sesión reciente).');
+                      }
+                    }}
+                    className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+                  >
+                    {deletingAccount ? <RefreshCw size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                    {deletingAccount ? 'Eliminando…' : 'Eliminar mi cuenta permanentemente'}
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteAccount(false)}
+                    className="w-full py-3.5 bg-white/5 border border-white/10 text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+            }
+          >
             <div className="space-y-5">
               <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/25">
                 <p className="text-sm font-black text-red-400 mb-1">Esta acción es permanente</p>
@@ -9349,45 +9401,6 @@ export default function App() {
                   ))}
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-2">
-                <button
-                  disabled={!deleteReason || deletingAccount}
-                  onClick={async () => {
-                    if (!currentUser) return;
-                    setDeletingAccount(true);
-                    const res = await deleteMyAccount(currentUser.uid, deleteReason);
-                    setDeletingAccount(false);
-                    if (res.ok) {
-                      // Limpiar toda la sesión local (igual que cerrar sesión).
-                      setShowDeleteAccount(false);
-                      setIsLoggedIn(false);
-                      setCurrentUser(null);
-                      setUserProfile({});
-                      setHasBusiness(false);
-                      setMode('person');
-                      setFollowing([]); setFollowers([]); setAcceptedPlanIds([]);
-                      setActiveTab('home');
-                      setIsIntro(true);
-                      try { localStorage.clear(); } catch {}
-                      triggerBeta('Cuenta eliminada', res.needsRelogin
-                        ? 'Tu información fue borrada y tu sesión cerrada. Por seguridad, el cierre final de la cuenta se completa en breve.'
-                        : 'Tu cuenta y tu información se eliminaron. Gracias por haber usado iogga.');
-                    } else {
-                      triggerBeta('No se pudo eliminar', 'Vuelve a iniciar sesión e inténtalo de nuevo (por seguridad, borrar la cuenta requiere una sesión reciente).');
-                    }
-                  }}
-                  className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-                >
-                  {deletingAccount ? <RefreshCw size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                  {deletingAccount ? 'Eliminando…' : 'Eliminar mi cuenta permanentemente'}
-                </button>
-                <button
-                  onClick={() => setShowDeleteAccount(false)}
-                  className="w-full py-3.5 bg-white/5 border border-white/10 text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all"
-                >
-                  Cancelar
-                </button>
-              </div>
             </div>
           </Modal>
         )}
@@ -9396,7 +9409,30 @@ export default function App() {
             "Compartir" abre la hoja del sistema, donde aparecen las apps de IA
             instaladas en el teléfono para analizar la información. */}
         {exportPack && (
-          <Modal onClose={() => setExportPack(null)} title={`Compartir ${exportPack.title.toLowerCase()}`}>
+          <Modal
+            onClose={() => setExportPack(null)}
+            title={`Compartir ${exportPack.title.toLowerCase()}`}
+            footer={
+              // Compartir directo: abre la hoja del sistema con tus apps de IA
+                <button
+                  onClick={async () => {
+                    const cols: string[] = Array.from(exportPack.rows.reduce((s: Set<string>, r) => { Object.keys(r).forEach(k => s.add(k)); return s; }, new Set<string>()));
+                    const texto = [
+                      `iogga · ${exportPack.title.toUpperCase()} (${exportPack.rows.length} registros)`,
+                      '',
+                      ...exportPack.rows.slice(0, 60).map((r, i) => `${i + 1}. ` + cols.map(c => `${c}: ${r[c] ?? '—'}`).join(' | ')),
+                    ].join('\n');
+                    try {
+                      if ((navigator as any).share) await (navigator as any).share({ title: `iogga · ${exportPack.title}`, text: texto });
+                      else { await navigator.clipboard.writeText(texto); triggerBeta('Copiado', 'Los datos se copiaron. Pégalos en tu IA favorita y pregúntale lo que quieras.'); }
+                    } catch { /* el usuario canceló */ }
+                  }}
+                  className="w-full py-4 rounded-2xl bg-indigo-500 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+                >
+                  <Send size={16} /> Compartir con una IA
+                </button>
+            }
+          >
             <div className="space-y-5">
               <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/25">
                 <p className="text-base font-black text-white leading-snug">Manda estos datos a tu IA</p>
@@ -9432,24 +9468,6 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              {/* Compartir directo (abre la hoja del sistema con tus apps de IA) */}
-              <button
-                onClick={async () => {
-                  const cols: string[] = Array.from(exportPack.rows.reduce((s: Set<string>, r) => { Object.keys(r).forEach(k => s.add(k)); return s; }, new Set<string>()));
-                  const texto = [
-                    `iogga · ${exportPack.title.toUpperCase()} (${exportPack.rows.length} registros)`,
-                    '',
-                    ...exportPack.rows.slice(0, 60).map((r, i) => `${i + 1}. ` + cols.map(c => `${c}: ${r[c] ?? '—'}`).join(' | ')),
-                  ].join('\n');
-                  try {
-                    if ((navigator as any).share) await (navigator as any).share({ title: `iogga · ${exportPack.title}`, text: texto });
-                    else { await navigator.clipboard.writeText(texto); triggerBeta('Copiado', 'Los datos se copiaron. Pégalos en tu IA favorita y pregúntale lo que quieras.'); }
-                  } catch { /* el usuario canceló */ }
-                }}
-                className="w-full py-4 rounded-2xl bg-indigo-500 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
-              >
-                <Send size={16} /> Compartir con una IA
-              </button>
             </div>
           </Modal>
         )}
@@ -9775,7 +9793,23 @@ export default function App() {
 
         {/* Ventana para invitar a un plan: elegir iogga (amigos) o WhatsApp */}
         {invitePlan && (
-          <Modal onClose={() => { setInvitePlan(null); }} title="Invitar a tu plan">
+          <Modal
+            onClose={() => { setInvitePlan(null); }}
+            title="Invitar a tu plan"
+            footer={
+              // WhatsApp además envía la invitación por iogga a los NUEVOS
+              <button
+                onClick={() => {
+                  sendIoggaInvites(invitePlan, inviteNew);
+                  sharePlanWhatsApp(invitePlan);
+                  setInvitePlan(null); setInviteSel([]); setInviteBaseline([]);
+                }}
+                className="w-full py-4 bg-green-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <UserPlus size={16} /> Invitar por WhatsApp
+              </button>
+            }
+          >
             <div className="space-y-5">
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                 <p className="text-sm text-white leading-relaxed">{buildInviteMessage(invitePlan)}</p>
@@ -9856,18 +9890,6 @@ export default function App() {
                 <div className="flex-1 h-px bg-white/10" /><span className="text-[11px] text-zinc-600 font-bold">O</span><div className="flex-1 h-px bg-white/10" />
               </div>
 
-              {/* Opción 2: WhatsApp */}
-              <button
-                onClick={() => {
-                  // WhatsApp además envía la invitación por iogga a los NUEVOS
-                  sendIoggaInvites(invitePlan, inviteNew);
-                  sharePlanWhatsApp(invitePlan);
-                  setInvitePlan(null); setInviteSel([]); setInviteBaseline([]);
-                }}
-                className="w-full py-4 bg-green-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                <UserPlus size={16} /> Invitar por WhatsApp
-              </button>
             </div>
           </Modal>
         )}
@@ -10334,7 +10356,18 @@ export default function App() {
         {/* ¡Te uniste! — avisar por iogga o WhatsApp (mismo patrón que Invitar).
             Pokayoke: al cerrar, el aviso en iogga se envía solo si no lo tocó. */}
         {joinedFlow && (
-          <Modal onClose={() => { notifyHostJoined(joinedFlow); setJoinedFlow(null); }} title="¡Te uniste!">
+          <Modal
+            onClose={() => { notifyHostJoined(joinedFlow); setJoinedFlow(null); }}
+            title="Te uniste"
+            footer={
+              <button
+                onClick={() => { notifyHostJoined(joinedFlow); setJoinedFlow(null); }}
+                className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
+              >
+                Listo
+              </button>
+            }
+          >
             <div className="space-y-5">
               <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-3">
                 <img src={joinedFlow.userAvatar} className="w-11 h-11 rounded-full object-cover" referrerPolicy="no-referrer" />
@@ -10371,19 +10404,29 @@ export default function App() {
 
               <p className="text-[11px] text-zinc-500 text-center leading-snug">Cuando {joinedFlow.userName.split(' ')[0]} te elija, te avisaremos y podrás ver la ubicación exacta{joinedFlow.whatsapp ? '' : ' y su WhatsApp'}.</p>
 
-              <button
-                onClick={() => { notifyHostJoined(joinedFlow); setJoinedFlow(null); }}
-                className="w-full py-4 bg-white/10 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
-              >
-                Listo
-              </button>
             </div>
           </Modal>
         )}
 
         {/* Crear / editar GRUPO (como WhatsApp): nombre + personas de iogga */}
         {groupDraft && (
-          <Modal onClose={() => setGroupDraft(null)} title={groupDraft.id ? 'Editar grupo' : 'Nuevo grupo'}>
+          <Modal
+            onClose={() => setGroupDraft(null)}
+            title={groupDraft.id ? 'Editar grupo' : 'Nuevo grupo'}
+            footer={
+              <button
+                disabled={!groupDraft.name.trim() || groupDraft.members.length === 0}
+                onClick={() => {
+                  const g: IoggaGroup = { id: groupDraft.id || Math.random().toString(36).substr(2, 9), name: groupDraft.name.trim(), members: groupDraft.members };
+                  saveGroups(groupDraft.id ? myGroups.map(x => x.id === g.id ? g : x) : [...myGroups, g]);
+                  setGroupDraft(null);
+                }}
+                className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                <Check size={16} /> {groupDraft.id ? 'Guardar cambios' : `Crear grupo${groupDraft.members.length ? ` (${groupDraft.members.length})` : ''}`}
+              </button>
+            }
+          >
             <div className="space-y-5">
               {/* Nombre del grupo */}
               <div className="relative">
@@ -10447,19 +10490,6 @@ export default function App() {
                   });
                 })()}
               </div>
-
-              {/* Guardar / eliminar */}
-              <button
-                disabled={!groupDraft.name.trim() || groupDraft.members.length === 0}
-                onClick={() => {
-                  const g: IoggaGroup = { id: groupDraft.id || Math.random().toString(36).substr(2, 9), name: groupDraft.name.trim(), members: groupDraft.members };
-                  saveGroups(groupDraft.id ? myGroups.map(x => x.id === g.id ? g : x) : [...myGroups, g]);
-                  setGroupDraft(null);
-                }}
-                className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-              >
-                <Check size={16} /> {groupDraft.id ? 'Guardar cambios' : `Crear grupo${groupDraft.members.length ? ` (${groupDraft.members.length})` : ''}`}
-              </button>
               {groupDraft.id && (
                 <button
                   onClick={() => { saveGroups(myGroups.filter(x => x.id !== groupDraft.id)); setGroupDraft(null); }}
@@ -10675,30 +10705,35 @@ export default function App() {
 
         {/* Cerrar el plan o dejarlo abierto (tras aceptar a las personas) */}
         {pendingClose && (
-          <Modal onClose={() => setPendingClose(null)} title="¿Ya está tu grupo?">
+          <Modal
+            onClose={() => setPendingClose(null)}
+            title="¿Ya está tu grupo?"
+            footer={<div className="space-y-2">
+                <button
+                  onClick={() => {
+                    const updated = { ...pendingClose, closed: true };
+                    void saveDocIn('plans', pendingClose.id, updated);
+                    setPlans(prev => prev.map(p => p.id === pendingClose.id ? updated : p));
+                    setPendingClose(null);
+                    triggerBeta('Plan cerrado', 'Tu grupo quedó listo. Ya no recibirás más. Cerrar no afecta tu calificación.');
+                  }}
+                  className="w-full py-4 bg-emerald-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-emerald-500/20"
+                >
+                  Cerrar plan
+                </button>
+                <button
+                  onClick={() => setPendingClose(null)}
+                  className="w-full py-4 bg-white/10 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  Dejarlo abierto
+                </button>
+            </div>}
+          >
             <div className="space-y-4 text-center">
               <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
                 <CheckCircle2 size={32} />
               </div>
               <p className="text-sm text-zinc-300 leading-relaxed px-2">Ya avisaste a las personas que aceptaste. ¿Cierras el plan o lo dejas abierto por si se suman más?</p>
-              <button
-                onClick={() => {
-                  const updated = { ...pendingClose, closed: true };
-                  void saveDocIn('plans', pendingClose.id, updated);
-                  setPlans(prev => prev.map(p => p.id === pendingClose.id ? updated : p));
-                  setPendingClose(null);
-                  triggerBeta('Plan cerrado', 'Tu grupo quedó listo. Ya no recibirás más. Cerrar no afecta tu calificación.');
-                }}
-                className="w-full py-4 bg-emerald-500 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-emerald-500/20"
-              >
-                Cerrar plan
-              </button>
-              <button
-                onClick={() => setPendingClose(null)}
-                className="w-full py-4 bg-white/10 text-white rounded-[24px] font-black text-sm uppercase tracking-widest active:scale-95 transition-all"
-              >
-                Dejarlo abierto
-              </button>
             </div>
           </Modal>
         )}

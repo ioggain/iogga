@@ -57,6 +57,7 @@ import {
   FileDown,
   CalendarPlus,
   ClipboardPaste,
+  Image as ImageIcon,
   Volume2,
   VolumeX
 } from 'lucide-react';
@@ -756,40 +757,6 @@ async function readImageFromClipboard(): Promise<string | null> {
   }
 }
 
-// Par de botones universales para la foto: buscar en Google (logo de Google +
-// lupa) y pegar desde el portapapeles (icono universal de pegar). Se usa igual
-// en planes y en ofertas, para no duplicar diseños.
-function ImageSourceButtons({ query, onPaste, accent = 'primary', onOpen, onEmpty }: {
-  query: string;
-  onPaste: (dataUrl: string) => void;
-  accent?: 'primary' | 'accent';
-  onOpen: (url: string) => void;
-  onEmpty: () => void;
-}) {
-  const pasteCls = accent === 'accent'
-    ? 'bg-iogga-accent/15 border-iogga-accent/30 text-iogga-accent'
-    : 'bg-iogga-primary/15 border-iogga-primary/30 text-iogga-primary';
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      <button
-        type="button"
-        onClick={() => onOpen(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query || 'foto')}`)}
-        className="py-3 bg-white/5 border border-white/10 text-zinc-200 rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
-      >
-        <GoogleMark size={14} />
-        Buscar imagen
-      </button>
-      <button
-        type="button"
-        onClick={async () => { const img = await readImageFromClipboard(); if (img) onPaste(img); else onEmpty(); }}
-        className={`py-3 border rounded-2xl font-bold text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 ${pasteCls}`}
-      >
-        <ClipboardPaste size={14} />
-        Pegar imagen
-      </button>
-    </div>
-  );
-}
 
 // Zona o colonia de una dirección (para la pista pública, sin dar el punto
 // exacto). Se saca del mismo servicio de mapas: "Centro", "San Felipe", etc.
@@ -880,60 +847,6 @@ const OFFER_IDEAS = [
 
 // Mini "video" animado (sin peso de video real): muestra en bucle cómo instalar
 // iogga en iPhone — tocar Compartir, subir el menú y Agregar a inicio.
-function InstallAnimationIOS() {
-  const [scene, setScene] = React.useState(0);
-  React.useEffect(() => {
-    const t = setInterval(() => setScene(s => (s + 1) % 3), 1800);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <div className="relative w-40 h-64 mx-auto rounded-[24px] border-4 border-zinc-700 bg-zinc-900 overflow-hidden shadow-2xl">
-      {/* Pantalla: página de iogga */}
-      <div className="absolute inset-0 flex flex-col">
-        <div className="flex-1 flex flex-col items-center justify-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-white shadow-[0_0_18px_rgba(255,255,255,0.35)]" />
-          <span className="text-white text-sm font-bold" style={{ fontFamily: '"Quicksand", sans-serif' }}>iogga</span>
-        </div>
-        {/* Barra de Safari con el botón Compartir */}
-        <div className="h-11 bg-zinc-800/95 border-t border-white/10 flex items-center justify-center gap-6 relative z-10">
-          <span className="w-4 h-4 rounded-sm bg-white/15" />
-          <motion.span
-            animate={scene === 0 ? { scale: [1, 1.35, 1] } : { scale: 1 }}
-            transition={{ duration: 0.9, repeat: scene === 0 ? Infinity : 0 }}
-            className={`w-8 h-8 rounded-xl flex items-center justify-center ${scene === 0 ? 'bg-[#0a84ff] ring-4 ring-[#0a84ff]/30' : 'bg-[#0a84ff]/60'}`}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>
-          </motion.span>
-          <span className="w-4 h-4 rounded-sm bg-white/15" />
-        </div>
-      </div>
-      {/* Menú de compartir que sube (escenas 1 y 2) */}
-      <motion.div
-        animate={{ y: scene === 0 ? 200 : 0 }}
-        transition={{ type: 'spring', damping: 22, stiffness: 220 }}
-        className="absolute bottom-0 left-0 right-0 bg-zinc-800 rounded-t-2xl border-t border-white/15 p-3 space-y-2 z-20"
-      >
-        <div className="w-8 h-1 bg-white/20 rounded-full mx-auto" />
-        <div className="h-6 rounded-lg bg-white/10" />
-        <motion.div
-          animate={scene === 2 ? { scale: [1, 1.06, 1], backgroundColor: ['rgba(99,102,241,0.25)', 'rgba(99,102,241,0.5)', 'rgba(99,102,241,0.25)'] } : {}}
-          transition={{ duration: 0.9, repeat: scene === 2 ? Infinity : 0 }}
-          className={`h-8 rounded-lg flex items-center justify-between px-2.5 ${scene === 2 ? 'bg-iogga-primary/30 ring-2 ring-iogga-primary' : 'bg-white/10'}`}
-        >
-          <span className="text-[11px] font-black text-white">Agregar a inicio</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
-        </motion.div>
-        <div className="h-6 rounded-lg bg-white/10" />
-      </motion.div>
-      {/* Etiqueta de la escena */}
-      <div className="absolute top-2 left-0 right-0 text-center z-30">
-        <span className="text-[11px] font-black text-white bg-black/60 px-2 py-1 rounded-full uppercase tracking-widest">
-          {scene === 0 ? '1 · Toca Compartir' : scene === 1 ? '2 · Sube el menú' : '3 · Agregar a inicio'}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 // Mini "video" animado del ESTADO (mismo formato que el de instalar): compartir,
 // elegir WhatsApp, tocar Mi estado y elegir quién puede verla (3 puntos).
@@ -2232,6 +2145,52 @@ export default function App() {
     requestAnimationFrame(() => mainScrollRef.current?.scrollTo({ top: 0 }));
   };
 
+  // ---- "¿TE AYUDO?": si nadie toca nada, iogga da la pista ----
+  // Cuando alguien se queda parado en un paso del asistente, aparece abajo una
+  // pista con lo que toca hacer. Es el mismo recurso de Duolingo y de los
+  // formularios de Google: si te trabas, la ayuda llega sola, sin taparte nada.
+  const [stuckHint, setStuckHint] = useState<string | null>(null);
+  const PLAN_STEP_HINT: Record<number, string> = {
+    0: 'Escribe qué quieres hacer, o toca el micrófono y díctalo.',
+    1: 'Elige el día y la hora. Con un toque en "Hoy" o "Mañana" basta.',
+    2: 'Di con cuántas personas quieres ir.',
+    3: 'Toca el recuadro para poner una foto (del celular o de Google).',
+    4: 'Escribe dónde se ven. Si aparece una dirección abajo, tócala.',
+    5: 'Agrega un comentario si quieres. También puedes seguir sin escribir nada.',
+    6: 'Ya está: toca "Revisar mi invitación" abajo.',
+  };
+  useEffect(() => {
+    setStuckHint(null);
+    if (!showCreatePlan || showVoiceIntro || askDraft) return;
+    let alive = true;
+    const t = setTimeout(() => { if (alive) setStuckHint(PLAN_STEP_HINT[currentPlanStep] || null); }, 4000);
+    // Cualquier señal de vida cancela la pista: no molestar a quien sí sabe.
+    const wake = () => { alive = false; clearTimeout(t); setStuckHint(null); };
+    window.addEventListener('pointerdown', wake);
+    window.addEventListener('keydown', wake);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+      window.removeEventListener('pointerdown', wake);
+      window.removeEventListener('keydown', wake);
+    };
+  }, [showCreatePlan, currentPlanStep, showVoiceIntro, askDraft]);
+
+  // ---- HOJA DE "AGREGAR FOTO" (modelo del clip de WhatsApp / Instagram) ----
+  // Un toque sobre el recuadro de la foto abre TODAS las opciones juntas:
+  // el celular (cámara y galería), buscar en Google y pegar lo copiado.
+  // Antes las de Google estaban en letras chiquitas abajo y nadie las leía.
+  const [photoSheet, setPhotoSheet] = useState<{ query: string; onPick: (img: string) => void } | null>(null);
+
+  // ¿Hay ya algo abierto en pantalla? Los avisos que NO son urgentes (el de
+  // datos de prueba, las pistas) esperan su turno: nunca se encima uno sobre
+  // otro. Regla de las apps grandes: un solo mensaje a la vez.
+  const somethingOpen = () =>
+    showSplash || showTutorial || isIntro || showBetaModal || showPersonWelcome || showBizWelcome ||
+    showInstall || showLoginModal || showSettingsMenu || showCreatePlan || showCreatePromo ||
+    showEditProfile || showEditBusinessProfile || askSaveProfile || showMatchCelebration ||
+    !!selectedPromo || !!selectedPlanForDetails || !!redeemPromo || !!invitePlan;
+
   // Cerrar el perfil con cambios sin guardar: Guardar / No guardar / Cancelar
   // (el mismo diálogo de Word, Google Docs y Mac).
   const [askSaveProfile, setAskSaveProfile] = useState(false);
@@ -3095,18 +3054,10 @@ export default function App() {
   const [tutorialStep, setTutorialStep] = useState(0);
   const [tutorialMode, setTutorialMode] = useState<UserMode>('person');
 
-  useEffect(() => {
-    if (!showTutorial) return;
-
-    if (tutorialMode === 'person') {
-      if (tutorialStep <= 2 || tutorialStep === 5) setActiveTab('home');
-      else if (tutorialStep === 3) setActiveTab('search');
-      else if (tutorialStep === 4) setActiveTab('profile');
-    } else {
-      if (tutorialStep === 0 || tutorialStep === 1 || tutorialStep >= 3) setActiveTab('home');
-      else if (tutorialStep === 2) setActiveTab('search');
-    }
-  }, [tutorialStep, tutorialMode, showTutorial]);
+  // La pestaña de cada paso del recorrido la decide el propio recorrido
+  // (su "onEnter"). Antes había además esta lista de números escrita a mano que
+  // mandaba a otra pestaña distinta, y el foco quedaba señalando un botón que no
+  // estaba en pantalla. Un solo lugar manda: el recorrido.
 
   useEffect(() => {
     if (mode === 'business' && activeTab === 'search') {
@@ -3176,20 +3127,18 @@ export default function App() {
     return () => window.removeEventListener('open-create-promo', handleOpenCreatePromo);
   }, []);
 
-  // Pista pública AUTOMÁTICA: si el usuario puso el lugar exacto pero no escribió
-  // la zona, la sacamos del mapa (colonia/zona) para que los demás sepan por dónde
-  // es, sin revelar el punto exacto. Si él escribe la suya, se respeta siempre.
+  // Pista pública de la zona (colonia) para que los demás sepan por dónde es sin
+  // revelar el punto exacto. REGLA: el mapa NO decide nada por su cuenta. Lo que
+  // escribes se queda TAL CUAL; la zona solo se rellena si TÚ tocas una dirección
+  // de la lista. Es como funciona el autocompletado de Google Maps: sugiere, y
+  // solo cambia el campo cuando eliges. Si escribes tu zona, se respeta siempre.
   const hintTouched = useRef(false);
-  useEffect(() => {
-    const loc = (newPlan.location || '').trim();
-    if (!loc || loc.length < 6 || hintTouched.current || (newPlan.locationHint || '').trim()) return;
-    let cancel = false;
-    const t = setTimeout(async () => {
-      const zona = await fetchZoneHint(loc);
-      if (!cancel && zona && !hintTouched.current) setNewPlan(p => (p.locationHint || '').trim() ? p : { ...p, locationHint: zona });
-    }, 900);
-    return () => { cancel = true; clearTimeout(t); };
-  }, [newPlan.location]);
+  const fillHintFromPicked = (address: string) => {
+    if (hintTouched.current || (newPlan.locationHint || '').trim()) return;
+    void fetchZoneHint(address).then(zona => {
+      if (zona && !hintTouched.current) setNewPlan(p => (p.locationHint || '').trim() ? p : { ...p, locationHint: zona });
+    });
+  };
 
   const handlePublishPlan = async () => {
     // Pokayoke: un plan con fecha/hora que YA pasó no se ve en ningún feed
@@ -6239,7 +6188,35 @@ export default function App() {
                 closeCreatePlan();
               }}
               onBack={currentPlanStep > 0 ? () => setCurrentPlanStep(currentPlanStep - 1) : undefined}
-              title={editingPlanId ? "Editar Plan" : "Crear Plan"}
+              title={editingPlanId ? 'Editar plan' : 'Crear plan'}
+              footer={
+                currentPlanStep < 6 ? (
+                  <button
+                    onClick={() => {
+                      const next = currentPlanStep + 1;
+                      setCurrentPlanStep(next);
+                      // Si la plática está activa, córtala y arranca con la pregunta de la pantalla siguiente.
+                      if (platicaOn) {
+                        platicaCancel.current = true; abortListen(); try { window.speechSynthesis?.cancel(); } catch {}
+                        setPlaticaOn(false);
+                        setPlaticaFromStep(next);
+                        setTimeout(() => setPlaticaOn(true), 200);
+                      }
+                    }}
+                    disabled={currentPlanStep === 0 && !newPlan.activity}
+                    className="w-full py-4 bg-iogga-primary text-white rounded-[24px] font-black text-base shadow-xl shadow-iogga-primary/20 active:scale-95 transition-transform disabled:opacity-50"
+                  >
+                    Siguiente
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => { void handlePublishPlan(); }}
+                    className="w-full py-4 bg-iogga-primary text-white rounded-[24px] font-black text-base shadow-xl shadow-iogga-primary/20 active:scale-95 transition-transform"
+                  >
+                    {editingPlanId ? 'Guardar cambios' : 'Revisar mi invitación'}
+                  </button>
+                )
+              }
             >
               {/* Primera vez en "Crear plan": popup paso a paso de las 3 formas
                   de crear tu plan (escribir, dictar, platicar). Pokayoke. */}
@@ -6383,6 +6360,21 @@ export default function App() {
                     else if (info.offset.x > 70 && currentPlanStep > 0) setCurrentPlanStep(currentPlanStep - 1);
                   }}
                 >
+                <AnimatePresence>
+                  {stuckHint && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={APPEAR}
+                      className="mb-4 flex items-start gap-2.5 p-3.5 rounded-2xl bg-iogga-primary/10 border border-iogga-primary/25"
+                    >
+                      <Sparkles size={16} className="text-iogga-primary shrink-0 mt-0.5" />
+                      <p className="text-xs text-zinc-200 leading-snug flex-1">{stuckHint}</p>
+                      <button onClick={() => setStuckHint(null)} className="text-xs font-black text-iogga-primary uppercase tracking-widest shrink-0">Ok</button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 <AnimatePresence mode="wait">
                   {currentPlanStep === 0 && (
                     <motion.div 
@@ -6650,7 +6642,7 @@ export default function App() {
                         <FieldVoice step={4} onDicta={t => setNewPlan(p => ({ ...p, location: t }))} />
                       </div>
                       {/* Direcciones sugeridas al escribir (como en Google Maps) */}
-                      <AddressSuggest query={newPlan.location || ''} onPick={t => setNewPlan(p => ({ ...p, location: t }))} />
+                      <AddressSuggest query={newPlan.location || ''} onPick={t => { setNewPlan(p => ({ ...p, location: t })); fillHintFromPicked(t); }} />
                       <div className="flex gap-2">
                         <a
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(newPlan.location || '')}`}
@@ -6838,10 +6830,10 @@ export default function App() {
                       <label className="text-lg font-bold text-white block">Dale un toque visual</label>
                       <div className="relative">
                         <button
-                          onClick={async () => {
-                            const img = await pickImage(900);
-                            if (img) setNewPlan({...newPlan, image: img});
-                          }}
+                          onClick={() => setPhotoSheet({
+                            query: newPlan.activity || 'plan con amigos',
+                            onPick: (img) => setNewPlan(p => ({ ...p, image: img })),
+                          })}
                           className="w-full aspect-video rounded-3xl bg-white/5 flex flex-col items-center justify-center border-2 border-dashed border-white/10 text-zinc-500 overflow-hidden relative group"
                         >
                           {newPlan.image ? (
@@ -6867,14 +6859,6 @@ export default function App() {
                           </button>
                         )}
                       </div>
-                      {/* Buscar en Google + pegar del portapapeles (iconos universales) */}
-                      <ImageSourceButtons
-                        query={newPlan.activity || 'plan con amigos'}
-                        onOpen={openExternal}
-                        onPaste={(img) => setNewPlan(p => ({ ...p, image: img }))}
-                        onEmpty={() => triggerBeta('Copia una imagen primero', 'En Google mantén presionada la imagen, toca "Copiar imagen", y vuelve aquí a "Pegar imagen".')}
-                      />
-                      <p className="text-[11px] text-zinc-500 text-center leading-snug">En Google <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen" → vuelve y toca <span className="text-white font-bold">"Pegar imagen"</span>.</p>
                       {newPlan.image && (
                         <button
                           onClick={() => setNewPlan({...newPlan, image: undefined})}
@@ -6904,34 +6888,6 @@ export default function App() {
                 </AnimatePresence>
                 </motion.div>
 
-                <div className="flex gap-3 pt-4">
-                  {currentPlanStep < 6 ? (
-                    <button
-                      onClick={() => {
-                        const next = currentPlanStep + 1;
-                        setCurrentPlanStep(next);
-                        // Si la plática está activa, córtala y arranca con la pregunta de la pantalla siguiente.
-                        if (platicaOn) {
-                          platicaCancel.current = true; abortListen(); try { window.speechSynthesis?.cancel(); } catch {}
-                          setPlaticaOn(false);
-                          setPlaticaFromStep(next);
-                          setTimeout(() => setPlaticaOn(true), 200);
-                        }
-                      }}
-                      disabled={currentPlanStep === 0 && !newPlan.activity}
-                      className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-base shadow-xl shadow-iogga-primary/20 active:scale-95 transition-transform disabled:opacity-50"
-                    >
-                      Siguiente
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => { void handlePublishPlan(); }}
-                      className="w-full py-5 bg-iogga-primary text-white rounded-[24px] font-black text-base shadow-xl shadow-iogga-primary/20 active:scale-95 transition-transform"
-                    >
-                      {editingPlanId ? 'Guardar Cambios' : 'Revisar mi invitación'}
-                    </button>
-                  )}
-                </div>
               </div>
             </Modal>
           )}
@@ -6948,13 +6904,23 @@ export default function App() {
                 offer: '',
                 location: ''
               });
-            }} title={editingPromoId ? "Editar oferta" : "Publicar oferta"}>
+            }}
+            title={editingPromoId ? 'Editar oferta' : 'Publicar oferta'}
+            footer={
+              <button
+                onClick={handlePublishPromo}
+                className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-black text-base shadow-lg shadow-iogga-accent/20 active:scale-95 transition-transform"
+              >
+                {editingPromoId ? 'Guardar cambios' : 'Publicar oferta'}
+              </button>
+            }
+            >
               <div className="space-y-6">
                 <button
-                  onClick={async () => {
-                    const img = await pickImage(900);
-                    if (img) setPromoImage(img);
-                  }}
+                  onClick={() => setPhotoSheet({
+                    query: newPromo.title || 'comida promoción',
+                    onPick: setPromoImage,
+                  })}
                   className="w-full aspect-video rounded-2xl bg-white/5 flex flex-col items-center justify-center border-2 border-dashed border-white/10 text-zinc-500 overflow-hidden relative group"
                 >
                   {promoImage ? (
@@ -6969,17 +6935,6 @@ export default function App() {
                     <span className="text-xs font-bold text-white uppercase tracking-widest">Cambiar Foto</span>
                   </div>
                 </button>
-                {/* Buscar en Google + pegar del portapapeles (iconos universales) */}
-                <div className="space-y-2">
-                  <ImageSourceButtons
-                    accent="accent"
-                    query={newPromo.title || 'comida promoción'}
-                    onOpen={openExternal}
-                    onPaste={setPromoImage}
-                    onEmpty={() => triggerBeta('Copia una imagen primero', 'En Google mantén presionada la imagen, toca "Copiar imagen", y vuelve aquí a "Pegar imagen".')}
-                  />
-                  <p className="text-[11px] text-zinc-500 text-center leading-snug">En Google <span className="text-white font-bold">mantén presionada</span> la imagen → "Copiar imagen" → vuelve y toca <span className="text-white font-bold">"Pegar imagen"</span>.</p>
-                </div>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Información del Producto</label>
@@ -7127,13 +7082,6 @@ export default function App() {
                     <p className="text-[11px] text-zinc-600 ml-1">Al pasar el fin, la oferta se marca vencida hasta que la actualices.</p>
                   </div>
                 </div>
-                <button
-                  onClick={handlePublishPromo}
-                  className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-bold text-lg shadow-lg shadow-iogga-accent/20 active:scale-95 transition-transform"
-                >
-                  {editingPromoId ? 'Guardar Cambios' : 'Publicar oferta'}
-                </button>
-
                 {editingPromoId && (
                   <button 
                     onClick={() => {
@@ -7283,7 +7231,48 @@ export default function App() {
           )}
 
           {showEditBusinessProfile && (
-            <Modal onClose={() => setShowEditBusinessProfile(false)} title="Editar Perfil de Negocio">
+            <Modal
+              onClose={() => setShowEditBusinessProfile(false)}
+              title="Editar perfil de negocio"
+              footer={
+                <button
+                  onClick={async () => {
+                    let owner = currentUser;
+                    if (isFirebaseEnabled && !owner) {
+                      owner = await ensureAnonSession();
+                      if (owner) setCurrentUser(owner);
+                    }
+                    if (owner) {
+                      try {
+                        await saveBusinessProfile(owner.uid, businessProfile);
+                      } catch {
+                        triggerBeta('No se pudo guardar', 'Revisa tu conexión e inténtalo otra vez. Lo que escribiste no se perdió.');
+                        return;
+                      }
+                      // Reflejar los cambios en TODAS sus ofertas publicadas, en
+                      // tiempo real: nombre, logo y teléfono viven en cada promo.
+                      const ownerUid = owner.uid;
+                      promos.filter(pr => pr.uid === ownerUid && !pr.isSeed).forEach(pr => {
+                        const patch = {
+                          businessName: businessProfile.name || pr.businessName,
+                          businessLogo: businessProfile.logo || pr.businessLogo,
+                          businessBio: businessProfile.bio || pr.businessBio,
+                          phone: businessProfile.phone || pr.phone,
+                        };
+                        void saveDocIn('promos', pr.id, patch);
+                        setPromos(ps => ps.map(x => x.id === pr.id ? { ...x, ...patch } : x));
+                      });
+                    }
+                    setHasBusiness(true);
+                    setShowEditBusinessProfile(false);
+                    sfx('logro');
+                  }}
+                  className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-black text-base shadow-lg active:scale-95 transition-transform"
+                >
+                  Guardar
+                </button>
+              }
+            >
               <div className="space-y-6">
                 <div className="space-y-3">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">1. Portada, logo y fotos</label>
@@ -7556,36 +7545,6 @@ export default function App() {
                   ))}
                 </div>
 
-                <button
-                  onClick={async () => {
-                    let owner = currentUser;
-                    if (isFirebaseEnabled && !owner) {
-                      owner = await ensureAnonSession();
-                      if (owner) setCurrentUser(owner);
-                    }
-                    if (owner) {
-                      await saveBusinessProfile(owner.uid, businessProfile).catch(() => {});
-                      // Reflejar los cambios en TODAS sus ofertas publicadas, en
-                      // tiempo real: nombre, logo y teléfono viven en cada promo.
-                      const ownerUid = owner.uid;
-                      promos.filter(pr => pr.uid === ownerUid && !pr.isSeed).forEach(pr => {
-                        const patch = {
-                          businessName: businessProfile.name || pr.businessName,
-                          businessLogo: businessProfile.logo || pr.businessLogo,
-                          businessBio: businessProfile.bio || pr.businessBio,
-                          phone: businessProfile.phone || pr.phone,
-                        };
-                        void saveDocIn('promos', pr.id, patch);
-                        setPromos(ps => ps.map(x => x.id === pr.id ? { ...x, ...patch } : x));
-                      });
-                    }
-                    setHasBusiness(true);
-                    setShowEditBusinessProfile(false);
-                  }}
-                  className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform"
-                >
-                  Guardar Cambios
-                </button>
               </div>
             </Modal>
           )}
@@ -9124,6 +9083,73 @@ export default function App() {
 
         {/* Billetera (modelo Uber): persona = cómo pagas; negocio = dónde te cae el dinero */}
         {/* Eliminar cuenta (modelo Instagram/Apple): pide motivo y confirma que es permanente */}
+        {/* HOJA DE FOTO: todas las opciones a la vista de un solo toque, en
+            cuadrícula de iconos. Es el menú del clip de WhatsApp y el "+" de
+            Instagram: nadie tiene que leer letra chiquita para encontrarlas. */}
+        {photoSheet && (
+          <div className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setPhotoSheet(null)} />
+            <div className="relative w-full sm:max-w-sm bg-zinc-950 border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-5">
+              <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto" />
+              <h3 className="text-center text-base font-black text-white">Agregar foto</h3>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  {
+                    k: 'galeria',
+                    label: 'Del celular',
+                    icon: <ImageIcon size={24} />,
+                    cls: 'bg-iogga-primary/15 border-iogga-primary/30 text-iogga-primary',
+                    run: async () => {
+                      const sheet = photoSheet;
+                      setPhotoSheet(null);
+                      const img = await pickImage(900);
+                      if (img) sheet.onPick(img);
+                    },
+                  },
+                  {
+                    k: 'google',
+                    label: 'Buscar en Google',
+                    icon: <GoogleMark size={24} />,
+                    cls: 'bg-white/5 border-white/10 text-zinc-200',
+                    run: async () => {
+                      openExternal(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(photoSheet.query || 'foto')}`);
+                      triggerBeta('Copia la imagen que te guste', 'Mantén presionada la imagen en Google y toca "Copiar imagen". Vuelve a iogga y usa "Pegar copiada".');
+                    },
+                  },
+                  {
+                    k: 'pegar',
+                    label: 'Pegar copiada',
+                    icon: <ClipboardPaste size={24} />,
+                    cls: 'bg-white/5 border-white/10 text-zinc-200',
+                    run: async () => {
+                      const sheet = photoSheet;
+                      const img = await readImageFromClipboard();
+                      if (img) { sheet.onPick(img); setPhotoSheet(null); }
+                      else triggerBeta('No hay imagen copiada', 'Primero busca en Google, mantén presionada la imagen y toca "Copiar imagen".');
+                    },
+                  },
+                ].map(o => (
+                  <button
+                    key={o.k}
+                    type="button"
+                    onClick={() => { void o.run(); }}
+                    className={`flex flex-col items-center justify-center gap-2 py-5 px-2 rounded-3xl border active:scale-95 transition-all ${o.cls}`}
+                  >
+                    {o.icon}
+                    <span className="text-xs font-bold leading-tight text-center">{o.label}</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setPhotoSheet(null)}
+                className="w-full py-3 text-zinc-500 font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Cambios sin guardar (el diálogo de Word / Google Docs / Mac):
             Guardar · No guardar · Cancelar. Nunca se pierde nada por accidente. */}
         {askSaveProfile && (
@@ -9531,38 +9557,48 @@ export default function App() {
               ) : isIOS ? (
                 // iPhone (Safari): Apple no permite instalar solo; animación en bucle
                 // (como un videíto) + guía de 3 pasos claros
+                // 3 pasos EXACTOS, con el icono real de cada botón junto al texto.
+                // Sin animación: la que había parecía un video y la gente le picaba
+                // a los botones del dibujo. Es la guía estática que usan las webs
+                // de Apple y de Google para explicar "Agregar a inicio".
                 <div className="space-y-3 text-left">
-                  <InstallAnimationIOS />
-                  <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
-                    <span className="w-9 h-9 rounded-full bg-iogga-primary text-white text-base font-black flex items-center justify-center shrink-0">1</span>
-                    <p className="text-sm text-zinc-200 leading-snug">
-                      Abajo en <span className="font-black text-white">Safari</span>, toca el botón
-                      <span className="font-black text-white"> Compartir</span>
-                      <span className="inline-flex items-center justify-center w-9 h-9 mx-1 rounded-xl bg-[#0a84ff] text-white align-middle shadow-lg" aria-label="compartir">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>
-                      </span>
-                      (un cuadro con una flecha hacia arriba).
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
-                    <span className="w-9 h-9 rounded-full bg-iogga-primary text-white text-base font-black flex items-center justify-center shrink-0">2</span>
-                    <p className="text-sm text-zinc-200 leading-snug">
-                      En ese menú, <span className="font-black text-white">desliza hacia abajo</span> hasta ver las opciones de la lista.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
-                    <span className="w-9 h-9 rounded-full bg-iogga-primary text-white text-base font-black flex items-center justify-center shrink-0">3</span>
-                    <p className="text-sm text-zinc-200 leading-snug">
-                      Toca
-                      <span className="inline-flex items-center gap-1 mx-1 px-2 py-1 rounded-lg bg-white/10 text-white font-black align-middle text-xs">
-                        Agregar a inicio
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
-                      </span>
-                      y luego <span className="font-black text-white">Agregar</span> arriba a la derecha.
-                    </p>
-                  </div>
-                  <p className="text-xs text-zinc-500 text-center pt-1">Listo. iogga aparecerá en tu pantalla de inicio, con su ícono.</p>
-                  <p className="text-[11px] text-amber-300/80 text-center">Debe ser en <span className="font-black">Safari</span> (no en Chrome ni desde Instagram/Facebook).</p>
+                  {[
+                    {
+                      n: 1,
+                      icon: (
+                        <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-white/10 text-white shrink-0">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+                        </span>
+                      ),
+                      text: <>Abajo a la derecha en <span className="font-black text-white">Safari</span>, toca los <span className="font-black text-white">tres puntitos</span>.</>,
+                    },
+                    {
+                      n: 2,
+                      icon: (
+                        <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[#0a84ff] text-white shrink-0">
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>
+                        </span>
+                      ),
+                      text: <>Toca <span className="font-black text-white">Compartir</span>: el cuadrito con la flecha hacia arriba.</>,
+                    },
+                    {
+                      n: 3,
+                      icon: (
+                        <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-white/10 text-white shrink-0">
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+                        </span>
+                      ),
+                      text: <>Baja y toca <span className="font-black text-white">Agregar a inicio</span>. Luego <span className="font-black text-white">Agregar</span>, arriba a la derecha.</>,
+                    },
+                  ].map(step => (
+                    <div key={step.n} className="flex items-center gap-3 p-4 rounded-3xl bg-white/5 border border-white/10">
+                      <span className="w-7 h-7 rounded-full bg-iogga-primary text-white text-sm font-black flex items-center justify-center shrink-0">{step.n}</span>
+                      {step.icon}
+                      <p className="text-sm text-zinc-200 leading-snug flex-1">{step.text}</p>
+                    </div>
+                  ))}
+                  <p className="text-xs text-zinc-500 text-center pt-1">Listo: iogga queda en tu pantalla de inicio, con su ícono.</p>
+                  <p className="text-xs text-amber-300/80 text-center">Tiene que ser en <span className="font-black">Safari</span>, no en Chrome ni desde Instagram o Facebook.</p>
                 </div>
               ) : (
                 // Android u otros: instrucciones según el navegador detectado
@@ -10579,8 +10615,11 @@ export default function App() {
         {selectedFriend && (
           <Modal onClose={() => setSelectedFriend(null)} title="Perfil">
             <div className="space-y-5 text-center">
-              {selectedFriend.photo ? (
-                <img src={selectedFriend.photo} className="w-24 h-24 rounded-full object-cover mx-auto border-2 border-white/10" referrerPolicy="no-referrer" />
+              {/* La foto sale del perfil EN VIVO; la de la lista de amigos se
+                  guardó el día que la seguiste y puede estar vieja o vacía (por
+                  eso a veces salía la inicial aunque la persona sí tenga foto). */}
+              {(friendProfile?.photoURL || selectedFriend.photo) ? (
+                <img src={friendProfile?.photoURL || selectedFriend.photo || ''} className="w-24 h-24 rounded-full object-cover mx-auto border-2 border-white/10" referrerPolicy="no-referrer" />
               ) : (
                 <div className="w-24 h-24 rounded-full bg-iogga-primary/20 text-iogga-primary flex items-center justify-center text-3xl font-black mx-auto">{selectedFriend.name.charAt(0).toUpperCase()}</div>
               )}
@@ -10668,7 +10707,7 @@ export default function App() {
         {/* Banner de DATOS DE PRUEBA: recuerda que los ejemplos se pueden quitar
             aquí mismo (o después en el menú), con las dos opciones a la mano. */}
         <AnimatePresence>
-          {showSeedBanner && !hideSeed && (
+          {showSeedBanner && !hideSeed && !somethingOpen() && (
             <motion.div
               initial={{ opacity: 0, y: 80 }}
               animate={{ opacity: 1, y: 0 }}
@@ -11170,13 +11209,26 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
     ]
   };
 
-  const currentStep = steps[mode][step];
+  // El recorrido de personas tiene 6 pasos y el de negocios 5. Antes el botón
+  // "Continuar" tenía escrito a mano el número 5, así que en negocios se pasaba
+  // de largo, pedía un paso que NO existe y la app se quedaba en negro. Ahora el
+  // último paso se calcula del propio recorrido: nunca se puede pasar de largo.
+  const stepList = steps[mode];
+  const lastStep = stepList.length - 1;
+  const safeStep = Math.min(Math.max(step, 0), lastStep);
+  const currentStep = stepList[safeStep];
+
+  // Si el paso se sale del recorrido (por ejemplo al cambiar de persona a
+  // negocio), se regresa al último válido en vez de romperse.
+  useEffect(() => {
+    if (step !== safeStep) setStep(safeStep);
+  }, [step, safeStep, setStep]);
 
   useEffect(() => {
-    if (currentStep.onEnter) {
+    if (currentStep?.onEnter) {
       currentStep.onEnter();
     }
-  }, [step, mode]);
+  }, [safeStep, mode]);
 
   useEffect(() => {
     const updateRect = () => {
@@ -11207,7 +11259,7 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
       window.removeEventListener('resize', updateRect);
       clearTimeout(timeout);
     };
-  }, [step, mode, currentStep.targetId, appMode, activeTab, isIntro]);
+  }, [safeStep, mode, currentStep?.targetId, appMode, activeTab, isIntro]);
 
   return (
     <motion.div
@@ -11248,7 +11300,7 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
       {/* Tooltip / Balloon */}
       <div className="absolute inset-0 pointer-events-none">
         <motion.div
-          key={`${mode}-${step}`}
+          key={`${mode}-${safeStep}`}
           initial={{ scale: 0.96, opacity: 0, y: 24 }}
           animate={{
             scale: 1,
@@ -11284,21 +11336,21 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
             </div>
 
             <div className="space-y-2">
-              <h3 className={`font-black text-white leading-tight ${step === 0 ? 'text-3xl' : 'text-xl'}`}>{currentStep.title}</h3>
-              <p className={`text-zinc-400 leading-relaxed ${step === 0 ? 'text-base' : 'text-sm'}`}>{currentStep.description}</p>
+              <h3 className={`font-black text-white leading-tight ${safeStep === 0 ? 'text-3xl' : 'text-xl'}`}>{currentStep.title}</h3>
+              <p className={`text-zinc-400 leading-relaxed ${safeStep === 0 ? 'text-base' : 'text-sm'}`}>{currentStep.description}</p>
             </div>
 
             <div className="flex gap-2 pt-2">
-              {step > 0 && (
+              {safeStep > 0 && (
                 <button 
-                  onClick={() => setStep(prev => prev - 1)}
+                  onClick={() => setStep(safeStep - 1)}
                   className="flex-1 py-3 rounded-xl bg-white/5 text-white text-xs font-bold hover:bg-white/10 transition-all"
                 >
                   Atrás
                 </button>
               )}
               
-              {mode === 'person' && step === 5 ? (
+              {mode === 'person' && safeStep === lastStep ? (
                 <div className="flex flex-col w-full gap-2">
                   <button 
                     onClick={() => {
@@ -11320,22 +11372,22 @@ function TutorialOverlay({ step, setStep, mode, setMode, onClose, appMode, setAp
               ) : (
                 <button
                   onClick={() => {
-                    if (step === 5) onClose();
-                    else setStep(prev => prev + 1);
+                    if (safeStep >= lastStep) onClose();
+                    else setStep(safeStep + 1);
                   }}
                   className={`flex-[2] py-3 rounded-xl text-white text-xs font-black shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2 ${mode === 'business' ? 'bg-iogga-accent shadow-iogga-accent/20' : 'bg-iogga-primary shadow-iogga-primary/20'}`}
                 >
-                  {step === 5 ? 'Comenzar' : 'Continuar'}
+                  {safeStep >= lastStep ? 'Comenzar' : 'Continuar'}
                   <ArrowRight size={14} />
                 </button>
               )}
             </div>
 
             <div className="flex gap-1 justify-center pt-2">
-              {Array.from({ length: 6 }).map((_, i) => (
+              {stepList.map((_, i) => (
                 <div
                   key={i}
-                  className={`h-1 rounded-full transition-all duration-500 ${i === step ? (mode === 'business' ? 'w-6 bg-iogga-accent' : 'w-6 bg-iogga-primary') : 'w-1.5 bg-white/10'}`}
+                  className={`h-1 rounded-full transition-all duration-500 ${i === safeStep ? (mode === 'business' ? 'w-6 bg-iogga-accent' : 'w-6 bg-iogga-primary') : 'w-1.5 bg-white/10'}`}
                 />
               ))}
             </div>

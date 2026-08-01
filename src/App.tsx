@@ -91,6 +91,8 @@ import {
   saveProfile,
   watchCollectionDocs,
   saveDocIn,
+  publishDoc,
+  repairMissingTimestamps,
   deleteDocIn,
   fetchDocIn,
   incrementPlanAccepted,
@@ -134,7 +136,7 @@ import {
   type IoggaGroup
 } from './lib/firebase';
 import { RedeemQRModal, ValidateCodeModal } from './components/qr';
-import { pickImage } from './lib/images';
+import { pickImage, compressDataUrl } from './lib/images';
 import { playIntroChime, sfx, isSoundOn, setSoundOn } from './lib/sound';
 import { IOGGA_FEE_PCT, netForBusiness } from './lib/payments';
 import { APP_VERSION } from './lib/version';
@@ -748,7 +750,11 @@ async function readImageFromClipboard(): Promise<string | null> {
       const t = it.types.find((x: string) => x.startsWith('image/'));
       if (t) {
         const blob = await it.getType(t);
-        return await new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(blob); });
+        const raw = await new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(blob); });
+        // Pasa por la MISMA compresión que las fotos del celular. Sin esto, una
+        // imagen copiada de Google entraba pesando megas y el guardado se
+        // rechazaba después, sin avisar.
+        return await compressDataUrl(raw);
       }
     }
     return null;
@@ -2390,6 +2396,21 @@ export default function App() {
     void fetchAdminData().then(setAdminData);
   };
 
+  // Rescate automático (una vez por sesión, solo para el administrador): busca
+  // planes y ofertas antiguos que se guardaron sin fecha y por eso quedaron
+  // invisibles en el feed, y les pone la que les falta.
+  const repairedRef = useRef(false);
+  useEffect(() => {
+    if (!isAdmin || repairedRef.current) return;
+    repairedRef.current = true;
+    void Promise.all([
+      repairMissingTimestamps('plans'),
+      repairMissingTimestamps('promos'),
+    ]).then(([a, b]) => {
+      if (a + b > 0) triggerBeta('Publicaciones recuperadas', `Se recuperaron ${a + b} publicaciones que no aparecían en el feed.`);
+    });
+  }, [isAdmin]);
+
   // Perfil extendido del usuario (bio, ubicación, foto) para el medidor de perfil
   // Perfil con caché local: al recargar, la foto y los datos aparecen AL INSTANTE
   // (desde el caché) mientras llega lo fresco de la nube — sin parpadeos.
@@ -3209,7 +3230,11 @@ export default function App() {
     } catch { /* sin espacio: se sigue creando igual */ }
   }, [showCreatePlan, editingPlanId, newPlan, currentPlanStep, guestName]);
 
+  // Publicando: bloquea el doble toque y muestra "Publicando…" en el botón.
+  const [publishing, setPublishing] = useState(false);
+
   const handlePublishPlan = async () => {
+    if (publishing) return;
     // Pokayoke: un plan con fecha/hora que YA pasó no se ve en ningún feed
     // ("¿por qué no aparece mi plan?"). Lo detectamos ANTES de publicar.
     {
@@ -3220,6 +3245,7 @@ export default function App() {
         return;
       }
     }
+    setPublishing(true);
     // Publicar NO exige registro: se crea una sesión silenciosa.
     // El registro se pide después, cuando alguien acepte su plan.
     let publisher = currentUser;
@@ -3229,6 +3255,7 @@ export default function App() {
     }
     if (isFirebaseEnabled && !publisher) {
       // Respaldo: si el acceso anónimo no está habilitado, pedir login normal
+      setPublishing(false);
       setLoginActionToResume(() => { void handlePublishPlan(); });
       setShowLoginModal(true);
       return;
@@ -3261,7 +3288,13 @@ export default function App() {
           image: newPlan.image || edited.image,
           tags: (newPlan.activity || '').toLowerCase().split(' ')
         };
-        void saveDocIn('plans', updated.id, updated);
+        const res = await publishDoc('plans', updated.id, updated);
+        if (res.ok === false) {
+          setPublishing(false);
+          triggerBeta('No se pudieron guardar los cambios', res.reason);
+          sfx('error');
+          return;
+        }
       }
       setPlans(plans.map(p => p.id === editingPlanId ? {
         ...p,
@@ -3316,7 +3349,16 @@ export default function App() {
         // A los amigos reales invitados les aparece en su bandeja "Invitaciones"
         invitedUids: selectedFriendIds.filter(id => !id.startsWith('su_')),
       };
-      void saveDocIn('plans', plan.id, plan);
+      // Publicar de verdad: se espera la confirmación del servidor. Si falla,
+      // NO se finge que se publicó: se dice qué pasó y el plan se queda en el
+      // formulario para reintentar sin volver a escribir nada.
+      const res = await publishDoc('plans', plan.id, plan);
+      if (res.ok === false) {
+        setPublishing(false);
+        triggerBeta('No se pudo publicar tu plan', res.reason);
+        sfx('error');
+        return;
+      }
       // Recordar que YO creé este plan SOLO si lo hice sin cuenta: al iniciar
       // sesión se transporta a mi cuenta. Si ya estoy registrado NO se apunta,
       // para que otra cuenta en el mismo teléfono jamás se lleve mis planes.
@@ -3334,6 +3376,9 @@ export default function App() {
       setShowMatchCelebration(true);
       sfx('logro'); // el plan quedó publicado
     }
+    setPublishing(false);
+    // Ya publicado: el borrador guardado deja de hacer falta.
+    try { localStorage.removeItem('iogga_plan_draft'); } catch { /* sin storage */ }
     setShowCreatePlan(false);
     setCurrentPlanStep(0);
     setActiveTab('active'); // Switch to active plans so they see it there too!
@@ -3353,9 +3398,12 @@ export default function App() {
   };
 
   const handlePublishPromo = async () => {
+    if (publishing) return;
+    setPublishing(true);
     // Primera oferta GRATIS sin cuenta (sesión anónima); a partir de la 2ª, pedir login.
     const myCount = promos.filter(p => p.uid && p.uid === currentUser?.uid).length;
     if (isFirebaseEnabled && !isLoggedIn && !editingPromoId && myCount >= 1) {
+      setPublishing(false);
       triggerBeta('Crea tu cuenta', 'Tu primera oferta ya está publicada. Para publicar más, inicia sesión gratis y así no pierdes tus ofertas.');
       setLoginActionToResume(() => { void handlePublishPromo(); });
       setShowLoginModal(true);
@@ -3371,7 +3419,7 @@ export default function App() {
     if (editingPromoId) {
       const edited = promos.find(p => p.id === editingPromoId);
       if (edited) {
-        void saveDocIn('promos', edited.id, {
+        const res = await publishDoc('promos', edited.id, {
           ...edited,
           title: newPromo.title || edited.title,
           description: newPromo.description || edited.description,
@@ -3386,6 +3434,12 @@ export default function App() {
           allDay: newPromo.allDay ?? edited.allDay,
           tags: (newPromo.title || '').toLowerCase().split(' ')
         });
+        if (res.ok === false) {
+          setPublishing(false);
+          triggerBeta('No se pudieron guardar los cambios', res.reason);
+          sfx('error');
+          return;
+        }
       }
       setPromos(promos.map(p => p.id === editingPromoId ? {
         ...p,
@@ -3428,12 +3482,22 @@ export default function App() {
         totalEarnings: 0,
         tags: (newPromo.title || '').toLowerCase().split(' ')
       };
-      void saveDocIn('promos', promo.id, promo);
+      // Igual que con los planes: se espera la confirmación del servidor. Si no
+      // se pudo publicar, se dice por qué y la oferta se queda en el formulario.
+      const res = await publishDoc('promos', promo.id, promo);
+      if (res.ok === false) {
+        setPublishing(false);
+        triggerBeta('No se pudo publicar tu oferta', res.reason);
+        sfx('error');
+        return;
+      }
       setPromos([promo, ...promos]);
+      sfx('logro');
       // Efecto: llevar a Mis Ofertas y hacer brillar la recién creada (solo un momento)
       setGlowPromoId(promo.id);
       setTimeout(() => setGlowPromoId(id => (id === promo.id ? null : id)), 5000);
     }
+    setPublishing(false);
     setShowCreatePromo(false);
     setPromoImage(null);
     setNewPromo({
@@ -6280,9 +6344,10 @@ export default function App() {
                 ) : (
                   <button
                     onClick={() => { void handlePublishPlan(); }}
-                    className="w-full py-4 bg-iogga-primary text-white rounded-[24px] font-black text-base shadow-xl shadow-iogga-primary/20 active:scale-95 transition-transform"
+                    disabled={publishing}
+                    className="w-full py-4 bg-iogga-primary text-white rounded-[24px] font-black text-base shadow-xl shadow-iogga-primary/20 active:scale-95 transition-transform disabled:opacity-60"
                   >
-                    {editingPlanId ? 'Guardar cambios' : 'Revisar mi invitación'}
+                    {publishing ? 'Publicando…' : editingPlanId ? 'Guardar cambios' : 'Revisar mi invitación'}
                   </button>
                 )
               }
@@ -6978,9 +7043,10 @@ export default function App() {
             footer={
               <button
                 onClick={handlePublishPromo}
-                className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-black text-base shadow-lg shadow-iogga-accent/20 active:scale-95 transition-transform"
+                disabled={publishing}
+                className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-black text-base shadow-lg shadow-iogga-accent/20 active:scale-95 transition-transform disabled:opacity-60"
               >
-                {editingPromoId ? 'Guardar cambios' : 'Publicar oferta'}
+                {publishing ? 'Publicando…' : editingPromoId ? 'Guardar cambios' : 'Publicar oferta'}
               </button>
             }
             >

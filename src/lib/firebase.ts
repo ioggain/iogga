@@ -599,7 +599,9 @@ function sanitize<T>(obj: T): T {
 
 export function watchCollectionDocs<T>(name: 'plans' | 'promos', callback: (items: T[]) => void): () => void {
   if (!db) return () => {};
-  const q = query(collection(db, name), orderBy('timestamp', 'desc'), limit(200));
+  // Ordenado por fecha, lo más nuevo primero: así lo recién publicado SIEMPRE
+  // entra. (Todo lo que se publica lleva "timestamp" garantizado; ver publishDoc.)
+  const q = query(collection(db, name), orderBy('timestamp', 'desc'), limit(400));
   return onSnapshot(
     q,
     (snap) => callback(snap.docs.map((d) => ({ ...(d.data() as T), id: d.id }))),
@@ -607,9 +609,77 @@ export function watchCollectionDocs<T>(name: 'plans' | 'promos', callback: (item
   );
 }
 
+// Rescate: publicaciones antiguas que se guardaron SIN "timestamp" y por eso
+// no aparecen en el feed ordenado. Se leen aparte, sin ordenar, y se les pone
+// la fecha que les falta para que vuelvan a verse.
+export async function repairMissingTimestamps(name: 'plans' | 'promos'): Promise<number> {
+  if (!db) return 0;
+  try {
+    const snap = await getDocs(query(collection(db, name), limit(400)));
+    let fixed = 0;
+    for (const d of snap.docs) {
+      const data = d.data() as { timestamp?: unknown };
+      if (typeof data.timestamp === 'number') continue;
+      await setDoc(doc(db, name, d.id), { timestamp: Date.now() }, { merge: true }).catch(() => {});
+      fixed++;
+    }
+    return fixed;
+  } catch {
+    return 0;
+  }
+}
+
 export async function saveDocIn(name: 'plans' | 'promos', id: string, data: object): Promise<void> {
   if (!db) return;
   await setDoc(doc(db, name, id), sanitize(data), { merge: true });
+}
+
+// Guardar y COMPROBAR que de verdad quedó. Publicar un plan o una oferta es lo
+// más importante de la app: no basta con mandar el guardado, hay que confirmar
+// que el servidor lo tiene. Devuelve un motivo entendible si algo falló, para
+// poder decírselo a la persona en vez de fingir que se publicó.
+export async function publishDoc(
+  name: 'plans' | 'promos',
+  id: string,
+  data: object,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  if (!db) return { ok: true }; // modo demo sin base de datos: no se bloquea a nadie
+  // El feed se ordena por "timestamp", y Firestore DEJA FUERA cualquier
+  // documento que no tenga ese campo: sin él, la publicación existe pero nadie
+  // la ve nunca. Por eso se pone aquí, en la única puerta de publicación.
+  const clean = sanitize(data) as Record<string, unknown>;
+  if (typeof clean.timestamp !== 'number') clean.timestamp = Date.now();
+  // Un documento no aguanta más de 1 MB. Se revisa ANTES para poder explicarlo.
+  const weight = JSON.stringify(clean).length;
+  if (weight > 950_000) {
+    return { ok: false, reason: 'La foto pesa demasiado. Elige otra o quítala y vuelve a publicar.' };
+  }
+  try {
+    await setDoc(doc(db, name, id), clean, { merge: true });
+  } catch (e) {
+    const code = String((e as { code?: string })?.code || '');
+    if (code.includes('permission-denied')) {
+      return { ok: false, reason: 'Tu sesión no tiene permiso para publicar. Cierra sesión, vuelve a entrar e inténtalo otra vez.' };
+    }
+    if (code.includes('unavailable') || code.includes('deadline')) {
+      return { ok: false, reason: 'No hay conexión con el servidor. Revisa tu internet e inténtalo otra vez.' };
+    }
+    if (code.includes('invalid-argument') || code.includes('resource-exhausted')) {
+      return { ok: false, reason: 'La foto pesa demasiado. Elige otra o quítala y vuelve a publicar.' };
+    }
+    return { ok: false, reason: 'No se pudo publicar. Revisa tu conexión e inténtalo otra vez.' };
+  }
+  // Confirmación real: volver a leerlo del servidor.
+  try {
+    const check = await getDoc(doc(db, name, id));
+    if (!check.exists()) {
+      return { ok: false, reason: 'El servidor no guardó la publicación. Inténtalo otra vez.' };
+    }
+  } catch {
+    // Si no se puede releer (sin conexión), el guardado ya no lanzó error:
+    // Firestore lo reenvía solo al recuperar la señal. Se da por bueno.
+  }
+  return { ok: true };
 }
 
 export async function deleteDocIn(name: 'plans' | 'promos', id: string): Promise<void> {

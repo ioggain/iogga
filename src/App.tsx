@@ -2200,6 +2200,63 @@ export default function App() {
     setShowEditProfile(false);
   };
 
+  // Lo mismo para el perfil del NEGOCIO: se guarda cómo estaba al abrir, para
+  // poder devolverlo tal cual si eliges "No guardar", y se pregunta al salir.
+  const bizBaseline = useRef<string>('');
+  const [askSaveBiz, setAskSaveBiz] = useState(false);
+  const [savingBiz, setSavingBiz] = useState(false);
+  useEffect(() => {
+    if (showEditBusinessProfile) bizBaseline.current = JSON.stringify(businessProfile);
+  }, [showEditBusinessProfile]);
+  const bizDirty = () => JSON.stringify(businessProfile) !== bizBaseline.current;
+  const closeEditBusinessProfile = () => {
+    if (bizDirty()) { setAskSaveBiz(true); return; }
+    setShowEditBusinessProfile(false);
+  };
+  const discardBizChanges = () => {
+    try { setBusinessProfile(JSON.parse(bizBaseline.current)); } catch { /* se queda como está */ }
+    setAskSaveBiz(false);
+    setShowEditBusinessProfile(false);
+  };
+  // Guardar el negocio DE VERDAD (avisa si falla) y reflejarlo en sus ofertas.
+  const saveMyBusiness = async (): Promise<boolean> => {
+    if (savingBiz) return false;
+    setSavingBiz(true);
+    try {
+      let owner = currentUser;
+      if (isFirebaseEnabled && !owner) {
+        owner = await ensureAnonSession();
+        if (owner) setCurrentUser(owner);
+      }
+      if (owner) {
+        await saveBusinessProfile(owner.uid, businessProfile);
+        // Reflejar los cambios en TODAS sus ofertas publicadas, en tiempo real:
+        // nombre, logo y teléfono viven dentro de cada oferta.
+        const ownerUid = owner.uid;
+        promos.filter(pr => pr.uid === ownerUid && !pr.isSeed).forEach(pr => {
+          const patch = {
+            businessName: businessProfile.name || pr.businessName,
+            businessLogo: businessProfile.logo || pr.businessLogo,
+            businessBio: businessProfile.bio || pr.businessBio,
+            phone: businessProfile.phone || pr.phone,
+          };
+          void saveDocIn('promos', pr.id, patch);
+          setPromos(ps => ps.map(x => x.id === pr.id ? { ...x, ...patch } : x));
+        });
+      }
+      setHasBusiness(true);
+      bizBaseline.current = JSON.stringify(businessProfile);
+      setShowEditBusinessProfile(false);
+      sfx('logro');
+      return true;
+    } catch {
+      triggerBeta('No se pudo guardar', 'Revisa tu conexión e inténtalo otra vez. Lo que escribiste no se perdió.');
+      return false;
+    } finally {
+      setSavingBiz(false);
+    }
+  };
+
   const AVATAR_PRESETS = [
     'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80',
     'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
@@ -3139,6 +3196,18 @@ export default function App() {
       if (zona && !hintTouched.current) setNewPlan(p => (p.locationHint || '').trim() ? p : { ...p, locationHint: zona });
     });
   };
+
+  // El plan a medio hacer se guarda solo con cada cambio, aunque no toques
+  // "Guardar" (modelo Google Docs). Si se cierra la app o se cae la señal, al
+  // volver sigue ahí. Solo para planes NUEVOS: editar uno ya publicado no toca
+  // el borrador.
+  useEffect(() => {
+    if (!showCreatePlan || editingPlanId) return;
+    if (!newPlan.activity && !newPlan.location && !newPlan.comment) return;
+    try {
+      localStorage.setItem('iogga_plan_draft', JSON.stringify({ plan: newPlan, step: currentPlanStep, guestName }));
+    } catch { /* sin espacio: se sigue creando igual */ }
+  }, [showCreatePlan, editingPlanId, newPlan, currentPlanStep, guestName]);
 
   const handlePublishPlan = async () => {
     // Pokayoke: un plan con fecha/hora que YA pasó no se ve en ningún feed
@@ -7232,44 +7301,15 @@ export default function App() {
 
           {showEditBusinessProfile && (
             <Modal
-              onClose={() => setShowEditBusinessProfile(false)}
+              onClose={closeEditBusinessProfile}
               title="Editar perfil de negocio"
               footer={
                 <button
-                  onClick={async () => {
-                    let owner = currentUser;
-                    if (isFirebaseEnabled && !owner) {
-                      owner = await ensureAnonSession();
-                      if (owner) setCurrentUser(owner);
-                    }
-                    if (owner) {
-                      try {
-                        await saveBusinessProfile(owner.uid, businessProfile);
-                      } catch {
-                        triggerBeta('No se pudo guardar', 'Revisa tu conexión e inténtalo otra vez. Lo que escribiste no se perdió.');
-                        return;
-                      }
-                      // Reflejar los cambios en TODAS sus ofertas publicadas, en
-                      // tiempo real: nombre, logo y teléfono viven en cada promo.
-                      const ownerUid = owner.uid;
-                      promos.filter(pr => pr.uid === ownerUid && !pr.isSeed).forEach(pr => {
-                        const patch = {
-                          businessName: businessProfile.name || pr.businessName,
-                          businessLogo: businessProfile.logo || pr.businessLogo,
-                          businessBio: businessProfile.bio || pr.businessBio,
-                          phone: businessProfile.phone || pr.phone,
-                        };
-                        void saveDocIn('promos', pr.id, patch);
-                        setPromos(ps => ps.map(x => x.id === pr.id ? { ...x, ...patch } : x));
-                      });
-                    }
-                    setHasBusiness(true);
-                    setShowEditBusinessProfile(false);
-                    sfx('logro');
-                  }}
-                  className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-black text-base shadow-lg active:scale-95 transition-transform"
+                  onClick={() => { void saveMyBusiness(); }}
+                  disabled={savingBiz}
+                  className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-black text-base shadow-lg active:scale-95 transition-transform disabled:opacity-60"
                 >
-                  Guardar
+                  {savingBiz ? 'Guardando…' : 'Guardar'}
                 </button>
               }
             >
@@ -9176,6 +9216,40 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setAskSaveProfile(false)}
+                  className="w-full py-3 text-zinc-500 font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cambios sin guardar en el NEGOCIO: mismo diálogo que en el perfil */}
+        {askSaveBiz && (
+          <div className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setAskSaveBiz(false)} />
+            <div className="relative w-full sm:max-w-sm bg-zinc-950 border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4">
+              <div className="text-center space-y-1.5">
+                <h3 className="text-lg font-black text-white">Tienes cambios sin guardar</h3>
+                <p className="text-xs text-zinc-400 leading-snug">Si sales sin guardar, esos cambios se pierden.</p>
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={async () => { const ok = await saveMyBusiness(); if (ok) setAskSaveBiz(false); }}
+                  disabled={savingBiz}
+                  className="w-full py-4 bg-iogga-accent text-white rounded-2xl font-black text-sm active:scale-95 transition-transform disabled:opacity-60"
+                >
+                  {savingBiz ? 'Guardando…' : 'Guardar'}
+                </button>
+                <button
+                  onClick={discardBizChanges}
+                  className="w-full py-4 bg-white/5 border border-white/10 text-zinc-300 rounded-2xl font-bold text-sm active:scale-95 transition-transform"
+                >
+                  No guardar
+                </button>
+                <button
+                  onClick={() => setAskSaveBiz(false)}
                   className="w-full py-3 text-zinc-500 font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform"
                 >
                   Cancelar

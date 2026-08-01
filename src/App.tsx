@@ -2114,20 +2114,132 @@ export default function App() {
       try { window.history.replaceState({}, '', window.location.pathname); } catch {}
     }
   }, []);
-  // Al abrir "Editar Perfil", precargar lo que ya tiene guardado
+  // ---- BORRADOR DEL PERFIL: lo que escribes NUNCA se pierde ----
+  // Se guarda solo en el teléfono con cada letra (modelo de Google Docs), aunque
+  // no toques "Guardar" y aunque todavía no tengas cuenta. Al registrarte, ese
+  // borrador se sube a tu perfil: no hay que volver a escribir nada.
+  const PROFILE_DRAFT_KEY = 'iogga_draft_profile';
+  type ProfileDraft = {
+    name: string; bio: string; location: string; photo: string; photos: string[];
+    whatsapp: string; birthday: string; instagram: string;
+    links: { website: string; facebook: string; tiktok: string; linkedin: string };
+  };
+  const currentDraft = (): ProfileDraft => ({
+    name: editName, bio: editBio, location: editLocation, photo: editPhoto, photos: editPhotos,
+    whatsapp: editWhatsapp, birthday: editBirthday, instagram: editInstagram, links: editLinks,
+  });
+  const applyDraft = (d: Partial<ProfileDraft>) => {
+    setEditName(d.name || ''); setEditBio(d.bio || ''); setEditLocation(d.location || '');
+    setEditPhoto(d.photo || ''); setEditPhotos(d.photos || []); setEditWhatsapp(d.whatsapp || '');
+    setEditBirthday(d.birthday || ''); setEditInstagram(d.instagram || '');
+    setEditLinks({ website: d.links?.website || '', facebook: d.links?.facebook || '', tiktok: d.links?.tiktok || '', linkedin: d.links?.linkedin || '' });
+  };
+  const readDraft = (): ProfileDraft | null => {
+    try { const raw = localStorage.getItem(PROFILE_DRAFT_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
+  };
+  const clearDraft = () => { try { localStorage.removeItem(PROFILE_DRAFT_KEY); } catch {} };
+  // Lo que había al abrir: sirve para saber si de verdad cambiaste algo.
+  const profileBaseline = useRef<string>('');
+  const profileDirty = () => JSON.stringify(currentDraft()) !== profileBaseline.current;
+
+  // Al abrir "Editar Perfil": primero el borrador sin guardar (si existe), y si
+  // no, lo que ya está guardado en tu perfil.
   useEffect(() => {
-    if (showEditProfile) {
-      setEditName(userProfile.name || currentUser?.name || '');
-      setEditBio(userProfile.bio || '');
-      setEditLocation(userProfile.location || '');
-      setEditPhoto(userProfile.photoURL || '');
-      setEditPhotos(userProfile.photos || []);
-      setEditWhatsapp(userProfile.whatsapp || '');
-      setEditBirthday(userProfile.birthday || '');
-      setEditInstagram(userProfile.instagram || '');
-      setEditLinks({ website: userProfile.website || '', facebook: userProfile.facebook || '', tiktok: userProfile.tiktok || '', linkedin: userProfile.linkedin || '' });
-    }
+    if (!showEditProfile) return;
+    const saved: ProfileDraft = {
+      name: userProfile.name || currentUser?.name || '',
+      bio: userProfile.bio || '',
+      location: userProfile.location || '',
+      photo: userProfile.photoURL || '',
+      photos: userProfile.photos || [],
+      whatsapp: userProfile.whatsapp || '',
+      birthday: userProfile.birthday || '',
+      instagram: userProfile.instagram || '',
+      links: { website: userProfile.website || '', facebook: userProfile.facebook || '', tiktok: userProfile.tiktok || '', linkedin: userProfile.linkedin || '' },
+    };
+    const draft = readDraft();
+    applyDraft(draft || saved);
+    profileBaseline.current = JSON.stringify(saved);
   }, [showEditProfile]);
+
+  // Con cada cambio, el borrador queda a salvo en el teléfono.
+  useEffect(() => {
+    if (!showEditProfile) return;
+    try { localStorage.setItem(PROFILE_DRAFT_KEY, JSON.stringify(currentDraft())); } catch { /* sin espacio: se sigue editando igual */ }
+  }, [showEditProfile, editName, editBio, editLocation, editPhoto, editPhotos, editWhatsapp, editBirthday, editInstagram, editLinks]);
+
+  // Guardar el perfil DE VERDAD: avisa si algo falla (antes fallaba en silencio
+  // y parecía que "no se guardaba"). Devuelve true solo si quedó guardado.
+  const [savingProfile, setSavingProfile] = useState(false);
+  const saveMyProfile = async (): Promise<boolean> => {
+    if (savingProfile) return false;
+    // Sin cuenta no hay dónde guardarlo: el borrador ya está a salvo y se sube
+    // solo al registrarte. Se lo decimos claro en vez de perder lo escrito.
+    if (!currentUser || currentUser.isAnonymous) {
+      triggerBeta('Falta tu cuenta', 'Lo que escribiste quedó guardado en este teléfono. Crea tu cuenta y se pasa solo a tu perfil.');
+      setShowEditProfile(false);
+      setShowLoginModal(true);
+      return false;
+    }
+    const data = {
+      name: editName.trim() || currentUser.name,
+      bio: editBio.trim(),
+      location: editLocation.trim(),
+      photoURL: editPhoto || userProfile.photoURL || null,
+      photos: editPhotos.filter(Boolean).slice(0, 3),
+      whatsapp: editWhatsapp.replace(/\D/g, ''),
+      birthday: editBirthday || undefined,
+      instagram: editInstagram.replace(/[@\s]/g, ''),
+      website: editLinks.website.trim(),
+      facebook: editLinks.facebook.trim(),
+      tiktok: editLinks.tiktok.trim(),
+      linkedin: editLinks.linkedin.trim(),
+    };
+    // Las fotos viajan dentro del perfil y hay un tope de tamaño: si se pasa, el
+    // guardado se rechaza. Mejor decirlo ANTES, señalando qué quitar.
+    const weight = JSON.stringify(data).length;
+    if (weight > 900_000) {
+      triggerBeta('Las fotos pesan mucho', 'Quita una de las fotos extra y vuelve a guardar. Lo demás no se pierde.');
+      return false;
+    }
+    setSavingProfile(true);
+    try {
+      await saveProfile(currentUser.uid, data);
+      if (editName.trim()) setCurrentUser({ ...currentUser, name: editName.trim() });
+      clearDraft();
+      profileBaseline.current = JSON.stringify(currentDraft());
+      setShowEditProfile(false);
+      sfx('logro');
+      return true;
+    } catch {
+      triggerBeta('No se pudo guardar', 'Revisa tu conexión e inténtalo otra vez. Lo que escribiste no se perdió.');
+      return false;
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // Tocar el icono de la pestaña en la que YA estás sube la pantalla hasta
+  // arriba (exactamente como Instagram, X y Uber Eats). Si es otra pestaña,
+  // cambia normal. Un solo lugar para todas las pestañas de los dos modos.
+  const goTab = (tab: string) => {
+    if (activeTab === tab) {
+      mainScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    setActiveTab(tab);
+    // Al cambiar de pestaña se empieza arriba, nunca a media pantalla.
+    requestAnimationFrame(() => mainScrollRef.current?.scrollTo({ top: 0 }));
+  };
+
+  // Cerrar el perfil con cambios sin guardar: Guardar / No guardar / Cancelar
+  // (el mismo diálogo de Word, Google Docs y Mac).
+  const [askSaveProfile, setAskSaveProfile] = useState(false);
+  const closeEditProfile = () => {
+    if (profileDirty()) { setAskSaveProfile(true); return; }
+    clearDraft();
+    setShowEditProfile(false);
+  };
 
   const AVATAR_PRESETS = [
     'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80',
@@ -2289,6 +2401,30 @@ export default function App() {
     }
     return watchProfile(currentUser.uid, setUserProfile);
   }, [currentUser?.uid]);
+
+  // Al crear cuenta o entrar: lo que se escribió SIN sesión se sube al perfil.
+  // Así nadie pierde lo que ya había llenado antes de registrarse.
+  useEffect(() => {
+    if (!currentUser || currentUser.isAnonymous) return;
+    const d = readDraft();
+    if (!d) return;
+    const hasSomething = !!(d.name || d.bio || d.location || d.photo || d.whatsapp || d.birthday || d.instagram || (d.photos && d.photos.length));
+    if (!hasSomething) { clearDraft(); return; }
+    void saveProfile(currentUser.uid, {
+      name: (d.name || '').trim() || currentUser.name,
+      bio: (d.bio || '').trim(),
+      location: (d.location || '').trim(),
+      photoURL: d.photo || null,
+      photos: (d.photos || []).filter(Boolean).slice(0, 3),
+      whatsapp: (d.whatsapp || '').replace(/\D/g, ''),
+      birthday: d.birthday || undefined,
+      instagram: (d.instagram || '').replace(/[@\s]/g, ''),
+      website: (d.links?.website || '').trim(),
+      facebook: (d.links?.facebook || '').trim(),
+      tiktok: (d.links?.tiktok || '').trim(),
+      linkedin: (d.links?.linkedin || '').trim(),
+    }).then(() => { clearDraft(); }).catch(() => { /* se reintenta la próxima vez */ });
+  }, [currentUser?.uid, currentUser?.isAnonymous]);
 
   // Al cargar el perfil, restaurar también el negocio guardado (una cuenta, dos caras)
   useEffect(() => {
@@ -3460,6 +3596,9 @@ export default function App() {
   // Deslizar hacia abajo (estando arriba del todo) para ACTUALIZAR la app: recarga
   // la página, con lo que también trae la última versión publicada. Estilo nativo.
   const mainScrollRef = useRef<HTMLElement | null>(null);
+  // Distinguir un toque de dos en la foto de arriba (un toque abre el perfil,
+  // dos cambian de perfil): se espera un momento antes de decidir.
+  const avatarTapRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pullRef = useRef<{ startY: number; pulling: boolean }>({ startY: 0, pulling: false });
   const [pullDist, setPullDist] = useState(0);
   const PULL_THRESHOLD = 75;
@@ -3637,6 +3776,30 @@ export default function App() {
                   Comenzar ahora
                 </button>
                 
+                {/* CREAR CUENTA a la vista desde el primer momento. iogga es nueva:
+                    casi nadie tiene cuenta todavía, así que el camino principal es
+                    registrarse, no iniciar sesión. Es el arranque de Duolingo y de
+                    Uber: arriba el botón grande de crear cuenta y abajo, chiquito,
+                    "ya tengo cuenta". El latido lento lo hace imposible de no ver. */}
+                {!isLoggedIn && (
+                  <>
+                    <motion.button
+                      onClick={() => { setIsRegistering(true); setShowLoginModal(true); }}
+                      animate={{ boxShadow: ['0 0 0 0 rgba(99,102,241,0)', '0 0 0 10px rgba(99,102,241,0.12)', '0 0 0 0 rgba(99,102,241,0)'] }}
+                      transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                      className="w-full py-5 bg-white text-zinc-900 rounded-[24px] font-black text-base active:scale-95 transition-transform flex items-center justify-center gap-2"
+                    >
+                      <User size={20} /> Crear cuenta gratis
+                    </motion.button>
+                    <button
+                      onClick={() => { setIsRegistering(false); setShowLoginModal(true); }}
+                      className="w-full py-2 text-zinc-400 font-bold text-sm active:scale-95 transition-transform"
+                    >
+                      Ya tengo cuenta
+                    </button>
+                  </>
+                )}
+
                 <button 
                   onClick={handleSkipIntro}
                   className="w-full py-4 bg-white/5 text-zinc-500 rounded-[24px] font-bold text-sm hover:bg-white/10 transition-all active:scale-95 border border-white/10"
@@ -3656,10 +3819,20 @@ export default function App() {
               <div className="flex items-center gap-3" id="tutorial-mode-switch">
               <div className="flex items-center gap-2 group relative">
               <button
-                onClick={handleRefresh}
-                // Doble toque = cambiar de perfil (igual que en el botón Perfil
-                // de la barra de abajo): mismo gesto en toda la app.
-                onDoubleClick={() => toggleMode(mode === 'person' ? 'business' : 'person')}
+                // Un toque = ir a TU perfil (es lo que la gente espera al ver su
+                // foto arriba: Instagram, X y Gmail hacen justo eso). Dos toques
+                // = cambiar de perfil, el mismo gesto que el botón de abajo.
+                onClick={() => {
+                  if (avatarTapRef.current) return; // el segundo toque lo maneja onDoubleClick
+                  avatarTapRef.current = setTimeout(() => {
+                    avatarTapRef.current = null;
+                    goTab('profile');
+                  }, 260);
+                }}
+                onDoubleClick={() => {
+                  if (avatarTapRef.current) { clearTimeout(avatarTapRef.current); avatarTapRef.current = null; }
+                  toggleMode(mode === 'person' ? 'business' : 'person');
+                }}
                 className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-full transition-all duration-500 shadow-lg active:scale-95 ${mode === 'person' ? 'bg-iogga-primary/10 text-iogga-primary' : 'bg-iogga-accent/10 text-iogga-accent'}`}
               >
                 {mode === 'person'
@@ -5510,7 +5683,7 @@ export default function App() {
                     {/* Mismo formato que el perfil de persona: números en fila */}
                     <div className="pt-12 px-6 space-y-5">
                       <div className="flex items-center justify-around">
-                        <button onClick={() => setActiveTab('active')} className="flex flex-col items-center active:scale-95 transition-transform">
+                        <button onClick={() => goTab('active')} className="flex flex-col items-center active:scale-95 transition-transform">
                           <span className="text-lg font-black text-white">{myPromos.length}</span>
                           <span className="text-[11px] text-zinc-500 uppercase tracking-widest font-bold">Ofertas</span>
                         </button>
@@ -5612,7 +5785,7 @@ export default function App() {
                         </button>
                       </div>
                       <div className="flex-1 flex items-center justify-around">
-                        <button onClick={() => setActiveTab('active')} className="flex flex-col items-center active:scale-95 transition-transform">
+                        <button onClick={() => goTab('active')} className="flex flex-col items-center active:scale-95 transition-transform">
                           <span className="text-lg font-black text-white">{plans.filter(p => isMyPlan(p)).length}</span>
                           <span className="text-[11px] text-zinc-500 uppercase tracking-widest font-bold">Planes</span>
                         </button>
@@ -5944,7 +6117,7 @@ export default function App() {
               <NavButton
                 id="nav-home"
                 active={activeTab === 'home'}
-                onClick={() => setActiveTab('home')}
+                onClick={() => goTab('home')}
                 icon={
                   <div className="relative">
                     <Home size={24} />
@@ -5959,7 +6132,7 @@ export default function App() {
               <NavButton
                 id="nav-search"
                 active={activeTab === 'search'}
-                onClick={() => setActiveTab('search')}
+                onClick={() => goTab('search')}
                 icon={<Globe size={24} />}
                 label="Explora"
                 color="text-iogga-primary"
@@ -5976,7 +6149,7 @@ export default function App() {
               <NavButton
                 id="nav-active"
                 active={activeTab === 'active'}
-                onClick={() => setActiveTab('active')}
+                onClick={() => goTab('active')}
                 icon={<LayoutGrid size={24} />}
                 label="Mis Planes"
                 color="text-iogga-primary"
@@ -5984,7 +6157,7 @@ export default function App() {
               <NavButton 
                 id="nav-profile"
                 active={activeTab === 'profile'} 
-                onClick={() => setActiveTab('profile')} 
+                onClick={() => goTab('profile')} 
                 onDoubleClick={() => toggleMode('business')}
                 icon={
                   <div className="relative">
@@ -6003,7 +6176,7 @@ export default function App() {
               <NavButton 
                 id="nav-analytics"
                 active={activeTab === 'analytics'} 
-                onClick={() => setActiveTab('analytics')} 
+                onClick={() => goTab('analytics')} 
                 icon={<BarChart3 size={24} />} 
                 label="Analítica" 
                 color="text-iogga-accent" 
@@ -6011,7 +6184,7 @@ export default function App() {
               <NavButton
                 id="nav-search"
                 active={activeTab === 'search'}
-                onClick={() => setActiveTab('search')}
+                onClick={() => goTab('search')}
                 icon={<Globe size={24} />}
                 label="Explora"
                 color="text-iogga-accent"
@@ -6028,7 +6201,7 @@ export default function App() {
               <NavButton
                 id="nav-active"
                 active={activeTab === 'active'}
-                onClick={() => setActiveTab('active')}
+                onClick={() => goTab('active')}
                 icon={<LayoutGrid size={24} />}
                 label="Mis Ofertas"
                 color="text-iogga-accent"
@@ -6036,7 +6209,7 @@ export default function App() {
               <NavButton 
                 id="nav-profile"
                 active={activeTab === 'profile'} 
-                onClick={() => setActiveTab('profile')} 
+                onClick={() => goTab('profile')} 
                 onDoubleClick={() => toggleMode('person')}
                 icon={
                   <div className="relative">
@@ -6978,7 +7151,19 @@ export default function App() {
           )}
 
           {showEditProfile && (
-            <Modal onClose={() => setShowEditProfile(false)} title="Editar Perfil">
+            <Modal
+              onClose={closeEditProfile}
+              title="Editar perfil"
+              footer={
+                <button
+                  onClick={() => { void saveMyProfile(); }}
+                  disabled={savingProfile}
+                  className="w-full py-4 bg-iogga-primary text-white rounded-2xl font-black text-base shadow-xl shadow-iogga-primary/20 active:scale-95 transition-transform disabled:opacity-60"
+                >
+                  {savingProfile ? 'Guardando…' : 'Guardar'}
+                </button>
+              }
+            >
               <div className="space-y-6">
                 <div className="flex flex-col items-center gap-4">
                   <div className="relative group">
@@ -7093,31 +7278,6 @@ export default function App() {
                     ))}
                   </div>
                 </div>
-                <button
-                  onClick={async () => {
-                    if (currentUser) {
-                      await saveProfile(currentUser.uid, {
-                        name: editName.trim() || currentUser.name,
-                        bio: editBio.trim(),
-                        location: editLocation.trim(),
-                        photoURL: editPhoto || userProfile.photoURL || null,
-                        photos: editPhotos.filter(Boolean).slice(0, 3),
-                        whatsapp: editWhatsapp.replace(/\D/g, ''),
-                        birthday: editBirthday || undefined,
-                        instagram: editInstagram.replace(/[@\s]/g, ''),
-                        website: editLinks.website.trim(),
-                        facebook: editLinks.facebook.trim(),
-                        tiktok: editLinks.tiktok.trim(),
-                        linkedin: editLinks.linkedin.trim(),
-                      }).catch(() => {});
-                      if (editName.trim()) setCurrentUser({ ...currentUser, name: editName.trim() });
-                    }
-                    setShowEditProfile(false);
-                  }}
-                  className="w-full py-4 bg-iogga-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-iogga-primary/20 active:scale-95 transition-transform"
-                >
-                  Guardar Cambios
-                </button>
               </div>
             </Modal>
           )}
@@ -8638,6 +8798,22 @@ export default function App() {
                   <div className="flex-grow border-t border-white/5"></div>
                 </div>
 
+                {/* Crear cuenta / Entrar: el interruptor de dos pestañas que usan
+                    Airbnb y Booking. Se ve de un vistazo en cuál de las dos estás,
+                    así nadie intenta entrar con una cuenta que todavía no existe. */}
+                <div className="grid grid-cols-2 gap-1 p-1 rounded-[20px] bg-white/5 border border-white/10">
+                  {[{ k: true, t: 'Crear cuenta' }, { k: false, t: 'Ya tengo cuenta' }].map(o => (
+                    <button
+                      key={String(o.k)}
+                      type="button"
+                      onClick={() => { setIsRegistering(o.k); setAuthError(''); }}
+                      className={`py-3 rounded-[16px] text-xs font-black transition-all ${isRegistering === o.k ? 'bg-iogga-primary text-white shadow-lg shadow-iogga-primary/20' : 'text-zinc-400'}`}
+                    >
+                      {o.t}
+                    </button>
+                  ))}
+                </div>
+
                 <form onSubmit={async (e) => {
                   e.preventDefault();
                   setAuthError('');
@@ -8948,6 +9124,41 @@ export default function App() {
 
         {/* Billetera (modelo Uber): persona = cómo pagas; negocio = dónde te cae el dinero */}
         {/* Eliminar cuenta (modelo Instagram/Apple): pide motivo y confirma que es permanente */}
+        {/* Cambios sin guardar (el diálogo de Word / Google Docs / Mac):
+            Guardar · No guardar · Cancelar. Nunca se pierde nada por accidente. */}
+        {askSaveProfile && (
+          <div className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setAskSaveProfile(false)} />
+            <div className="relative w-full sm:max-w-sm bg-zinc-950 border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4">
+              <div className="text-center space-y-1.5">
+                <h3 className="text-lg font-black text-white">Tienes cambios sin guardar</h3>
+                <p className="text-xs text-zinc-400 leading-snug">Si sales sin guardar, esos cambios se pierden.</p>
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={async () => { const ok = await saveMyProfile(); if (ok) setAskSaveProfile(false); }}
+                  disabled={savingProfile}
+                  className="w-full py-4 bg-iogga-primary text-white rounded-2xl font-black text-sm active:scale-95 transition-transform disabled:opacity-60"
+                >
+                  {savingProfile ? 'Guardando…' : 'Guardar'}
+                </button>
+                <button
+                  onClick={() => { clearDraft(); setAskSaveProfile(false); setShowEditProfile(false); }}
+                  className="w-full py-4 bg-white/5 border border-white/10 text-zinc-300 rounded-2xl font-bold text-sm active:scale-95 transition-transform"
+                >
+                  No guardar
+                </button>
+                <button
+                  onClick={() => setAskSaveProfile(false)}
+                  className="w-full py-3 text-zinc-500 font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showDeleteAccount && (
           <Modal onClose={() => setShowDeleteAccount(false)} title="Eliminar mi cuenta">
             <div className="space-y-5">
@@ -11421,7 +11632,7 @@ function SelectButton({ active, onClick, label }: { active: boolean, onClick: ()
   );
 }
 
-function Modal({ children, onClose: rawClose, onBack, title }: { children: React.ReactNode, onClose: () => void, onBack?: () => void, title: string }) {
+function Modal({ children, onClose: rawClose, onBack, title, footer }: { children: React.ReactNode, onClose: () => void, onBack?: () => void, title: string, footer?: React.ReactNode }) {
   // Sonido de abrir/cerrar: vive AQUÍ, en la hoja, así toda la app suena igual
   // sin repetir una línea en cada pantalla (modelo de las hojas del iPhone).
   React.useEffect(() => { sfx('abrir'); }, []);
@@ -11501,10 +11712,24 @@ function Modal({ children, onClose: rawClose, onBack, title }: { children: React
             </button>
           </div>
         </motion.div>
-        <div className="pb-10">
+        {/* Con barra fija abajo, el contenido deja hueco para no quedar tapado */}
+        <div className={footer ? 'pb-28' : 'pb-10'}>
           {children}
         </div>
       </motion.div>
+      {/* BARRA FIJA DE ACCIÓN: el botón principal SIEMPRE visible, pegado abajo,
+          sin tener que bajar hasta el final del formulario. Es exactamente lo que
+          hacen Airbnb ("Siguiente"), Uber Eats ("Agregar al pedido") y el
+          checkout de Amazon: la acción no se esconde en el scroll. Respeta la
+          barra de gestos del iPhone con env(safe-area-inset-bottom). */}
+      {footer && (
+        <div
+          className="absolute bottom-0 left-0 right-0 z-10 bg-zinc-950/95 backdrop-blur-md border-t border-white/10 px-6 pt-3"
+          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+        >
+          {footer}
+        </div>
+      )}
     </motion.div>
   );
 }

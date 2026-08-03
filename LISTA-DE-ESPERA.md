@@ -1,28 +1,36 @@
 # Base de datos de la lista de espera
 
-Guarda **nombre, correo, teléfono y tipo** de cada persona que se registra en iogga.com.
-Los datos quedan en una **Hoja de Google tuya**, y además puedes consultarlos y exportarlos
-desde el **panel privado** del propio sitio: `iogga.com/panel.html`
+Guarda **nombre, correo, teléfono y tipo** de cada persona que se registra en www.iogga.com.
+Los datos quedan en **tu Hoja de Google**, y además puedes consultarlos y exportarlos desde el
+**panel privado**: `www.iogga.com/panel.html`
 
-Es gratis, sin límite de registros, y los datos son 100% tuyos.
+Gratis, sin límite de registros, y los datos son 100% tuyos.
 
-> **Por qué necesitas hacer esto tú:** GitHub Pages solo sirve archivos, no puede guardar datos.
-> La información tiene que vivir en una cuenta que tú controles — y yo no puedo crear cuentas
-> a tu nombre. Son 10 minutos, una sola vez.
+**Tu hoja:**
+https://docs.google.com/spreadsheets/d/18reM1EwWa5IYikIF6OkHpZiuRuh6yTCPorAP_Gv8240/edit
+
+**Tu clave de acceso al panel** (generada al azar, ya está en el código de abajo):
+```
+PwCV2-vwfds-CfPdW-0Q4zP
+```
+Guárdala. Puedes cambiarla si quieres — solo edita la línea `var CLAVE` del script.
+
+> **Por qué esto lo tienes que hacer tú:** desplegar un script de Google requiere que tú
+> autorices con tu cuenta desde el navegador. Nadie más puede hacerlo por ti. Son 5 minutos,
+> una sola vez.
 
 ---
 
-## Paso 1 · Crea la hoja
-1. Entra a [sheets.new](https://sheets.new).
-2. Ponle de nombre: **iogga — Lista de espera**.
+## Paso 1 · Abre el editor de scripts
+1. Abre [tu hoja](https://docs.google.com/spreadsheets/d/18reM1EwWa5IYikIF6OkHpZiuRuh6yTCPorAP_Gv8240/edit)
+2. Menú **Extensiones → Apps Script**
+3. Se abre una pestaña nueva con un editor de código
 
 ## Paso 2 · Pega el código
-1. En la hoja: menú **Extensiones → Apps Script**.
-2. Borra todo y pega esto:
+Borra todo lo que haya (normalmente `function myFunction() {}`) y pega esto **tal cual**:
 
 ```javascript
-// ⚠️ CAMBIA ESTA CLAVE por una tuya (la usarás para entrar al panel)
-var CLAVE = 'iogga2026';
+var CLAVE = 'PwCV2-vwfds-CfPdW-0Q4zP';
 
 function doPost(e) {
   var lock = LockService.getScriptLock();
@@ -53,9 +61,8 @@ function doPost(e) {
 
 function doGet(e) {
   var p = e.parameter || {};
-  if (p.key !== CLAVE) {
-    return json({ ok: false, error: 'clave incorrecta' });
-  }
+  if (p.key !== CLAVE) return json({ ok: false, error: 'clave incorrecta' });
+
   var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
   if (hoja.getLastRow() < 2) return json({ ok: true, registros: [] });
 
@@ -80,70 +87,56 @@ function json(obj) {
 }
 ```
 
-3. **Cambia `iogga2026`** por la clave que tú quieras. Anótala: es la que usarás para entrar al panel.
-4. Clic en **Guardar** 💾.
+Clic en **Guardar** 💾 (o `Ctrl+S`).
 
 ## Paso 3 · Publícalo
-1. Botón azul **Implementar → Nueva implementación**.
-2. Engrane ⚙️ → **Aplicación web**.
+1. Botón azul **Implementar → Nueva implementación**
+2. Clic en el engrane ⚙️ (junto a "Selecciona el tipo") → **Aplicación web**
 3. Configura:
-   - **Ejecutar como:** Yo (tu cuenta)
-   - **Quién tiene acceso:** **Cualquier persona** ← importante
-4. **Implementar** → Google pide permisos → **Autorizar acceso** → tu cuenta →
-   *"Google no verificó esta app"* → **Configuración avanzada** → **Ir a … (no seguro)** → **Permitir**.
-   *(Es tu propio script, es seguro.)*
-5. Copia la **URL de la aplicación web**:
-   `https://script.google.com/macros/s/AKfy…/exec`
+   - **Descripción:** `iogga lista de espera`
+   - **Ejecutar como:** *Yo* (tu correo)
+   - **Quién tiene acceso:** **Cualquier persona** ← 🔴 importantísimo
+4. **Implementar**
+5. Google pedirá permisos:
+   - **Autorizar acceso** → elige tu cuenta
+   - Saldrá *"Google no verificó esta aplicación"* → **Configuración avanzada** →
+     **Ir a (nombre del proyecto) (no seguro)** → **Permitir**
+   *(Es tu propio script en tu propia hoja. Es seguro.)*
+6. Copia la **URL de la aplicación web**. Termina en `/exec`:
+   ```
+   https://script.google.com/macros/s/AKfy........./exec
+   ```
 
-## Paso 4 · Conéctala (2 archivos)
+## Paso 4 · Pásame la URL
+Mándame esa URL por aquí y yo la conecto en los dos archivos.
 
-**a) En `index.html`** — busca esta línea dentro del `<script>`:
-```javascript
-var WAITLIST_ENDPOINT = "";
-```
-y pega tu URL:
-```javascript
-var WAITLIST_ENDPOINT = "https://script.google.com/macros/s/AKfy.../exec";
-```
+**O si lo quieres hacer tú**, son dos líneas:
 
-**b) En `panel.html`** — busca:
-```javascript
-var ENDPOINT = "";
-```
-y pega **la misma URL**:
-```javascript
-var ENDPOINT = "https://script.google.com/macros/s/AKfy.../exec";
-```
-
-Guarda los dos y haz commit. ¡Listo! 🎉
+- En **`index.html`** busca `var WAITLIST_ENDPOINT = "";` → pega la URL entre las comillas.
+- En **`panel.html`** busca `var ENDPOINT = "";` → pega **la misma URL**.
 
 ---
 
 ## Cómo consultar los registros
 
-### Opción A — El panel del sitio (recomendado)
-Entra a **`iogga.com/panel.html`**, escribe tu clave y verás:
-- Total de registros, cuántos son negocios, cuántos dejaron teléfono y cuántos se registraron hoy.
-- Tabla completa con buscador (por nombre, correo o teléfono).
-- **Descargar CSV** (se abre en Excel) y **Copiar como texto**.
+### Opción A — El panel del sitio
+Entra a **`www.iogga.com/panel.html`**, escribe tu clave y verás:
+- Total de registros, cuántos son negocios, cuántos dejaron teléfono, cuántos hoy
+- Tabla con buscador por nombre, correo o teléfono
+- **Descargar CSV** (abre en Excel) y **Copiar como texto**
 
-Esta página **no está enlazada** desde ningún lado del sitio y lleva `noindex`, así que no
-aparece en Google. Solo entra quien conoce la dirección **y** la clave.
+La página no está enlazada en el sitio, lleva `noindex` y está bloqueada en `robots.txt`.
+Sin la clave, el script no devuelve nada.
 
-### Opción B — La Hoja de Google
-Abre tu hoja directamente. Cada registro llega solo, con fecha.
-Para recibir un correo cuando alguien se registre:
-**Herramientas → Reglas de notificación → Notificarme cuando se realicen cambios → De inmediato.**
+### Opción B — Tu Hoja de Google
+Ábrela directo. Cada registro llega solo, con su fecha.
+
+**Para que te llegue un correo con cada registro:**
+en la hoja → **Herramientas → Reglas de notificación →** *Notificarme cuando se realicen
+cambios* → *Enviar un correo electrónico de inmediato*.
 
 ---
 
-## Seguridad
-- La clave viaja en la petición y se guarda solo en tu navegador (durante la sesión).
-- Sin la clave, el script **no devuelve ningún dato**.
-- Cambia la clave cuando quieras: edítala en el Apps Script y vuelve a implementar.
-- Si quieres una dirección aún más difícil de adivinar, renombra `panel.html` a algo como
-  `panel-9f3a2.html`. Nadie más la conoce.
-
-## Si aún no lo configuras
-El formulario del sitio abre el correo del visitante con sus datos prellenados hacia
-`admin@iogga.com`. Funciona, pero es manual — por eso conviene hacer los 4 pasos.
+## Mientras tanto
+Si no está configurado, el formulario abre el correo del visitante con sus datos prellenados
+hacia `admin@iogga.com`. Funciona, pero es manual.

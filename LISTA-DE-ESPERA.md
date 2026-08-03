@@ -30,13 +30,20 @@ Guárdala. Puedes cambiarla si quieres — solo edita la línea `var CLAVE` del 
 Borra todo lo que haya (normalmente `function myFunction() {}`) y pega esto **tal cual**:
 
 ```javascript
-var CLAVE = 'PwCV2-vwfds-CfPdW-0Q4zP';
+var CLAVE   = 'PwCV2-vwfds-CfPdW-0Q4zP';
+var HOJA_ID = '18reM1EwWa5IYikIF6OkHpZiuRuh6yTCPorAP_Gv8240';
+
+// Abre la hoja por su ID: funciona igual si el script está dentro de la
+// hoja o si lo creaste aparte.
+function abrirHoja_() {
+  return SpreadsheetApp.openById(HOJA_ID).getSheets()[0];
+}
 
 function doPost(e) {
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+    var hoja = abrirHoja_();
     if (hoja.getLastRow() === 0) {
       hoja.appendRow(['Fecha', 'Nombre', 'Correo', 'Teléfono', 'Tipo', 'Origen']);
       hoja.getRange(1, 1, 1, 6).setFontWeight('bold');
@@ -63,7 +70,7 @@ function doGet(e) {
   var p = e.parameter || {};
   if (p.key !== CLAVE) return json({ ok: false, error: 'clave incorrecta' });
 
-  var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  var hoja = abrirHoja_();
   if (hoja.getLastRow() < 2) return json({ ok: true, registros: [] });
 
   var filas = hoja.getRange(2, 1, hoja.getLastRow() - 1, 6).getValues();

@@ -1,12 +1,12 @@
-/* IOGGA — service worker mínimo para instalación (PWA) y carga offline básica */
-const CACHE = "iogga-v1";
+/* iogga — service worker mínimo para instalación (PWA) y carga offline básica */
+const CACHE = "iogga-v2";
 const ASSETS = [
   "/",
-  "/index.html",
-  "/manifest.webmanifest",
-  "/assets/logo-mask.png",
-  "/assets/icon-192.png",
-  "/assets/icon-512.png"
+  "index.html",
+  "manifest.webmanifest",
+  "assets/logo-mask.png",
+  "assets/icon-192.png",
+  "assets/icon-512.png"
 ];
 
 self.addEventListener("install", (e) => {
@@ -32,7 +32,7 @@ self.addEventListener("fetch", (e) => {
           caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
           return res;
         })
-        .catch(() => caches.match("/index.html"))
+        .catch(() => caches.match("index.html"))
     )
   );
 });

@@ -3,34 +3,39 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>IOGGA — The Apportunity</title>
-<meta name="description" content="Que los mejores momentos y oportunidades de tu vida no dependan de las coincidencias. Organiza planes en segundos, coincide con las personas indicadas y descubre negocios y promociones a tu alrededor." />
+<title>iogga — The Apportunity</title>
+<meta name="description" content="La app donde tus planes cobran vida y conectar es más fácil que nunca. Di qué quieres hacer y iogga lo conecta con las personas, lugares y promociones que lo hacen posible." />
 <meta name="theme-color" content="#ffffff" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%2329ABE2'/%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%236366f1'/%3E%3C/svg%3E" />
 
 <meta property="og:type" content="website" />
-<meta property="og:title" content="IOGGA — The Apportunity" />
-<meta property="og:description" content="Que los mejores momentos y oportunidades de tu vida no dependan de las coincidencias." />
+<meta property="og:title" content="iogga — The Apportunity" />
+<meta property="og:description" content="La app donde tus planes cobran vida y conectar es más fácil que nunca." />
 <meta property="og:url" content="https://iogga.com/" />
 <meta property="og:locale" content="es_MX" />
 <meta name="twitter:card" content="summary_large_image" />
 
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
 <style>
   :root{
-    --brand:#29ABE2;         /* iogga sky blue */
-    --brand-ink:#0F86BC;     /* darker for text on white */
-    --biz:#6C74E8;           /* periwinkle (negocios) */
-    --ink:#1d1d1f;           /* Apple near-black */
-    --ink-2:#6e6e73;         /* Apple secondary */
+    /* Sistema de color tomado de la app iogga */
+    --primary:#6366f1;        /* personas */
+    --primary-ink:#4f46e5;
+    --accent:#14b8a6;         /* negocios */
+    --accent-ink:#0d9488;
+
+    --ink:#1d1d1f;
+    --ink-2:#6e6e73;
     --ink-3:#86868b;
     --bg:#ffffff;
-    --bg-2:#f5f5f7;          /* Apple light gray */
-    --bg-3:#fafafc;
-    --line:#e3e3e6;
+    --bg-2:#f5f5f7;
+    --line:#e5e5e8;
     --line-2:#d2d2d7;
-    --card:#ffffff;
 
     --maxw:1024px;
     --wide:1180px;
@@ -38,268 +43,249 @@
     --r:20px;
     --r-lg:28px;
 
-    /* Apple type ramp (SF Pro / system) */
-    --f-sans:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --t-hero:clamp(2.6rem,1.4rem + 5vw,5.2rem);
-    --t-h2:clamp(2rem,1.3rem + 2.8vw,3.5rem);
-    --t-h3:clamp(1.5rem,1.15rem + 1.5vw,2.25rem);
-    --t-lead:clamp(1.15rem,1.02rem + .6vw,1.6rem);
-    --t-body:clamp(1rem,.97rem + .15vw,1.12rem);
+    --f:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --t-hero:clamp(2.6rem,1.3rem + 5.2vw,5rem);
+    --t-h2:clamp(2rem,1.3rem + 2.8vw,3.4rem);
+    --t-h3:clamp(1.45rem,1.15rem + 1.4vw,2.1rem);
+    --t-lead:clamp(1.12rem,1rem + .6vw,1.55rem);
+    --t-body:clamp(1rem,.97rem + .15vw,1.1rem);
     --ease:cubic-bezier(.28,.11,.32,1);
   }
-
   *,*::before,*::after{box-sizing:border-box}
   html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
   @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-  body{
-    margin:0;background:var(--bg);color:var(--ink);
-    font-family:var(--f-sans);font-size:var(--t-body);line-height:1.5;
-    letter-spacing:-.01em;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
-    overflow-x:hidden;
-  }
-  h1,h2,h3,h4{margin:0;font-weight:700;line-height:1.05;letter-spacing:-.025em;text-wrap:balance}
-  h1{font-size:var(--t-hero);font-weight:700;letter-spacing:-.035em}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:var(--t-body);
+    line-height:1.5;letter-spacing:-.011em;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  h1,h2,h3,h4{margin:0;font-weight:700;line-height:1.06;letter-spacing:-.03em;text-wrap:balance}
+  h1{font-size:var(--t-hero);letter-spacing:-.042em}
   h2{font-size:var(--t-h2)}
   h3{font-size:var(--t-h3)}
   p{margin:0}
   a{color:inherit;text-decoration:none}
   img{max-width:100%;display:block}
-  .brandc{color:var(--brand-ink)}
+  .pri{color:var(--primary-ink)}
+  .acc{color:var(--accent-ink)}
 
   .wrap{width:100%;max-width:var(--maxw);margin-inline:auto;padding-inline:var(--pad)}
   .wrap.wide{max-width:var(--wide)}
 
-  /* buttons — Apple style */
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;font-family:inherit;
-    font-size:1.05rem;font-weight:500;letter-spacing:-.01em;padding:.7em 1.4em;border-radius:980px;
-    border:1px solid transparent;cursor:pointer;transition:background .22s var(--ease),transform .22s var(--ease),opacity .22s;white-space:nowrap}
-  .btn:focus-visible{outline:3px solid rgba(41,171,226,.5);outline-offset:2px}
-  .btn-fill{background:var(--brand);color:#fff}
-  .btn-fill:hover{background:#1f9ad0}
-  .btn-soft{background:rgba(41,171,226,.1);color:var(--brand-ink)}
-  .btn-soft:hover{background:rgba(41,171,226,.16)}
-  .btn-dark{background:var(--ink);color:#fff}
-  .btn-dark:hover{background:#000}
-  .btn-wa{background:#25D366;color:#0b3d1f;font-weight:600}
-  .btn-wa:hover{background:#20c15d}
-  .tlink{display:inline-flex;align-items:center;gap:.15rem;color:var(--brand-ink);font-size:1.05rem;font-weight:400}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;font-family:inherit;
+    font-size:1.02rem;font-weight:500;padding:.72em 1.45em;border-radius:980px;border:1px solid transparent;
+    cursor:pointer;transition:background .22s var(--ease),transform .22s var(--ease),opacity .2s;white-space:nowrap}
+  .btn:focus-visible{outline:3px solid rgba(99,102,241,.5);outline-offset:2px}
+  .btn-fill{background:var(--primary);color:#fff}
+  .btn-fill:hover{background:var(--primary-ink)}
+  .btn-soft{background:rgba(99,102,241,.1);color:var(--primary-ink)}
+  .btn-soft:hover{background:rgba(99,102,241,.16)}
+  .btn-wa{background:#25D366;color:#08361c;font-weight:600}
+  .btn-wa:hover{background:#20c05d}
+  .btn[disabled]{opacity:.55;cursor:not-allowed}
+  .tlink{display:inline-flex;align-items:center;gap:.2rem;color:var(--primary-ink);font-size:1.02rem}
   .tlink:hover{text-decoration:underline}
   .tlink svg{width:16px;height:16px;transition:transform .2s}
   .tlink:hover svg{transform:translateX(2px)}
 
-  /* logo mark via mask (tintable) */
-  .logo{--h:26px;display:inline-flex;align-items:center;gap:.55rem}
-  .logo .mark{width:calc(var(--h)*1.04);height:var(--h);
-    -webkit-mask:url(assets/logo-mask.png) center/contain no-repeat;mask:url(assets/logo-mask.png) center/contain no-repeat;
-    background:var(--brand)}
-  .logo .word{font-weight:600;font-size:1.35rem;letter-spacing:-.02em;color:var(--ink)}
+  /* logo (botón de inicio) */
+  .logo{--h:26px;display:inline-flex;align-items:center;gap:.5rem;background:none;border:0;padding:.25rem;
+    margin:-.25rem;cursor:pointer;font-family:inherit;border-radius:12px;transition:opacity .2s}
+  .logo:hover{opacity:.65}
+  .logo:focus-visible{outline:3px solid rgba(99,102,241,.5);outline-offset:2px}
+  .logo .mark{width:calc(var(--h)*1.04);height:var(--h);background:var(--primary);
+    -webkit-mask:url(assets/logo-mask.png) center/contain no-repeat;mask:url(assets/logo-mask.png) center/contain no-repeat}
+  .logo .word{font-weight:600;font-size:1.32rem;letter-spacing:-.035em;color:var(--ink)}
 
-  /* ---------- NAV (Apple) ---------- */
-  .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px);
-    -webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line)}
-  .nav-in{display:flex;align-items:center;justify-content:space-between;height:52px;max-width:var(--wide);margin-inline:auto;padding-inline:var(--pad)}
-  .nav-links{display:flex;gap:2.2rem}
-  .nav-links a{font-size:.86rem;font-weight:400;color:#333;opacity:.85;transition:opacity .2s}
-  .nav-links a:hover{opacity:1;color:var(--brand-ink)}
-  .nav-right{display:flex;align-items:center;gap:1rem}
-  .nav-right .btn{font-size:.82rem;padding:.42em 1em}
+  /* NAV */
+  .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.72);
+    backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line)}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;height:54px;max-width:var(--wide);margin-inline:auto;padding-inline:var(--pad)}
+  .nav-links{display:flex;gap:2.1rem}
+  .nav-links a{font-size:.86rem;color:#333;opacity:.85;transition:opacity .2s,color .2s}
+  .nav-links a:hover{opacity:1;color:var(--primary-ink)}
+  .nav-right{display:flex;align-items:center;gap:.9rem}
+  .nav-right .btn{font-size:.82rem;padding:.44em 1.05em}
   .nav-toggle{display:none;background:none;border:0;cursor:pointer;width:34px;height:34px;color:var(--ink)}
   .nav-toggle svg{width:22px;height:22px}
   @media (max-width:830px){
-    .nav-links{position:fixed;inset:52px 0 auto 0;flex-direction:column;gap:0;background:rgba(255,255,255,.98);
+    .nav-links{position:fixed;inset:54px 0 auto 0;flex-direction:column;gap:0;background:rgba(255,255,255,.98);
       backdrop-filter:blur(20px);border-bottom:1px solid var(--line);padding:.4rem var(--pad) 1.2rem;
-      transform:translateY(-115%);transition:transform .35s var(--ease)}
+      transform:translateY(-118%);transition:transform .35s var(--ease)}
     .nav-links.open{transform:none}
     .nav-links a{padding:.9rem 0;font-size:1.05rem;border-bottom:1px solid var(--line)}
     .nav-toggle{display:grid;place-items:center}
     .nav-right .btn-desktop{display:none}
   }
 
-  section{padding:clamp(64px,10vw,120px) 0;position:relative}
+  section{padding:clamp(62px,9.5vw,118px) 0;position:relative}
   .tint{background:var(--bg-2)}
-  .center{text-align:center}
-  .eyebrow{font-size:clamp(1rem,.9rem + .5vw,1.35rem);font-weight:600;color:var(--brand-ink);letter-spacing:-.01em;margin:0 0 .4rem}
-  .lead{font-size:var(--t-lead);color:var(--ink-2);font-weight:400;line-height:1.35;letter-spacing:-.015em}
-  .sec-intro{max-width:60ch;margin:0 auto clamp(40px,6vw,72px)}
-  .sec-intro.left{margin-left:0;text-align:left}
-  .sec-intro h2{margin-bottom:1rem}
+  .eyebrow{font-size:clamp(1rem,.9rem + .5vw,1.3rem);font-weight:600;color:var(--primary-ink);margin:0 0 .4rem}
+  .eyebrow.b{color:var(--accent-ink)}
+  .lead{font-size:var(--t-lead);color:var(--ink-2);font-weight:400;line-height:1.36;letter-spacing:-.018em}
+  .sec-intro{max-width:60ch;margin:0 auto clamp(38px,6vw,68px);text-align:center}
+  .sec-intro .lead{margin-top:1rem}
 
-  /* ---------- HERO ---------- */
-  .hero{padding:clamp(56px,8vw,96px) 0 clamp(40px,6vw,72px);text-align:center;overflow:hidden}
-  .hero .eyebrow{font-size:clamp(1.1rem,.9rem + 1vw,1.6rem)}
-  .hero h1{max-width:16ch;margin:0 auto}
-  .hero .lead{max-width:40ch;margin:1.4rem auto 0}
-  .hero-cta{display:flex;flex-wrap:wrap;gap:.6rem 1.6rem;justify-content:center;align-items:center;margin-top:2rem}
-  .hero-note{margin-top:1.1rem;font-size:.85rem;color:var(--ink-3)}
+  /* HERO */
+  .hero{padding:clamp(64px,9vw,110px) 0 clamp(56px,7vw,88px);text-align:center}
+  .hero h1{max-width:15ch;margin:0 auto}
+  .hero .lead{max-width:42ch;margin:1.4rem auto 0}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:.6rem 1.5rem;justify-content:center;align-items:center;margin-top:2.1rem}
+  .hero-note{margin-top:1.1rem;font-size:.86rem;color:var(--ink-3)}
+  .hero-mark{width:78px;height:78px;margin:0 auto 1.8rem;background:var(--primary);
+    -webkit-mask:url(assets/logo-mask.png) center/contain no-repeat;mask:url(assets/logo-mask.png) center/contain no-repeat}
 
-  /* phone mockup with live plan builder */
-  .phone-wrap{margin:clamp(40px,6vw,64px) auto 0;max-width:390px}
-  .phone{position:relative;background:#fff;border:1px solid var(--line-2);border-radius:44px;padding:12px;
-    box-shadow:0 50px 100px -40px rgba(0,0,0,.28),0 20px 40px -30px rgba(0,0,0,.2)}
-  .phone::before{content:"";position:absolute;top:20px;left:50%;transform:translateX(-50%);width:36%;height:26px;background:#000;border-radius:0 0 16px 16px;z-index:3}
-  .screen{background:linear-gradient(180deg,#fbfdff,#f2f8fc);border-radius:33px;overflow:hidden;min-height:560px;position:relative}
-  .app-top{display:flex;align-items:center;justify-content:space-between;padding:34px 20px 10px}
-  .app-top .logo .word{font-size:1.1rem}.app-top .logo .mark{--h:20px}
-  .app-top .live{display:inline-flex;align-items:center;gap:.35rem;font-size:.66rem;font-weight:600;color:var(--brand-ink);
-    background:rgba(41,171,226,.12);padding:.25em .6em;border-radius:980px}
-  .app-top .live i{width:6px;height:6px;border-radius:50%;background:var(--brand);animation:pulse 1.8s infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  .app-body{padding:6px 18px 22px}
-  .app-q{font-size:.72rem;font-weight:600;color:var(--ink-3);margin:14px 0 7px;text-transform:none}
-  .chips{display:flex;flex-wrap:wrap;gap:.35rem}
-  .chip{font:inherit;font-size:.8rem;font-weight:500;color:var(--ink);background:#fff;border:1px solid var(--line-2);
-    border-radius:980px;padding:.34em .8em;cursor:pointer;transition:.16s var(--ease);line-height:1.2}
-  .chip:hover{border-color:var(--brand)}
-  .chip[aria-pressed="true"]{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600}
-  .chip:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
-  .app-result{margin-top:16px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px 13px;box-shadow:0 8px 24px -16px rgba(0,0,0,.25)}
-  .app-result .rh{font-size:.68rem;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
-  .m{display:flex;align-items:center;gap:.6rem;padding:6px 0}
-  .m .ic{flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--bg-2)}
-  .m .ic svg{width:17px;height:17px;color:var(--brand-ink)}
-  .m.promo .ic{background:rgba(108,116,232,.12)}.m.promo .ic svg{color:var(--biz)}
-  .m b{font-size:.82rem;font-weight:600;display:block;line-height:1.2}
-  .m small{font-size:.7rem;color:var(--ink-2)}
-  .m .qr{margin-left:auto;font-size:.6rem;font-weight:700;color:var(--biz);border:1px solid rgba(108,116,232,.4);border-radius:6px;padding:.2em .4em}
+  /* pill row */
+  .pills{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-top:2.6rem}
+  .pill{background:var(--bg-2);border:1px solid var(--line);border-radius:980px;padding:.5em 1.1em;font-size:.92rem;color:var(--ink-2)}
 
-  /* ---------- quotes (problem) ---------- */
-  .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,4vw,48px)}
+  /* quotes */
+  .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,4vw,46px)}
   @media (max-width:820px){.qgrid{grid-template-columns:1fr}}
-  .qcol h3{margin-bottom:.4rem}
-  .qcol .side-tag{font-size:.8rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
-  .qcol.users .side-tag{color:var(--brand-ink)}
-  .qcol.biz .side-tag{color:var(--biz)}
-  .qlist{list-style:none;margin:1.2rem 0 0;padding:0;display:flex;flex-direction:column;gap:.7rem}
-  .qlist li{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.85rem 1.05rem;
-    font-size:1.02rem;color:var(--ink);line-height:1.35}
-  .tint .qlist li{background:#fff}
-  .qcol p.sum{margin-top:1.2rem;color:var(--ink-2);font-size:1.05rem;line-height:1.4}
+  .qcol .tag{font-size:.8rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+  .qcol.u .tag{color:var(--primary-ink)}
+  .qcol.b .tag{color:var(--accent-ink)}
+  .qcol h3{margin:.4rem 0 0}
+  .qlist{list-style:none;margin:1.2rem 0 0;padding:0;display:flex;flex-direction:column;gap:.65rem}
+  .qlist li{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.85rem 1.05rem;line-height:1.36}
+  .qcol .sum{margin-top:1.2rem;color:var(--ink-2)}
 
-  /* ---------- steps ---------- */
-  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,2.4vw,28px);counter-reset:s}
+  /* steps */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(14px,2.2vw,24px);counter-reset:s}
   @media (max-width:820px){.steps{grid-template-columns:1fr}}
-  .step{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:1.6rem}
-  .tint .step{background:#fff}
-  .step .sn{counter-increment:s;font-size:.9rem;font-weight:700;color:var(--brand);letter-spacing:.02em}
+  .step{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:1.55rem}
+  .step .sn{counter-increment:s;font-size:.88rem;font-weight:700;color:var(--primary)}
   .step .sn::before{content:"0" counter(s)}
-  .step h3{font-size:1.2rem;margin:.55rem 0 .4rem;letter-spacing:-.02em}
-  .step p{color:var(--ink-2);font-size:.98rem}
-  .step.biz .sn{color:var(--biz)}
+  .step.b .sn{color:var(--accent-ink)}
+  .step h3{font-size:1.18rem;margin:.5rem 0 .4rem;letter-spacing:-.022em}
+  .step p{color:var(--ink-2);font-size:.97rem}
+  .tint .step{background:#fff}
 
-  /* ---------- bento / what apps ignore ---------- */
-  .ignore-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-  @media (max-width:820px){.ignore-grid{grid-template-columns:repeat(2,1fr)}}
-  .ig{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1.2rem 1rem;text-align:center}
+  /* spark matcher */
+  .spark{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(28px,5vw,64px);text-align:center}
+  .spark .sicon{width:60px;height:60px;margin:0 auto 1.4rem;border-radius:18px;display:grid;place-items:center;
+    background:linear-gradient(140deg,var(--primary),var(--accent))}
+  .spark .sicon svg{width:30px;height:30px;color:#fff}
+  .spark h2{max-width:16ch;margin-inline:auto}
+  .spark .lead{max-width:48ch;margin:1.1rem auto 0}
+  .spark-vars{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-top:2rem}
+  .spark-vars span{background:#fff;border:1px solid var(--line-2);border-radius:980px;padding:.45em 1em;font-size:.9rem;font-weight:500}
+
+  /* ignore grid */
+  .ig-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media (max-width:820px){.ig-grid{grid-template-columns:repeat(2,1fr)}}
+  .ig{background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.2rem 1rem;text-align:center}
   .tint .ig{background:#fff}
-  .ig .igic{width:42px;height:42px;margin:0 auto .6rem;border-radius:12px;display:grid;place-items:center;background:rgba(41,171,226,.1)}
-  .ig .igic svg{width:22px;height:22px;color:var(--brand-ink)}
-  .ig b{display:block;font-size:.98rem}
+  .ig .ic{width:42px;height:42px;margin:0 auto .6rem;border-radius:12px;display:grid;place-items:center;background:rgba(99,102,241,.1)}
+  .ig .ic svg{width:21px;height:21px;color:var(--primary-ink)}
+  .ig b{display:block;font-size:.97rem;font-weight:600}
   .ig small{color:var(--ink-3);font-size:.78rem}
 
-  /* ---------- stats ---------- */
+  /* stats */
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(20px,3vw,40px);text-align:center}
   @media (max-width:820px){.stats{grid-template-columns:1fr 1fr;gap:36px 20px}}
-  .stat .big{font-size:clamp(2.4rem,1.4rem + 3.5vw,4rem);font-weight:700;letter-spacing:-.04em;line-height:1;
-    background:linear-gradient(120deg,var(--brand),var(--biz));-webkit-background-clip:text;background-clip:text;color:transparent}
-  .stat p{margin-top:.6rem;color:var(--ink-2);font-size:.96rem;max-width:22ch;margin-inline:auto}
+  .stat .big{font-size:clamp(2.3rem,1.3rem + 3.4vw,3.8rem);font-weight:700;letter-spacing:-.045em;line-height:1;
+    background:linear-gradient(120deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat p{margin-top:.6rem;color:var(--ink-2);font-size:.95rem;max-width:22ch;margin-inline:auto}
   .src{margin-top:2.2rem;text-align:center;color:var(--ink-3);font-size:.78rem}
 
-  /* ---------- credibility ---------- */
+  /* creds */
   .creds{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
   @media (max-width:720px){.creds{grid-template-columns:1fr}}
-  .cred{display:flex;gap:.9rem;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1.15rem 1.25rem}
-  .tint .cred{background:#fff}
-  .cred .ck{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--brand);color:#fff;margin-top:1px}
-  .cred .ck svg{width:15px;height:15px}
+  .cred{display:flex;gap:.85rem;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.1rem 1.2rem}
+  .cred .ck{flex:none;width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:var(--primary);color:#fff;margin-top:1px}
+  .cred .ck svg{width:14px;height:14px}
   .cred b{font-size:1rem;font-weight:600}
-  .cred small{display:block;color:var(--ink-2);font-size:.85rem;margin-top:.15rem}
+  .cred small{display:block;color:var(--ink-2);font-size:.85rem;margin-top:.1rem}
 
-  /* ---------- founders ---------- */
-  .team{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:900px;margin-inline:auto}
+  /* founders */
+  .team{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:880px;margin-inline:auto}
   @media (max-width:720px){.team{grid-template-columns:1fr}}
-  .member{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:1.8rem;text-align:center}
-  .tint .member{background:#fff}
-  .member .av{width:88px;height:88px;border-radius:50%;margin:0 auto 1rem;display:grid;place-items:center;
-    font-size:2rem;font-weight:600;color:#fff;background:linear-gradient(140deg,var(--brand),var(--biz))}
-  .member h3{font-size:1.3rem}
-  .member .role{color:var(--brand-ink);font-weight:600;font-size:.85rem;margin:.25rem 0 .7rem}
-  .member p{color:var(--ink-2);font-size:.95rem;line-height:1.45}
+  .member{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:1.9rem;text-align:center}
+  .member .av{width:104px;height:104px;border-radius:50%;margin:0 auto 1.1rem;display:grid;place-items:center;
+    font-size:2.2rem;font-weight:600;color:#fff;background:linear-gradient(140deg,var(--primary),var(--accent));overflow:hidden}
+  .member .av img{width:100%;height:100%;object-fit:cover}
+  .member h3{font-size:1.28rem}
+  .member .role{color:var(--primary-ink);font-weight:600;font-size:.85rem;margin:.25rem 0 .7rem}
+  .member p{color:var(--ink-2);font-size:.94rem;line-height:1.45}
 
-  /* ---------- download ---------- */
-  .dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,48px);align-items:start}
-  @media (max-width:820px){.dl-grid{grid-template-columns:1fr}}
-  .badges{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.4rem}
-  .badge{display:inline-flex;align-items:center;gap:.6rem;background:var(--ink);color:#fff;border-radius:14px;padding:.7rem 1.1rem;opacity:.55;position:relative}
-  .badge svg{width:22px;height:22px}
-  .badge .bt{font-size:.62rem;line-height:1;opacity:.8}
-  .badge .bn{font-size:1.05rem;font-weight:600;line-height:1.1}
-  .badge .soon{position:absolute;top:-9px;right:-8px;background:var(--brand);color:#fff;font-size:.58rem;font-weight:700;padding:.2em .5em;border-radius:980px;letter-spacing:.03em}
-  .install{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(20px,3vw,32px)}
-  .tint .install{background:#fff}
-  .install h3{font-size:1.25rem;margin-bottom:1rem}
-  .os{display:flex;gap:.55rem;margin-bottom:1rem}
+  /* download */
+  .dl{display:grid;grid-template-columns:1fr 1fr;gap:clamp(22px,4vw,46px);align-items:start}
+  @media (max-width:820px){.dl{grid-template-columns:1fr}}
+  .badges{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.3rem}
+  .badge{display:inline-flex;align-items:center;gap:.6rem;background:var(--ink);color:#fff;border-radius:14px;padding:.68rem 1.05rem;opacity:.5;position:relative}
+  .badge svg{width:21px;height:21px}
+  .badge .bt{font-size:.62rem;opacity:.8}
+  .badge .bn{font-size:1.02rem;font-weight:600}
+  .badge .soon{position:absolute;top:-9px;right:-8px;background:var(--primary);color:#fff;font-size:.58rem;font-weight:700;padding:.2em .5em;border-radius:980px}
+  .install{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(20px,3vw,32px)}
+  .install h3{font-size:1.22rem;margin-bottom:1rem}
+  .os{display:flex;gap:.55rem;margin-bottom:1.1rem}
   .os button{flex:1;font:inherit;font-size:.92rem;font-weight:500;padding:.6em;border-radius:12px;border:1px solid var(--line-2);background:#fff;cursor:pointer;transition:.18s}
   .os button[aria-selected="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
   .os-steps{list-style:none;margin:0;padding:0;counter-reset:i;display:flex;flex-direction:column;gap:.8rem}
-  .os-steps li{counter-increment:i;display:flex;gap:.8rem;align-items:flex-start;font-size:.98rem;color:var(--ink)}
-  .os-steps li::before{content:counter(i);flex:none;width:26px;height:26px;border-radius:50%;background:rgba(41,171,226,.12);
-    color:var(--brand-ink);font-weight:700;font-size:.85rem;display:grid;place-items:center}
+  .os-steps li{counter-increment:i;display:flex;gap:.75rem;align-items:flex-start;font-size:.97rem}
+  .os-steps li::before{content:counter(i);flex:none;width:25px;height:25px;border-radius:50%;background:rgba(99,102,241,.12);
+    color:var(--primary-ink);font-weight:700;font-size:.83rem;display:grid;place-items:center}
   #installBtn{margin-top:1.3rem;width:100%;display:none}
 
-  /* ---------- privacy ---------- */
-  .priv{max-width:760px;margin-inline:auto;text-align:center}
-  .priv .pgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:2rem;text-align:left}
-  @media (max-width:620px){.priv .pgrid{grid-template-columns:1fr}}
-  .priv .pc{display:flex;gap:.7rem;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem}
-  .priv .pc svg{flex:none;width:20px;height:20px;color:var(--brand-ink);margin-top:2px}
-  .priv .pc b{font-weight:600;font-size:.98rem}
-  .priv .pc small{display:block;color:var(--ink-2);font-size:.85rem;margin-top:.1rem}
+  /* privacy */
+  .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:2rem;text-align:left;max-width:760px;margin-inline:auto}
+  @media (max-width:620px){.pgrid{grid-template-columns:1fr}}
+  .pc{display:flex;gap:.7rem;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem}
+  .pc svg{flex:none;width:20px;height:20px;color:var(--primary-ink);margin-top:2px}
+  .pc b{font-weight:600;font-size:.97rem}
+  .pc small{display:block;color:var(--ink-2);font-size:.85rem;margin-top:.1rem}
 
-  /* ---------- final CTA ---------- */
+  /* waitlist form */
   .final{text-align:center}
-  .final h2{max-width:20ch;margin:0 auto}
+  .final h2{max-width:20ch;margin-inline:auto}
   .final .lead{max-width:44ch;margin:1.1rem auto 0}
-  .waitlist{display:flex;gap:.5rem;max-width:460px;margin:2rem auto 0;flex-wrap:wrap;justify-content:center}
-  .waitlist input{flex:1 1 240px;min-width:0;background:#fff;border:1px solid var(--line-2);border-radius:980px;
-    padding:.8em 1.3em;font:inherit;font-size:1.05rem;color:var(--ink)}
-  .waitlist input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 4px rgba(41,171,226,.18)}
-  .form-msg{margin-top:1rem;min-height:1.2em;font-weight:600;font-size:.95rem}
-  .form-msg.ok{color:#1a9c53}.form-msg.err{color:#d33}
-  .or{margin:1.5rem 0 .3rem;color:var(--ink-3);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}
+  .wl{max-width:440px;margin:2.1rem auto 0;display:flex;flex-direction:column;gap:.6rem;text-align:left}
+  .wl label{font-size:.8rem;font-weight:600;color:var(--ink-2);margin-bottom:.25rem;display:block}
+  .wl input,.wl select{width:100%;background:#fff;border:1px solid var(--line-2);border-radius:14px;
+    padding:.78em 1.05em;font:inherit;font-size:1rem;color:var(--ink)}
+  .wl input:focus,.wl select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px rgba(99,102,241,.16)}
+  .wl .row{display:flex;gap:.6rem}
+  .wl .row>div{flex:1;min-width:0}
+  .wl button{margin-top:.5rem;width:100%}
+  .form-msg{margin-top:1rem;min-height:1.2em;font-weight:600;font-size:.95rem;text-align:center}
+  .form-msg.ok{color:#0d9488}.form-msg.err{color:#dc2626}
+  .privline{margin-top:.8rem;font-size:.78rem;color:var(--ink-3);text-align:center}
+  .or{margin:1.6rem 0 .4rem;color:var(--ink-3);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}
 
-  /* ---------- footer ---------- */
+  /* footer */
   footer{background:var(--bg-2);border-top:1px solid var(--line);padding:clamp(40px,5vw,64px) 0 32px;font-size:.85rem;color:var(--ink-2)}
   .foot-top{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:2rem}
   @media (max-width:720px){.foot-top{grid-template-columns:1fr;gap:1.6rem}}
-  .foot-brand p{margin-top:.9rem;max-width:34ch;color:var(--ink-2)}
+  .foot-brand p{margin-top:.9rem;max-width:34ch}
   .foot-col h4{font-size:.82rem;color:var(--ink);margin:0 0 .8rem;font-weight:600}
   .foot-col a,.foot-col span{display:block;color:var(--ink-2);padding:.24rem 0;transition:color .2s}
-  .foot-col a:hover{color:var(--brand-ink)}
+  .foot-col a:hover{color:var(--primary-ink)}
   .socials{display:flex;gap:.5rem;margin-top:.8rem}
   .socials a{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#fff;border:1px solid var(--line);color:var(--ink-2);transition:.2s}
-  .socials a:hover{color:var(--brand-ink);border-color:var(--brand);transform:translateY(-2px)}
+  .socials a:hover{color:var(--primary-ink);border-color:var(--primary);transform:translateY(-2px)}
   .socials svg{width:17px;height:17px}
-  .foot-bottom{margin-top:2.4rem;padding-top:1.4rem;border-top:1px solid var(--line-2);display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;justify-content:space-between;color:var(--ink-3);font-size:.78rem}
+  .foot-bottom{margin-top:2.4rem;padding-top:1.4rem;border-top:1px solid var(--line-2);display:flex;flex-wrap:wrap;
+    gap:.5rem 1.5rem;justify-content:space-between;color:var(--ink-3);font-size:.78rem}
 
-  .reveal{opacity:0;transform:translateY(22px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+  .reveal{opacity:0;transform:translateY(20px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
   .reveal.in{opacity:1;transform:none}
   @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
-  .skip{position:absolute;left:-999px}.skip:focus{left:12px;top:12px;z-index:200;background:var(--ink);color:#fff;padding:.6em 1em;border-radius:8px}
+  .skip{position:absolute;left:-999px}
+  .skip:focus{left:12px;top:12px;z-index:200;background:var(--ink);color:#fff;padding:.6em 1em;border-radius:8px}
 </style>
 </head>
-<body>
+<body id="top">
 <a href="#hero" class="skip">Saltar al contenido</a>
 
 <!-- NAV -->
 <header class="nav">
   <div class="nav-in">
-    <a href="#hero" class="logo" aria-label="IOGGA inicio">
+    <button class="logo" id="homeBtn" aria-label="iogga — volver al inicio">
       <span class="mark" aria-hidden="true"></span><span class="word">iogga</span>
-    </a>
+    </button>
     <nav class="nav-links" id="navLinks" aria-label="Principal">
       <a href="#como">Cómo funciona</a>
       <a href="#negocios">Negocios</a>
-      <a href="#por-que">Por qué IOGGA</a>
+      <a href="#spark">Spark Matcher</a>
       <a href="#fundadores">Fundadores</a>
       <a href="#descargar">Descargar</a>
     </nav>
@@ -316,82 +302,34 @@
 <!-- HERO -->
 <section class="hero" id="hero">
   <div class="wrap">
+    <div class="hero-mark" aria-hidden="true"></div>
     <p class="eyebrow">The Apportunity.</p>
-    <h1>Que los mejores momentos no dependan de la <span class="brandc">suerte.</span></h1>
-    <p class="lead">Dinos qué quieres hacer, con quién, cuándo, con cuánto y cómo llegar. IOGGA lo convierte en un plan real y lo conecta con las personas, lugares y promociones que lo hacen posible.</p>
+    <h1>Que los mejores momentos no dependan de la <span class="pri">suerte.</span></h1>
+    <p class="lead">La app donde tus planes cobran vida y conectar es más fácil que nunca. Di qué quieres hacer, y iogga lo conecta con las personas, lugares y promociones que lo hacen posible.</p>
     <div class="hero-cta">
       <a href="#descargar" class="btn btn-fill">Descargar la app</a>
       <a href="#como" class="tlink">Ver cómo funciona <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></a>
     </div>
     <p class="hero-note">Gratis para empezar · Próximamente en App Store y Google Play</p>
-
-    <!-- phone mockup -->
-    <div class="phone-wrap reveal">
-      <div class="phone">
-        <div class="screen">
-          <div class="app-top">
-            <span class="logo"><span class="mark" aria-hidden="true"></span><span class="word">iogga</span></span>
-            <span class="live"><i></i>en vivo</span>
-          </div>
-          <div class="app-body">
-            <p class="app-q">¿Qué quieres hacer?</p>
-            <div class="chips" data-group="que">
-              <button class="chip" aria-pressed="true">Cenar tacos</button>
-              <button class="chip">Café</button>
-              <button class="chip">Cine</button>
-              <button class="chip">Salir a bailar</button>
-            </div>
-            <p class="app-q">¿Con quién?</p>
-            <div class="chips" data-group="quien">
-              <button class="chip" aria-pressed="true">Amigos</button>
-              <button class="chip">Pareja</button>
-              <button class="chip">Familia</button>
-            </div>
-            <p class="app-q">¿Cuándo?</p>
-            <div class="chips" data-group="cuando">
-              <button class="chip" aria-pressed="true">Hoy</button>
-              <button class="chip">Este finde</button>
-            </div>
-            <p class="app-q">Presupuesto</p>
-            <div class="chips" data-group="pres">
-              <button class="chip">$</button>
-              <button class="chip" aria-pressed="true">$$</button>
-              <button class="chip">$$$</button>
-            </div>
-
-            <div class="app-result" aria-live="polite">
-              <div class="rh">Tus coincidencias</div>
-              <div class="m">
-                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.6"/></svg></span>
-                <div><b id="mPeople">3 amigos disponibles</b><small id="mPeopleSub">confirmaron para esta noche</small></div>
-              </div>
-              <div class="m">
-                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
-                <div><b id="mPlace">Taquería El Fogón · 6 min</b><small id="mPlaceSub">dentro de tu presupuesto</small></div>
-              </div>
-              <div class="m promo">
-                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a2 2 0 0 1 0-4V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v2a2 2 0 0 1 0 4v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2Z"/><path d="M15 9l-6 6"/></svg></span>
-                <div><b id="mPromo">2x1 en tacos al pastor</b><small id="mPromoSub">canjea con tu código QR</small></div>
-                <span class="qr">QR</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="pills reveal">
+      <span class="pill">Planes en segundos</span>
+      <span class="pill">Coincidencias en tiempo real</span>
+      <span class="pill">Promociones a tu medida</span>
+      <span class="pill">Canje con código QR</span>
     </div>
   </div>
 </section>
 
 <!-- PROBLEM -->
-<section class="tint" id="problema">
+<section class="tint">
   <div class="wrap">
-    <div class="sec-intro center reveal">
+    <div class="sec-intro reveal">
       <h2>Cada día se pierden momentos<br>que sí podían pasar.</h2>
-      <p class="lead" style="margin-top:1rem">No por falta de ganas. Por falta de coordinación y visibilidad.</p>
+      <p class="lead">No por falta de ganas. Por falta de coordinación y visibilidad.</p>
     </div>
     <div class="qgrid">
-      <div class="qcol users reveal">
-        <span class="side-tag">Las personas</span>
+      <div class="qcol u reveal">
+        <span class="tag">Las personas</span>
         <h3>“Yo sí iba… hubieras avisado.”</h3>
         <ul class="qlist">
           <li>“Yo andaba ahí mismo y ni nos vimos.”</li>
@@ -401,8 +339,8 @@
         </ul>
         <p class="sum">Organizar una salida se pierde entre mensajes, horarios que no cuadran y respuestas que llegan tarde.</p>
       </div>
-      <div class="qcol biz reveal">
-        <span class="side-tag">Los negocios</span>
+      <div class="qcol b reveal">
+        <span class="tag">Los negocios</span>
         <h3>“Pago para que me vean. A ciegas.”</h3>
         <ul class="qlist">
           <li>“Pagué por promocionar la publicación… y sigo sin saber si alguien la vio.”</li>
@@ -416,21 +354,39 @@
   </div>
 </section>
 
-<!-- HOW IT WORKS (users) -->
+<!-- HOW IT WORKS -->
 <section id="como">
   <div class="wrap">
-    <div class="sec-intro center reveal">
+    <div class="sec-intro reveal">
       <p class="eyebrow">Para las personas</p>
-      <h2>Un plan real, en segundos.</h2>
-      <p class="lead" style="margin-top:1rem">Sin cadenas de mensajes. IOGGA te muestra al instante las oportunidades que están sucediendo a tu alrededor.</p>
+      <h2>¿Cuál es tu plan hoy?</h2>
+      <p class="lead">Escríbelo o elígelo de las sugerencias. En segundos tienes un plan armado, con quién ir y a dónde.</p>
     </div>
     <div class="steps">
-      <div class="step reveal"><span class="sn"></span><h3>Dices qué quieres</h3><p>Elige la actividad y define tu tiempo disponible. Tu intención arranca el plan.</p></div>
-      <div class="step reveal"><span class="sn"></span><h3>Pones tu contexto</h3><p>Presupuesto, con quién vas y qué transporte tienes. Todo lo que hace viable un plan.</p></div>
-      <div class="step reveal"><span class="sn"></span><h3>Eliges una oferta</h3><p>Recibes lugares y promociones personalizadas, hechas para tu plan y tu bolsillo.</p></div>
-      <div class="step reveal"><span class="sn"></span><h3>Invitas a tu gente</h3><p>Comparte con amigos específicos, un grupo o de forma abierta. Tú decides quién lo ve.</p></div>
-      <div class="step reveal"><span class="sn"></span><h3>Coinciden y confirman</h3><p>Ves quién está disponible y confirmas en un toque. Adiós a las agendas imposibles.</p></div>
-      <div class="step reveal"><span class="sn"></span><h3>Canjeas tu código</h3><p>Llegas al lugar y escaneas tu código QR para aplicar tu promoción. Listo.</p></div>
+      <div class="step reveal"><span class="sn"></span><h3>Dices qué quieres hacer</h3><p>Escribe tu plan o toma una de las sugerencias inteligentes: un café, el cine, escalar un cerro, una cena.</p></div>
+      <div class="step reveal"><span class="sn"></span><h3>Pones tu horario</h3><p>Define a qué hora empieza y termina. Solo se te muestran opciones que de verdad te quedan.</p></div>
+      <div class="step reveal"><span class="sn"></span><h3>Defines el presupuesto</h3><p>Tú invitas, se divide entre todos, o es un plan sin gastar. Sin sorpresas ni conversaciones incómodas.</p></div>
+      <div class="step reveal"><span class="sn"></span><h3>Indicas tu transporte</h3><p>Tienes coche y puedes pasar por alguien, cada quien llega por su cuenta, o no cuentas con transporte.</p></div>
+      <div class="step reveal"><span class="sn"></span><h3>Invitas o lo haces público</h3><p>Compártelo con amigos específicos o publícalo abierto para que se sumen personas con el mismo plan.</p></div>
+      <div class="step reveal"><span class="sn"></span><h3>Eliges tu oferta y canjeas</h3><p>Recibes promociones que encajan con tu plan. Llegas, muestras tu código QR y listo.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- SPARK MATCHER -->
+<section id="spark">
+  <div class="wrap">
+    <div class="spark reveal">
+      <div class="sicon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.2 5.3L20 10l-5.8 1.7L12 17l-2.2-5.3L4 10l5.8-1.7L12 3Z"/><path d="M19 16.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8.8-1.9Z"/></svg>
+      </div>
+      <p class="eyebrow">El motor de iogga</p>
+      <h2>Spark Matcher.</h2>
+      <p class="lead">El motor inteligente que encuentra coincidencias en tiempo real entre lo que las personas quieren hacer y lo que los negocios pueden ofrecer. No adivina audiencias: lee intención real.</p>
+      <div class="spark-vars">
+        <span>Actividad</span><span>Horario</span><span>Presupuesto</span>
+        <span>Compañía</span><span>Ubicación</span><span>Transporte</span><span>Oferta local</span>
+      </div>
     </div>
   </div>
 </section>
@@ -438,38 +394,38 @@
 <!-- BUSINESSES -->
 <section class="tint" id="negocios">
   <div class="wrap">
-    <div class="sec-intro center reveal">
-      <p class="eyebrow" style="color:var(--biz)">Para los negocios</p>
+    <div class="sec-intro reveal">
+      <p class="eyebrow b">Para los negocios</p>
       <h2>Un marketplace magnético.</h2>
-      <p class="lead" style="margin-top:1rem">Imagina saber cuántas personas están buscando tu producto <b style="color:var(--ink)">en tiempo real</b>. Deja de pagar por impresiones y llega a intención real.</p>
+      <p class="lead">Imagina saber cuántas personas están buscando tu producto <b style="color:var(--ink)">en este momento</b>. Deja de pagar por impresiones y conecta con intención real.</p>
     </div>
     <div class="steps">
-      <div class="step biz reveal"><span class="sn"></span><h3>Crea tu perfil</h3><p>Publica tu negocio, tus productos y servicios con su información y disponibilidad.</p></div>
-      <div class="step biz reveal"><span class="sn"></span><h3>Publica ofertas</h3><p>Lanza promociones y define su vigencia y condiciones, sin costo inicial.</p></div>
-      <div class="step biz reveal"><span class="sn"></span><h3>Ajusta según demanda</h3><p>Ve el interés real en cada producto y ajusta tus promociones en tiempo real.</p></div>
-      <div class="step biz reveal"><span class="sn"></span><h3>Recibe y escanea</h3><p>Llegan clientes con intención activa y escaneas sus códigos de descuento.</p></div>
-      <div class="step biz reveal"><span class="sn"></span><h3>Mide resultados</h3><p>Consulta canjes y conversión. Pagas comisión solo cuando de verdad vendes.</p></div>
-      <div class="step biz reveal"><span class="sn"></span><h3>Ideal para PyMEs</h3><p>Pensado para negocios con presupuestos de marketing limitados. Bajo riesgo, alto enfoque.</p></div>
+      <div class="step b reveal"><span class="sn"></span><h3>Crea tu perfil</h3><p>Publica tu negocio, tus productos y servicios con precios, ubicación y disponibilidad.</p></div>
+      <div class="step b reveal"><span class="sn"></span><h3>Publica tus ofertas</h3><p>Lanza promociones con su vigencia y condiciones. Sin cuota mensual para empezar.</p></div>
+      <div class="step b reveal"><span class="sn"></span><h3>Ve quién te busca</h3><p>Tu panel muestra en vivo cuántas personas están buscando cada uno de tus productos.</p></div>
+      <div class="step b reveal"><span class="sn"></span><h3>Ajusta según la demanda</h3><p>Sube o baja el incentivo en tiempo real, según el interés que estés viendo.</p></div>
+      <div class="step b reveal"><span class="sn"></span><h3>Recibe y escanea</h3><p>Llegan clientes con intención activa y escaneas su código de descuento en caja.</p></div>
+      <div class="step b reveal"><span class="sn"></span><h3>Mide lo que importa</h3><p>Consulta escaneos, ventas y ganancias por producto. Pagas comisión solo cuando vendes.</p></div>
     </div>
   </div>
 </section>
 
-<!-- WHY / WHAT APPS IGNORE -->
-<section id="por-que">
+<!-- WHAT OTHER APPS IGNORE -->
+<section>
   <div class="wrap">
-    <div class="sec-intro center reveal">
+    <div class="sec-intro reveal">
       <h2>Lo que otras apps ignoran.</h2>
-      <p class="lead" style="margin-top:1rem">Las apps de eventos, mapas, calendarios y cupones resuelven partes sueltas. Ninguna conecta lo que de verdad decide un plan.</p>
+      <p class="lead">Las apps de mensajería, mapas, calendarios y cupones resuelven partes sueltas. Ninguna junta lo que de verdad decide si un plan sucede.</p>
     </div>
-    <div class="ignore-grid">
-      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></div><b>Tu tiempo</b><small>cuándo puedes</small></div>
-      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><b>Tu presupuesto</b><small>cuánto quieres gastar</small></div>
-      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.4"/></svg></div><b>Tu compañía</b><small>con quién vas</small></div>
-      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14M4 17l1.5-6A2 2 0 0 1 7.4 9.5h9.2a2 2 0 0 1 1.9 1.5L20 17"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="16.5" cy="17.5" r="1.6"/></svg></div><b>Tu transporte</b><small>cómo llegas</small></div>
-      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></div><b>Ubicación y destino</b><small>dónde estás y a dónde vas</small></div>
-      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v2M5 12H3m18 0h-2M6 6l1.5 1.5M18 6l-1.5 1.5"/><circle cx="12" cy="13" r="4"/></svg></div><b>El clima</b><small>si el plan es viable hoy</small></div>
-      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div><b>Tu intención</b><small>tus deseos en tiempo real</small></div>
-      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2M8 7v13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V7"/></svg></div><b>La oferta local</b><small>promos hechas para ti</small></div>
+    <div class="ig-grid">
+      <div class="ig reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 3l-2 5.3L5 10l5.8 1.7L13 17l2.2-5.3L21 10l-5.8-1.7L13 3Z"/></svg></div><b>Tu intención</b><small>lo que quieres ahora</small></div>
+      <div class="ig reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></div><b>Tu tiempo</b><small>cuándo puedes</small></div>
+      <div class="ig reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><b>Tu presupuesto</b><small>cuánto quieres gastar</small></div>
+      <div class="ig reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.4"/></svg></div><b>Tu compañía</b><small>con quién vas</small></div>
+      <div class="ig reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14M4 17l1.5-6A2 2 0 0 1 7.4 9.5h9.2a2 2 0 0 1 1.9 1.5L20 17"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="16.5" cy="17.5" r="1.6"/></svg></div><b>Tu transporte</b><small>cómo llegas</small></div>
+      <div class="ig reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></div><b>Ubicación y destino</b><small>dónde estás y a dónde vas</small></div>
+      <div class="ig reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v2M5 12H3m18 0h-2M6 6l1.5 1.5M18 6l-1.5 1.5"/><circle cx="12" cy="13" r="4"/></svg></div><b>El clima</b><small>si el plan es viable hoy</small></div>
+      <div class="ig reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 4v16M3 10h5"/></svg></div><b>La oferta local</b><small>promos hechas para tu plan</small></div>
     </div>
   </div>
 </section>
@@ -477,9 +433,7 @@
 <!-- STATS -->
 <section class="tint">
   <div class="wrap wide">
-    <div class="sec-intro center reveal">
-      <h2>Un mercado enorme,<br>esperando esta conexión.</h2>
-    </div>
+    <div class="sec-intro reveal"><h2>Un mercado enorme,<br>esperando esta conexión.</h2></div>
     <div class="stats">
       <div class="stat reveal"><div class="big">244M</div><p>de personas organizan reuniones por internet en Latinoamérica</p></div>
       <div class="stat reveal"><div class="big">82%</div><p>de los usuarios busca información sobre negocios locales</p></div>
@@ -493,14 +447,12 @@
 <!-- CREDIBILITY -->
 <section>
   <div class="wrap">
-    <div class="sec-intro center reveal">
-      <h2>Un proyecto real, en marcha.</h2>
-    </div>
+    <div class="sec-intro reveal"><h2>Un proyecto real, en marcha.</h2></div>
     <div class="creds">
       <div class="cred reveal"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Idea ganadora</b><small>Foro Cactus 2024</small></div></div>
       <div class="cred reveal"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>+300 encuestas</b><small>de validación de la idea</small></div></div>
       <div class="cred reveal"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Prueba de concepto</b><small>primer PoC de la app funcionando</small></div></div>
-      <div class="cred reveal"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Registro de marca</b><small>IOGGA® registrada</small></div></div>
+      <div class="cred reveal"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Registro de marca</b><small>iogga® registrada</small></div></div>
       <div class="cred reveal"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Derechos de autor</b><small>software registrado en México</small></div></div>
       <div class="cred reveal"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Dominio propio</b><small>iogga.com</small></div></div>
     </div>
@@ -510,15 +462,14 @@
 <!-- FOUNDERS -->
 <section class="tint" id="fundadores">
   <div class="wrap">
-    <div class="sec-intro center reveal">
-      <h2>Fundadores.</h2>
-    </div>
+    <div class="sec-intro reveal"><h2>Fundadores.</h2></div>
     <div class="team">
       <div class="member reveal">
+        <!-- Para poner la foto: reemplaza el contenido de .av por <img src="assets/omar.jpg" alt="Omar Eduardo Hernández"> -->
         <div class="av" aria-hidden="true">O</div>
         <h3>Omar Eduardo Hernández</h3>
-        <div class="role">Fundador y CEO</div>
-        <p>Maestría en Gestión de Proyectos Tecnológicos, con certificaciones en Business Analytics y gestión de proyectos digitales. Lidera la estrategia, el producto y la vinculación de IOGGA.</p>
+        <div class="role">Fundador y Director</div>
+        <p>Maestría en Gestión de Proyectos Tecnológicos, con certificaciones en Business Analytics y gestión de proyectos digitales. Lidera la estrategia, el producto y la vinculación de iogga.</p>
       </div>
       <div class="member reveal">
         <div class="av" aria-hidden="true">I</div>
@@ -533,15 +484,15 @@
 <!-- DOWNLOAD -->
 <section id="descargar">
   <div class="wrap">
-    <div class="sec-intro center reveal">
+    <div class="sec-intro reveal">
       <p class="eyebrow">Descarga</p>
       <h2>Llévala en tu bolsillo.</h2>
-      <p class="lead" style="margin-top:1rem">Instala IOGGA en la pantalla de inicio de tu celular hoy mismo. Muy pronto también en las tiendas oficiales.</p>
+      <p class="lead">Instala iogga en la pantalla de inicio de tu celular hoy mismo. Muy pronto también en las tiendas oficiales.</p>
     </div>
-    <div class="dl-grid">
+    <div class="dl">
       <div class="reveal">
-        <h3 style="font-size:1.3rem;margin-bottom:.5rem">Próximamente en las tiendas</h3>
-        <p style="color:var(--ink-2)">Estamos preparando el lanzamiento oficial en iOS y Android. Únete a la lista y sé de los primeros en recibir el enlace.</p>
+        <h3 style="font-size:1.28rem;margin-bottom:.5rem">Próximamente en las tiendas</h3>
+        <p style="color:var(--ink-2)">Estamos preparando el lanzamiento oficial en iOS y Android. Únete a la lista y sé de los primeros en recibir el enlace de descarga.</p>
         <div class="badges">
           <span class="badge"><span class="soon">Pronto</span>
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 2c.1 1.2-.4 2.4-1.1 3.2-.7.9-1.9 1.5-3 1.5-.1-1.2.4-2.4 1.1-3.2.8-.9 2-1.5 3-1.5ZM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.8 3.1-1.4 0-1.8-.9-3.7-.9s-2.3.9-3.7.9c-1.6 0-2.8-1.6-3.7-3C1.3 18.6.8 14.5 2.4 12c.9-1.5 2.4-2.4 3.9-2.4 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4 1 6.7Z"/></svg>
@@ -552,8 +503,6 @@
             <span><span class="bt">Pronto en</span><br><span class="bn">Google Play</span></span>
           </span>
         </div>
-        <p style="color:var(--ink-2);margin-top:1.6rem">¿Quieres probar el concepto ahora? La prueba de concepto (PoC) está disponible.</p>
-        <a href="https://iogga.com" class="tlink" style="margin-top:.4rem">Probar el PoC en iogga.com <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></a>
       </div>
 
       <div class="install reveal">
@@ -566,15 +515,15 @@
           <li>Abre <b>iogga.com</b> en <b>Safari</b>.</li>
           <li>Toca el botón <b>Compartir</b> (el cuadro con la flecha hacia arriba).</li>
           <li>Elige <b>“Agregar a inicio”</b>.</li>
-          <li>Toca <b>Agregar</b>. ¡Listo! El ícono de IOGGA queda en tu pantalla.</li>
+          <li>Toca <b>Agregar</b>. Listo: el ícono de iogga queda en tu pantalla.</li>
         </ol>
         <ol class="os-steps" id="stepsAndroid" hidden>
           <li>Abre <b>iogga.com</b> en <b>Chrome</b>.</li>
           <li>Toca el menú <b>⋮</b> (arriba a la derecha).</li>
           <li>Elige <b>“Instalar app”</b> o <b>“Agregar a pantalla principal”</b>.</li>
-          <li>Confirma. ¡Listo! IOGGA aparece como una app más.</li>
+          <li>Confirma. Listo: iogga aparece como una app más.</li>
         </ol>
-        <button class="btn btn-fill" id="installBtn">Instalar IOGGA</button>
+        <button class="btn btn-fill" id="installBtn">Instalar iogga</button>
       </div>
     </div>
   </div>
@@ -583,16 +532,16 @@
 <!-- PRIVACY -->
 <section class="tint" id="privacidad">
   <div class="wrap">
-    <div class="priv reveal">
+    <div class="sec-intro reveal">
       <p class="eyebrow">Privacidad desde el diseño</p>
       <h2>Tú decides qué compartes.</h2>
-      <p class="lead" style="margin-top:1rem">En IOGGA, tu información es tuya. Diseñamos la plataforma con la privacidad como principio, no como añadido.</p>
-      <div class="pgrid">
-        <div class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/></svg><div><b>Tú controlas tus planes</b><small>Decides quién puede ver cada actividad: contactos, grupos o de forma abierta.</small></div></div>
-        <div class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7v10M20 7v10M8 12h8M8 12l3-3M8 12l3 3"/></svg><div><b>Datos minimizados</b><small>Solo pedimos lo necesario para hacer posible tu plan. Nada más.</small></div></div>
-        <div class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg><div><b>Consentimiento y transparencia</b><small>Nada se usa sin tu permiso. Sabes siempre para qué sirve tu información.</small></div></div>
-        <div class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><div><b>Análisis anonimizado</b><small>La información para negocios se presenta de forma agregada y anónima.</small></div></div>
-      </div>
+      <p class="lead">En iogga tu información es tuya. La privacidad es un principio del producto, no un añadido.</p>
+    </div>
+    <div class="pgrid">
+      <div class="pc reveal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/></svg><div><b>Tú controlas tus planes</b><small>Cada plan puede ser privado, para amigos seleccionados o público. Tú eliges, plan por plan.</small></div></div>
+      <div class="pc reveal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7v10M20 7v10M8 12h8M8 12l3-3M8 12l3 3"/></svg><div><b>Datos mínimos</b><small>Solo pedimos lo necesario para que tu plan funcione. Nada más.</small></div></div>
+      <div class="pc reveal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg><div><b>Consentimiento y transparencia</b><small>Nada se usa sin tu permiso, y siempre sabes para qué sirve tu información.</small></div></div>
+      <div class="pc reveal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><div><b>Análisis anonimizado</b><small>La información que ven los negocios es agregada y anónima: nunca datos personales.</small></div></div>
     </div>
   </div>
 </section>
@@ -601,15 +550,39 @@
 <section>
   <div class="wrap final">
     <div class="reveal">
-      <h2>Sé de los primeros en unirte.</h2>
-      <p class="lead">Déjanos tu correo y te avisamos apenas abramos el lanzamiento. Sin spam — solo la app y las mejores promociones de arranque.</p>
-      <form class="waitlist" id="waitlistForm" novalidate>
-        <input type="email" id="wlEmail" placeholder="tu@correo.com" autocomplete="email" aria-label="Tu correo" required />
-        <button type="submit" class="btn btn-fill">Unirme</button>
+      <h2>Sé de los primeros.</h2>
+      <p class="lead">Déjanos tus datos y te avisamos apenas abramos el lanzamiento. Sin spam — solo la app y las promociones de arranque.</p>
+
+      <form class="wl" id="wlForm" novalidate>
+        <div>
+          <label for="wlName">Nombre</label>
+          <input type="text" id="wlName" name="nombre" autocomplete="name" placeholder="Tu nombre" required />
+        </div>
+        <div class="row">
+          <div>
+            <label for="wlEmail">Correo</label>
+            <input type="email" id="wlEmail" name="email" autocomplete="email" placeholder="tu@correo.com" required />
+          </div>
+          <div>
+            <label for="wlPhone">Teléfono</label>
+            <input type="tel" id="wlPhone" name="telefono" autocomplete="tel" placeholder="614 123 4567" />
+          </div>
+        </div>
+        <div>
+          <label for="wlType">¿Cómo usarías iogga?</label>
+          <select id="wlType" name="tipo">
+            <option value="Usuario">Quiero organizar mis planes</option>
+            <option value="Negocio">Tengo un negocio</option>
+            <option value="Ambos">Ambos</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-fill" id="wlSubmit">Unirme a la lista</button>
       </form>
       <div class="form-msg" id="formMsg" role="status"></div>
+      <p class="privline">Al enviar aceptas que te contactemos sobre el lanzamiento de iogga. Puedes pedir la baja cuando quieras.</p>
+
       <div class="or">o escríbenos directo</div>
-      <a class="btn btn-wa" href="https://wa.me/526142168738?text=Hola%20IOGGA%2C%20quiero%20unirme%20a%20la%20lista%20de%20espera" target="_blank" rel="noopener">
+      <a class="btn btn-wa" href="https://wa.me/526142168738?text=Hola%20iogga%2C%20quiero%20unirme%20a%20la%20lista%20de%20espera" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2Zm5.8 14.16c-.24.68-1.42 1.32-1.95 1.36-.5.04-.98.22-3.3-.7-2.79-1.1-4.55-3.94-4.69-4.13-.14-.19-1.12-1.49-1.12-2.84s.71-2.01.96-2.29c.25-.28.55-.35.73-.35.18 0 .37 0 .53.01.17.01.4-.06.62.48.24.57.82 1.98.89 2.13.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.72 1.18 1.54 1.91 1.06.94 1.95 1.24 2.23 1.38.28.14.44.12.6-.07.16-.19.69-.8.87-1.08.18-.28.37-.23.62-.14.25.09 1.6.75 1.87.89.28.14.46.21.53.32.07.12.07.66-.17 1.34Z"/></svg>
         Escríbenos por WhatsApp
       </a>
@@ -623,14 +596,16 @@
   <div class="wrap wide">
     <div class="foot-top">
       <div class="foot-brand">
-        <span class="logo"><span class="mark" aria-hidden="true"></span><span class="word">iogga</span></span>
+        <button class="logo" id="homeBtn2" aria-label="iogga — volver al inicio">
+          <span class="mark" aria-hidden="true"></span><span class="word">iogga</span>
+        </button>
         <p>The Apportunity. Que los mejores momentos y oportunidades de tu vida no dependan de las coincidencias.</p>
       </div>
       <div class="foot-col">
         <h4>Explora</h4>
         <a href="#como">Para las personas</a>
         <a href="#negocios">Para negocios</a>
-        <a href="#por-que">Por qué IOGGA</a>
+        <a href="#spark">Spark Matcher</a>
         <a href="#descargar">Descargar</a>
         <a href="#privacidad">Privacidad</a>
       </div>
@@ -646,7 +621,7 @@
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© <span id="year"></span> IOGGA®. Todos los derechos reservados.</span>
+      <span>© <span id="year"></span> iogga®. Todos los derechos reservados.</span>
       <span>The Apportunity.</span>
     </div>
   </div>
@@ -655,71 +630,108 @@
 <script>
 (function(){
   "use strict";
+
+  /* ====================================================================
+     CONFIGURACIÓN — Base de datos de la lista de espera
+     Pega aquí la URL que te da Google Apps Script (ver LISTA-DE-ESPERA.md).
+     Mientras esté vacía, el formulario abre tu correo como respaldo.
+     ==================================================================== */
+  var WAITLIST_ENDPOINT = "";
+
   var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   document.getElementById("year").textContent = new Date().getFullYear();
 
-  /* mobile menu */
-  var links=document.getElementById("navLinks"), tgl=document.getElementById("navToggle");
-  tgl.addEventListener("click",function(){var o=links.classList.toggle("open");tgl.setAttribute("aria-expanded",o?"true":"false");});
-  links.addEventListener("click",function(e){if(e.target.tagName==="A"){links.classList.remove("open");tgl.setAttribute("aria-expanded","false");}});
-
-  /* reveal */
-  var rev=document.querySelectorAll(".reveal");
-  if("IntersectionObserver" in window && !reduce){
-    var io=new IntersectionObserver(function(en){en.forEach(function(e){if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});},{threshold:.1,rootMargin:"0px 0px -6% 0px"});
-    rev.forEach(function(el){io.observe(el);});
-  } else { rev.forEach(function(el){el.classList.add("in");}); }
-
-  /* plan builder */
-  var data={
-    "Cenar tacos":{p:["3 amigos disponibles","confirmaron para esta noche"],l:["Taquería El Fogón · 6 min","dentro de tu presupuesto"],o:["2x1 en tacos al pastor","canjea con tu código QR"]},
-    "Café":{p:["2 personas se apuntan","les queda cerca del centro"],l:["Café Nube · 4 min","buen ambiente para platicar"],o:["Postre gratis con tu bebida","muestra el QR al ordenar"]},
-    "Cine":{p:["4 amigos con la tarde libre","votaron por la función de las 8"],l:["Cinépolis · 12 min","función 8:20 pm disponible"],o:["Combo 2x1 entre semana","válido con código IOGGA"]},
-    "Salir a bailar":{p:["6 personas del grupo","listas para el finde"],l:["La Terraza · 9 min","música en vivo esta noche"],o:["Cover gratis antes de 11 pm","presenta tu QR en la entrada"]}
-  };
-  var sel={que:"Cenar tacos"};
-  document.querySelectorAll(".phone .chips").forEach(function(g){
-    var n=g.getAttribute("data-group");
-    g.querySelectorAll(".chip").forEach(function(c){
-      if(!c.hasAttribute("aria-pressed"))c.setAttribute("aria-pressed","false");
-      if(c.getAttribute("aria-pressed")==="true")sel[n]=c.textContent.trim();
-      c.addEventListener("click",function(){
-        g.querySelectorAll(".chip").forEach(function(x){x.setAttribute("aria-pressed","false");});
-        c.setAttribute("aria-pressed","true");sel[n]=c.textContent.trim();if(n==="que")render();
-      });
-    });
-  });
-  function T(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
-  function render(){var r=data[sel.que]||data["Cenar tacos"];
-    T("mPeople",r.p[0]);T("mPeopleSub",r.p[1]);T("mPlace",r.l[0]);T("mPlaceSub",r.l[1]);T("mPromo",r.o[0]);T("mPromoSub",r.o[1]);}
-  render();
-
-  /* download OS tabs */
-  var ti=document.getElementById("tabIos"),ta=document.getElementById("tabAndroid"),
-      si=document.getElementById("stepsIos"),sa=document.getElementById("stepsAndroid");
-  function os(ios){ti.setAttribute("aria-selected",ios?"true":"false");ta.setAttribute("aria-selected",ios?"false":"true");si.hidden=!ios;sa.hidden=ios;}
-  ti.addEventListener("click",function(){os(true);});ta.addEventListener("click",function(){os(false);});
-  if(/Android/i.test(navigator.userAgent))os(false);
-
-  /* PWA install */
-  var deferred=null, ib=document.getElementById("installBtn");
-  window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();deferred=e;ib.style.display="block";});
-  ib.addEventListener("click",function(){if(!deferred)return;deferred.prompt();deferred.userChoice.finally(function(){deferred=null;ib.style.display="none";});});
-
-  /* waitlist */
-  var f=document.getElementById("waitlistForm"),msg=document.getElementById("formMsg"),inp=document.getElementById("wlEmail"),
-      re=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  f.addEventListener("submit",function(e){
-    e.preventDefault();var v=inp.value.trim();
-    if(!re.test(v)){msg.className="form-msg err";msg.textContent="Escribe un correo válido, por favor.";inp.focus();return;}
-    var s=encodeURIComponent("Quiero unirme a la lista de espera de IOGGA"),
-        b=encodeURIComponent("¡Hola IOGGA!\n\nQuiero unirme a la lista de espera.\nMi correo: "+v+"\n\n¡Avísenme cuando lancen!");
-    window.location.href="mailto:omareduardo_@hotmail.com?subject="+s+"&body="+b;
-    msg.className="form-msg ok";msg.textContent="¡Gracias! Abrimos tu correo para confirmar. 🎉";f.reset();
+  /* logo = botón de inicio (vuelve arriba) */
+  function goTop(){
+    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    if (history.replaceState) history.replaceState(null, "", location.pathname + location.search);
+  }
+  ["homeBtn","homeBtn2"].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.addEventListener("click", goTop);
   });
 
-  /* register service worker (PWA) */
-  if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}
+  /* menú móvil */
+  var links = document.getElementById("navLinks"), tgl = document.getElementById("navToggle");
+  tgl.addEventListener("click", function(){
+    var o = links.classList.toggle("open");
+    tgl.setAttribute("aria-expanded", o ? "true" : "false");
+  });
+  links.addEventListener("click", function(e){
+    if (e.target.tagName === "A"){ links.classList.remove("open"); tgl.setAttribute("aria-expanded","false"); }
+  });
+
+  /* animación de entrada */
+  var rev = document.querySelectorAll(".reveal");
+  if ("IntersectionObserver" in window && !reduce){
+    var io = new IntersectionObserver(function(en){
+      en.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
+    }, { threshold:.1, rootMargin:"0px 0px -6% 0px" });
+    rev.forEach(function(el){ io.observe(el); });
+  } else { rev.forEach(function(el){ el.classList.add("in"); }); }
+
+  /* pestañas iPhone / Android */
+  var ti = document.getElementById("tabIos"), ta = document.getElementById("tabAndroid"),
+      si = document.getElementById("stepsIos"), sa = document.getElementById("stepsAndroid");
+  function os(ios){
+    ti.setAttribute("aria-selected", ios ? "true" : "false");
+    ta.setAttribute("aria-selected", ios ? "false" : "true");
+    si.hidden = !ios; sa.hidden = ios;
+  }
+  ti.addEventListener("click", function(){ os(true); });
+  ta.addEventListener("click", function(){ os(false); });
+  if (/Android/i.test(navigator.userAgent)) os(false);
+
+  /* instalar como app (PWA) */
+  var deferred = null, ib = document.getElementById("installBtn");
+  window.addEventListener("beforeinstallprompt", function(e){
+    e.preventDefault(); deferred = e; ib.style.display = "block";
+  });
+  ib.addEventListener("click", function(){
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.finally(function(){ deferred = null; ib.style.display = "none"; });
+  });
+
+  /* lista de espera */
+  var f = document.getElementById("wlForm"),
+      msg = document.getElementById("formMsg"),
+      submit = document.getElementById("wlSubmit"),
+      reMail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function show(kind, text){ msg.className = "form-msg " + kind; msg.textContent = text; }
+
+  f.addEventListener("submit", function(e){
+    e.preventDefault();
+    var nombre = document.getElementById("wlName").value.trim(),
+        email  = document.getElementById("wlEmail").value.trim(),
+        tel    = document.getElementById("wlPhone").value.trim(),
+        tipo   = document.getElementById("wlType").value;
+
+    if (nombre.length < 2){ show("err","Escribe tu nombre, por favor."); document.getElementById("wlName").focus(); return; }
+    if (!reMail.test(email)){ show("err","Escribe un correo válido."); document.getElementById("wlEmail").focus(); return; }
+
+    if (!WAITLIST_ENDPOINT){
+      var s = encodeURIComponent("Lista de espera iogga — " + nombre),
+          b = encodeURIComponent("Nombre: " + nombre + "\nCorreo: " + email + "\nTeléfono: " + tel + "\nTipo: " + tipo);
+      window.location.href = "mailto:omareduardo_@hotmail.com?subject=" + s + "&body=" + b;
+      show("ok","¡Gracias! Abrimos tu correo para confirmar tu registro.");
+      f.reset(); return;
+    }
+
+    submit.disabled = true; show("", "Enviando…");
+    var body = new URLSearchParams({ nombre:nombre, email:email, telefono:tel, tipo:tipo, origen:location.hostname || "local" });
+
+    fetch(WAITLIST_ENDPOINT, { method:"POST", body:body })
+      .then(function(){ show("ok","¡Listo! Ya estás en la lista. Te avisamos del lanzamiento."); f.reset(); })
+      .catch(function(){ show("err","No pudimos guardarlo. Escríbenos por WhatsApp y te anotamos."); })
+      .finally(function(){ submit.disabled = false; });
+  });
+
+  /* service worker (PWA) */
+  if ("serviceWorker" in navigator){
+    window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+  }
 })();
 </script>
 </body>

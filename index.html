@@ -161,7 +161,8 @@
   .phone:nth-child(2){transform:translateY(-30px)}
   .phone:hover{transform:translateY(-8px)}
   .phone:nth-child(2):hover{transform:translateY(-38px)}
-  .phone img{width:100%;display:block;border-radius:30px}
+  .phone img{width:100%;height:auto;aspect-ratio:520/916;object-fit:cover;display:block;border-radius:30px}
+  .phone.biz{background:#08120f}
   .phone figcaption{position:absolute;left:0;right:0;bottom:-2.3rem;text-align:center;
     font-size:.82rem;color:var(--ink-3);font-weight:500}
   .showcase-wrap{padding-bottom:3.2rem}
@@ -181,6 +182,37 @@
     .phone figcaption{font-size:.8rem}
   }
   @media (prefers-reduced-motion:reduce){.phone,.phone:hover{transition:none}}
+
+  /* anotación sobre la captura */
+  .phone .note{position:absolute;z-index:2;right:-14%;top:70%;max-width:150px;
+    background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:14px;
+    padding:.6rem .8rem;font-size:.78rem;font-weight:600;line-height:1.25;text-align:left;
+    box-shadow:0 16px 32px -14px rgba(23,23,60,.4)}
+  .phone .note::before{content:"";position:absolute;left:-19px;top:50%;width:19px;height:2px;background:var(--accent)}
+  .phone .note::after{content:"";position:absolute;left:-25px;top:50%;transform:translateY(-50%);
+    width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(20,184,166,.22)}
+  @media (max-width:900px){.phone .note{right:-8%;font-size:.72rem;max-width:124px;padding:.5rem .65rem}}
+  @media (max-width:540px){.phone .note{right:-6%;top:38%}}
+
+  /* ——— el modelo ——— */
+  .model{margin-top:clamp(40px,6vw,68px);background:#0c1a18;color:#e9f5f2;
+    border-radius:var(--r-lg);padding:clamp(28px,5vw,58px) clamp(24px,5vw,56px);
+    background-image:radial-gradient(90% 70% at 15% 0%,rgba(20,184,166,.22),transparent 60%)}
+  .model .keyw{font-size:.78rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#5eead4;margin:0 0 .6rem}
+  .model h3{font-size:clamp(1.7rem,1.2rem + 2.2vw,2.9rem);letter-spacing:-.035em;color:#fff;max-width:20ch}
+  .model .mlead{margin-top:1.1rem;font-size:clamp(1.02rem,.98rem + .4vw,1.24rem);color:#a8c9c3;
+    line-height:1.5;max-width:62ch;letter-spacing:-.012em}
+  .model .mlead b{color:#fff;font-weight:600}
+  .model .mlead em{font-style:italic;color:#cfe6e1}
+  .mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:clamp(26px,4vw,42px)}
+  @media (max-width:820px){.mgrid{grid-template-columns:1fr}}
+  .mcard{background:rgba(255,255,255,.05);border:1px solid rgba(94,234,212,.18);border-radius:18px;padding:1.4rem}
+  .mcard .mn{font-size:.82rem;font-weight:700;color:#5eead4;letter-spacing:.04em}
+  .mcard h4{margin:.55rem 0 .45rem;font-size:1.1rem;color:#fff;letter-spacing:-.02em;font-weight:600}
+  .mcard p{font-size:.93rem;color:#9dbdb7;line-height:1.5}
+  .model .mfoot{margin-top:clamp(22px,3vw,32px);padding-top:1.3rem;border-top:1px solid rgba(94,234,212,.18);
+    font-size:1rem;color:#a8c9c3;line-height:1.5;max-width:66ch}
+  .model .mfoot b{color:#5eead4;font-weight:600}
 
   /* ——— datos de validación ——— */
   .valid{display:grid;grid-template-columns:auto 1fr;gap:clamp(28px,5vw,68px);align-items:center;
@@ -282,10 +314,15 @@
   .os{display:flex;gap:.55rem;margin-bottom:1.1rem}
   .os button{flex:1;font:inherit;font-size:.92rem;font-weight:500;padding:.6em;border-radius:12px;border:1px solid var(--line-2);background:#fff;cursor:pointer;transition:.18s}
   .os button[aria-selected="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
-  .os-steps{list-style:none;margin:0;padding:0;counter-reset:i;display:flex;flex-direction:column;gap:.8rem}
-  .os-steps li{counter-increment:i;display:flex;gap:.75rem;align-items:flex-start;font-size:.97rem}
+  .os-steps{list-style:none;margin:0;padding:0;counter-reset:i;display:flex;flex-direction:column;gap:.9rem}
+  .os-steps[hidden]{display:none}
+  .os-steps li{counter-increment:i;display:flex;gap:.75rem;align-items:flex-start;font-size:.97rem;line-height:1.45}
   .os-steps li::before{content:counter(i);flex:none;width:25px;height:25px;border-radius:50%;background:rgba(99,102,241,.12);
-    color:var(--primary-ink);font-weight:700;font-size:.83rem;display:grid;place-items:center}
+    color:var(--primary-ink);font-weight:700;font-size:.83rem;display:grid;place-items:center;margin-top:1px}
+  .os-steps li span{flex:1;min-width:0}
+  .os-steps kbd{display:inline-flex;align-items:center;gap:.28em;font:inherit;font-size:.9em;font-weight:600;
+    background:var(--bg-2);border:1px solid var(--line-2);border-radius:7px;padding:.06em .42em;white-space:nowrap}
+  .os-steps kbd svg{width:14px;height:14px}
   .appcard{display:flex;gap:1rem;align-items:center;background:#fff;border:1px solid var(--line);
     border-radius:var(--r);padding:1.2rem 1.3rem}
   .appcard-icon{flex:none;width:56px;height:56px;border-radius:14px;background:var(--primary);
@@ -294,6 +331,21 @@
     border-radius:50%;background:#fff}
   .appcard b{display:block;font-size:1.05rem}
   .appcard small{display:block;color:var(--ink-2);font-size:.86rem;margin-top:.2rem;line-height:1.4}
+
+  /* barra de navegador ilustrada */
+  .browser{margin-bottom:1.4rem}
+  .browser .bbar{display:flex;align-items:center;gap:.6rem;background:var(--bg-2);border:1px solid var(--line-2);
+    border-radius:14px;padding:.62rem .8rem}
+  .browser .url{flex:1;min-width:0;background:#fff;border-radius:9px;padding:.34em .8em;font-size:.86rem;
+    color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--line)}
+  .browser .hint{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+    background:var(--primary);color:#fff;position:relative}
+  .browser .hint svg{width:19px;height:19px}
+  .browser .hint::after{content:"";position:absolute;inset:-5px;border-radius:14px;border:2px solid var(--primary);
+    opacity:.45;animation:latido 2.2s ease-in-out infinite}
+  @keyframes latido{0%,100%{transform:scale(1);opacity:.45}50%{transform:scale(1.12);opacity:0}}
+  @media (prefers-reduced-motion:reduce){.browser .hint::after{animation:none}}
+  .browser .bcap{margin-top:.55rem;font-size:.8rem;color:var(--primary-ink);font-weight:500;text-align:center}
 
   /* privacy */
   .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:2rem;text-align:left;max-width:760px;margin-inline:auto}
@@ -518,6 +570,48 @@
       <div class="step b reveal"><span class="sn"></span><h3>Recibe y escanea</h3><p>Llegan clientes con intención activa y escaneas su código de descuento en caja.</p></div>
       <div class="step b reveal"><span class="sn"></span><h3>Mide lo que importa</h3><p>Consulta escaneos, ventas y ganancias por producto. Pagas comisión solo cuando vendes.</p></div>
     </div>
+
+    <!-- Capturas del panel de negocio -->
+    <div class="showcase-wrap reveal">
+      <div class="showcase biz">
+        <figure class="phone biz">
+          <img src="assets/biz-ofertas.jpg" width="520" height="916" loading="lazy"
+               alt="Panel de ofertas de iogga mostrando 18 interesados, 120 escaneos y 7 planes coincidentes en vivo" />
+          <span class="note">18 personas<br>buscan esto ahora</span>
+          <figcaption>Demanda real, producto por producto</figcaption>
+        </figure>
+        <figure class="phone biz">
+          <img src="assets/biz-dash.jpg" width="520" height="916" loading="lazy"
+               alt="Panel de iogga con 1,284 búsquedas hoy y 42 ventas, actualizado en vivo" />
+          <figcaption>Tu negocio, en vivo</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <!-- El modelo -->
+    <div class="model reveal">
+      <p class="keyw">El modelo</p>
+      <h3>Marketing de Intención Declarada</h3>
+      <p class="mlead">La publicidad tradicional persigue a la gente con anuncios y le cobra al negocio por <em>ser visto</em>. iogga invierte el flujo: la persona <b>declara</b> lo que quiere hacer, y el negocio que puede resolverlo <b>aparece</b>. Nadie persigue a nadie.</p>
+      <div class="mgrid">
+        <div class="mcard">
+          <span class="mn">01</span>
+          <h4>La persona declara</h4>
+          <p>Nadie adivina su intención con datos históricos. Ella misma dice qué quiere, cuándo, con cuánto y cómo llega.</p>
+        </div>
+        <div class="mcard">
+          <span class="mn">02</span>
+          <h4>El negocio ve demanda real</h4>
+          <p>No audiencias estimadas ni impresiones: el número de personas que buscan tu producto ahora mismo, en tu zona.</p>
+        </div>
+        <div class="mcard">
+          <span class="mn">03</span>
+          <h4>Se paga por resultado</h4>
+          <p>Publicar es gratis. La comisión llega cuando un código se canjea y la venta ocurre de verdad.</p>
+        </div>
+      </div>
+      <p class="mfoot">iogga llama a este modelo <b>Marketing Magnético</b>: en vez de empujar el mensaje hacia afuera, el negocio atrae a quien ya levantó la mano.</p>
+    </div>
   </div>
 </section>
 
@@ -639,18 +733,45 @@
           <button id="tabIos" role="tab" aria-selected="true">iPhone</button>
           <button id="tabAndroid" role="tab" aria-selected="false">Android</button>
         </div>
-        <ol class="os-steps" id="stepsIos">
-          <li>Abre <b>iogga.com</b> en <b>Safari</b>.</li>
-          <li>Toca el botón <b>Compartir</b> (el cuadro con la flecha hacia arriba).</li>
-          <li>Desliza y elige <b>“Agregar a inicio”</b>.</li>
-          <li>Toca <b>Agregar</b>. Listo: el ícono de iogga queda en tu pantalla.</li>
-        </ol>
-        <ol class="os-steps" id="stepsAndroid" hidden>
-          <li>Abre <b>iogga.com</b> en <b>Chrome</b>.</li>
-          <li>Toca el menú <b>⋮</b> (arriba a la derecha).</li>
-          <li>Elige <b>“Instalar aplicación”</b> o <b>“Agregar a pantalla principal”</b>.</li>
-          <li>Confirma. Listo: iogga aparece como una app más.</li>
-        </ol>
+        <!-- iPhone -->
+        <div id="paneIos">
+          <div class="browser ios">
+            <div class="bbar">
+              <span class="url">iogga.com</span>
+              <span class="hint" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 15V3"/><path d="m8 7 4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>
+                </svg>
+              </span>
+            </div>
+            <p class="bcap">Toca este ícono en la barra de Safari</p>
+          </div>
+          <ol class="os-steps">
+            <li><span>Abre <b>iogga.com</b> en <b>Safari</b>.</span></li>
+            <li><span>Toca el botón <kbd><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m8 7 4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg> Compartir</kbd>.</span></li>
+            <li><span>Desliza hacia abajo y elige <kbd>Agregar a inicio</kbd>.</span></li>
+            <li><span>Toca <kbd>Agregar</kbd>. El ícono de iogga queda en tu pantalla.</span></li>
+          </ol>
+        </div>
+
+        <!-- Android -->
+        <div id="paneAndroid" hidden>
+          <div class="browser android">
+            <div class="bbar">
+              <span class="url">iogga.com</span>
+              <span class="hint" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+              </span>
+            </div>
+            <p class="bcap">Toca los 3 puntos en la barra de Chrome</p>
+          </div>
+          <ol class="os-steps">
+            <li><span>Abre <b>iogga.com</b> en <b>Chrome</b>.</span></li>
+            <li><span>Toca el menú <kbd><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg> de 3 puntos</kbd>.</span></li>
+            <li><span>Elige <kbd>Instalar aplicación</kbd> o <kbd>Agregar a pantalla principal</kbd>.</span></li>
+            <li><span>Confirma. iogga aparece como una app más.</span></li>
+          </ol>
+        </div>
       </div>
     </div>
   </div>
@@ -754,6 +875,7 @@
           <a href="https://instagram.com/ioggain" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
           <a href="https://facebook.com/ioggain" target="_blank" rel="noopener" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 22v-8h2.7l.4-3.1h-3.1V8.9c0-.9.25-1.5 1.55-1.5H17V4.6c-.29-.04-1.3-.12-2.46-.12-2.43 0-4.09 1.48-4.09 4.2v2.34H7.7V14h2.75v8Z"/></svg></a>
           <a href="https://tiktok.com/@ioggain" target="_blank" rel="noopener" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c.3 2.1 1.5 3.6 3.5 3.9v2.6c-1.3.1-2.5-.3-3.6-1v5.9c0 3.2-2.4 5.6-5.5 5.6a5.4 5.4 0 0 1-5.4-5.4c0-3.3 3-5.9 6.4-5.2v2.8c-.4-.1-.8-.2-1.2-.2-1.4 0-2.5 1.1-2.5 2.6 0 1.4 1.1 2.6 2.6 2.6 1.4 0 2.5-1.1 2.5-2.6V3Z"/></svg></a>
+          <a href="https://www.linkedin.com/company/110438341/" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9.5h4v11H3v-11Zm6.5 0h3.8v1.5h.06c.53-.95 1.83-1.95 3.76-1.95 4.02 0 4.76 2.5 4.76 5.76v5.69h-4v-5.05c0-1.2-.02-2.75-1.7-2.75-1.7 0-1.96 1.31-1.96 2.66v5.14h-3.97v-11Z"/></svg></a>
         </div>
       </div>
     </div>
@@ -809,7 +931,7 @@
 
   /* pestañas iPhone / Android */
   var ti = document.getElementById("tabIos"), ta = document.getElementById("tabAndroid"),
-      si = document.getElementById("stepsIos"), sa = document.getElementById("stepsAndroid");
+      si = document.getElementById("paneIos"), sa = document.getElementById("paneAndroid");
   function os(ios){
     ti.setAttribute("aria-selected", ios ? "true" : "false");
     ta.setAttribute("aria-selected", ios ? "false" : "true");

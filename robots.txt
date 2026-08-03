@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /panel.html
 
-Sitemap: https://iogga.com/sitemap.xml
+Sitemap: https://www.iogga.com/sitemap.xml

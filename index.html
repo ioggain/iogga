@@ -6,14 +6,13 @@
 <title>iogga — The Apportunity</title>
 <meta name="description" content="La app donde tus planes cobran vida y conectar es más fácil que nunca. Di qué quieres hacer y iogga lo conecta con las personas, lugares y promociones que lo hacen posible." />
 <meta name="theme-color" content="#ffffff" />
-<link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%236366f1'/%3E%3C/svg%3E" />
 
 <meta property="og:type" content="website" />
 <meta property="og:title" content="iogga — The Apportunity" />
 <meta property="og:description" content="La app donde tus planes cobran vida y conectar es más fácil que nunca." />
-<meta property="og:url" content="https://iogga.com/" />
+<meta property="og:url" content="https://www.iogga.com/" />
 <meta property="og:locale" content="es_MX" />
 <meta name="twitter:card" content="summary_large_image" />
 
@@ -224,7 +223,14 @@
   .os-steps li{counter-increment:i;display:flex;gap:.75rem;align-items:flex-start;font-size:.97rem}
   .os-steps li::before{content:counter(i);flex:none;width:25px;height:25px;border-radius:50%;background:rgba(99,102,241,.12);
     color:var(--primary-ink);font-weight:700;font-size:.83rem;display:grid;place-items:center}
-  #installBtn{margin-top:1.3rem;width:100%;display:none}
+  .appcard{display:flex;gap:1rem;align-items:center;background:#fff;border:1px solid var(--line);
+    border-radius:var(--r);padding:1.2rem 1.3rem}
+  .appcard-icon{flex:none;width:56px;height:56px;border-radius:14px;background:var(--primary);
+    box-shadow:0 8px 20px -8px rgba(99,102,241,.7);position:relative}
+  .appcard-icon::after{content:"";position:absolute;inset:0;margin:auto;width:26px;height:26px;
+    border-radius:50%;background:#fff}
+  .appcard b{display:block;font-size:1.05rem}
+  .appcard small{display:block;color:var(--ink-2);font-size:.86rem;margin-top:.2rem;line-height:1.4}
 
   /* privacy */
   .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:2rem;text-align:left;max-width:760px;margin-inline:auto}
@@ -291,7 +297,7 @@
       <a href="#descargar">Descargar</a>
     </nav>
     <div class="nav-right">
-      <a href="#descargar" class="btn btn-fill btn-desktop">Descargar</a>
+      <a href="https://iogga.com" class="btn btn-fill btn-desktop">Abrir la app</a>
       <button class="nav-toggle" id="navToggle" aria-label="Menú" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
       </button>
@@ -308,10 +314,10 @@
     <h1>Que los mejores momentos no dependan de la <span class="pri">suerte.</span></h1>
     <p class="lead">La app donde tus planes cobran vida y conectar es más fácil que nunca. Di qué quieres hacer, y iogga lo conecta con las personas, lugares y promociones que lo hacen posible.</p>
     <div class="hero-cta">
-      <a href="#descargar" class="btn btn-fill">Descargar la app</a>
+      <a href="https://iogga.com" class="btn btn-fill">Probar la app</a>
       <a href="#como" class="tlink">Ver cómo funciona <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></a>
     </div>
-    <p class="hero-note">Gratis para empezar · Próximamente en App Store y Google Play</p>
+    <p class="hero-note">Gratis · funciona en tu navegador · próximamente en App Store y Google Play</p>
     <div class="pills reveal">
       <span class="pill">Planes en segundos</span>
       <span class="pill">Coincidencias en tiempo real</span>
@@ -499,7 +505,16 @@
     </div>
     <div class="dl">
       <div class="reveal">
-        <h3 style="font-size:1.28rem;margin-bottom:.5rem">Próximamente en las tiendas</h3>
+        <div class="appcard">
+          <div class="appcard-icon" aria-hidden="true"></div>
+          <div>
+            <b>iogga.com</b>
+            <small>Ábrela en tu navegador. No ocupa espacio y no necesitas tienda de apps.</small>
+          </div>
+        </div>
+        <a href="https://iogga.com" class="btn btn-fill" style="width:100%;margin-top:1rem">Abrir la app ahora</a>
+
+        <h3 style="font-size:1.28rem;margin:2.2rem 0 .5rem">Próximamente en las tiendas</h3>
         <p style="color:var(--ink-2)">Estamos preparando el lanzamiento oficial en iOS y Android. Únete a la lista y sé de los primeros en recibir el enlace de descarga.</p>
         <div class="badges">
           <span class="badge"><span class="soon">Pronto</span>
@@ -514,7 +529,8 @@
       </div>
 
       <div class="install reveal">
-        <h3>Instálala ahora en tu celular</h3>
+        <h3>Ponla en la pantalla de tu celular</h3>
+        <p style="color:var(--ink-2);font-size:.94rem;margin-bottom:1.1rem">Queda con su ícono, como cualquier otra app.</p>
         <div class="os" role="tablist">
           <button id="tabIos" role="tab" aria-selected="true">iPhone</button>
           <button id="tabAndroid" role="tab" aria-selected="false">Android</button>
@@ -522,16 +538,15 @@
         <ol class="os-steps" id="stepsIos">
           <li>Abre <b>iogga.com</b> en <b>Safari</b>.</li>
           <li>Toca el botón <b>Compartir</b> (el cuadro con la flecha hacia arriba).</li>
-          <li>Elige <b>“Agregar a inicio”</b>.</li>
+          <li>Desliza y elige <b>“Agregar a inicio”</b>.</li>
           <li>Toca <b>Agregar</b>. Listo: el ícono de iogga queda en tu pantalla.</li>
         </ol>
         <ol class="os-steps" id="stepsAndroid" hidden>
           <li>Abre <b>iogga.com</b> en <b>Chrome</b>.</li>
           <li>Toca el menú <b>⋮</b> (arriba a la derecha).</li>
-          <li>Elige <b>“Instalar app”</b> o <b>“Agregar a pantalla principal”</b>.</li>
+          <li>Elige <b>“Instalar aplicación”</b> o <b>“Agregar a pantalla principal”</b>.</li>
           <li>Confirma. Listo: iogga aparece como una app más.</li>
         </ol>
-        <button class="btn btn-fill" id="installBtn">Instalar iogga</button>
       </div>
     </div>
   </div>
@@ -700,17 +715,6 @@
   ta.addEventListener("click", function(){ os(false); });
   if (/Android/i.test(navigator.userAgent)) os(false);
 
-  /* instalar como app (PWA) */
-  var deferred = null, ib = document.getElementById("installBtn");
-  window.addEventListener("beforeinstallprompt", function(e){
-    e.preventDefault(); deferred = e; ib.style.display = "block";
-  });
-  ib.addEventListener("click", function(){
-    if (!deferred) return;
-    deferred.prompt();
-    deferred.userChoice.finally(function(){ deferred = null; ib.style.display = "none"; });
-  });
-
   /* lista de espera */
   var f = document.getElementById("wlForm"),
       msg = document.getElementById("formMsg"),
@@ -746,10 +750,6 @@
       .finally(function(){ submit.disabled = false; });
   });
 
-  /* service worker (PWA) */
-  if ("serviceWorker" in navigator){
-    window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
-  }
 })();
 </script>
 </body>

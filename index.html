@@ -199,9 +199,9 @@
   .team{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:880px;margin-inline:auto}
   @media (max-width:720px){.team{grid-template-columns:1fr}}
   .member{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:1.9rem;text-align:center}
-  .member .av{width:104px;height:104px;border-radius:50%;margin:0 auto 1.1rem;display:grid;place-items:center;
+  .member .av{position:relative;width:104px;height:104px;border-radius:50%;margin:0 auto 1.1rem;display:grid;place-items:center;
     font-size:2.2rem;font-weight:600;color:#fff;background:linear-gradient(140deg,var(--primary),var(--accent));overflow:hidden}
-  .member .av img{width:100%;height:100%;object-fit:cover}
+  .member .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;z-index:1}
   .member h3{font-size:1.28rem}
   .member .role{color:var(--primary-ink);font-weight:600;font-size:.85rem;margin:.25rem 0 .7rem}
   .member p{color:var(--ink-2);font-size:.94rem;line-height:1.45}
@@ -253,8 +253,9 @@
 
   /* footer */
   footer{background:var(--bg-2);border-top:1px solid var(--line);padding:clamp(40px,5vw,64px) 0 32px;font-size:.85rem;color:var(--ink-2)}
-  .foot-top{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:2rem}
-  @media (max-width:720px){.foot-top{grid-template-columns:1fr;gap:1.6rem}}
+  .foot-top{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:2rem}
+  @media (max-width:900px){.foot-top{grid-template-columns:1fr 1fr;gap:1.8rem}}
+  @media (max-width:560px){.foot-top{grid-template-columns:1fr;gap:1.6rem}}
   .foot-brand p{margin-top:.9rem;max-width:34ch}
   .foot-col h4{font-size:.82rem;color:var(--ink);margin:0 0 .8rem;font-weight:600}
   .foot-col a,.foot-col span{display:block;color:var(--ink-2);padding:.24rem 0;transition:color .2s}
@@ -464,15 +465,22 @@
   <div class="wrap">
     <div class="sec-intro reveal"><h2>Fundadores.</h2></div>
     <div class="team">
+      <!-- Las fotos aparecen solas al subir assets/omar.jpg y assets/isela.jpg.
+           Si el archivo no existe, se muestra el monograma. -->
       <div class="member reveal">
-        <!-- Para poner la foto: reemplaza el contenido de .av por <img src="assets/omar.jpg" alt="Omar Eduardo Hernández"> -->
-        <div class="av" aria-hidden="true">O</div>
+        <div class="av">
+          <img src="assets/omar.jpg" alt="Omar Eduardo Hernández" onerror="this.remove()" />
+          <span aria-hidden="true">O</span>
+        </div>
         <h3>Omar Eduardo Hernández</h3>
         <div class="role">Fundador y Director</div>
         <p>Maestría en Gestión de Proyectos Tecnológicos, con certificaciones en Business Analytics y gestión de proyectos digitales. Lidera la estrategia, el producto y la vinculación de iogga.</p>
       </div>
       <div class="member reveal">
-        <div class="av" aria-hidden="true">I</div>
+        <div class="av">
+          <img src="assets/isela.jpg" alt="E. Isela Domínguez Flores" onerror="this.remove()" />
+          <span aria-hidden="true">I</span>
+        </div>
         <h3>E. Isela Domínguez Flores</h3>
         <div class="role">Cofundadora</div>
         <p>Psicóloga industrial con más de 10 años de experiencia coordinando instituciones educativas y pedagogía STEM, con experiencia internacional en los sectores de salud, humanitario y terapéutico.</p>
@@ -543,6 +551,9 @@
       <div class="pc reveal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg><div><b>Consentimiento y transparencia</b><small>Nada se usa sin tu permiso, y siempre sabes para qué sirve tu información.</small></div></div>
       <div class="pc reveal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><div><b>Análisis anonimizado</b><small>La información que ven los negocios es agregada y anónima: nunca datos personales.</small></div></div>
     </div>
+    <p style="text-align:center;margin-top:2rem">
+      <a href="privacidad.html" class="tlink">Leer el Aviso de Privacidad completo <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></a>
+    </p>
   </div>
 </section>
 
@@ -579,10 +590,11 @@
         <button type="submit" class="btn btn-fill" id="wlSubmit">Unirme a la lista</button>
       </form>
       <div class="form-msg" id="formMsg" role="status"></div>
-      <p class="privline">Al enviar aceptas que te contactemos sobre el lanzamiento de iogga. Puedes pedir la baja cuando quieras.</p>
+      <p class="privline">Al enviar aceptas que te contactemos sobre el lanzamiento de iogga. Puedes pedir la baja cuando quieras.<br>
+        Consulta el <a href="privacidad.html" style="color:var(--primary-ink)">Aviso de Privacidad</a> y los <a href="terminos.html" style="color:var(--primary-ink)">Términos y Condiciones</a>.</p>
 
       <div class="or">o escríbenos directo</div>
-      <a class="btn btn-wa" href="https://wa.me/526142168738?text=Hola%20iogga%2C%20quiero%20unirme%20a%20la%20lista%20de%20espera" target="_blank" rel="noopener">
+      <a class="btn btn-wa" href="https://wa.me/526146887271?text=Hola%20iogga%2C%20quiero%20unirme%20a%20la%20lista%20de%20espera" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2Zm5.8 14.16c-.24.68-1.42 1.32-1.95 1.36-.5.04-.98.22-3.3-.7-2.79-1.1-4.55-3.94-4.69-4.13-.14-.19-1.12-1.49-1.12-2.84s.71-2.01.96-2.29c.25-.28.55-.35.73-.35.18 0 .37 0 .53.01.17.01.4-.06.62.48.24.57.82 1.98.89 2.13.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.72 1.18 1.54 1.91 1.06.94 1.95 1.24 2.23 1.38.28.14.44.12.6-.07.16-.19.69-.8.87-1.08.18-.28.37-.23.62-.14.25.09 1.6.75 1.87.89.28.14.46.21.53.32.07.12.07.66-.17 1.34Z"/></svg>
         Escríbenos por WhatsApp
       </a>
@@ -610,9 +622,15 @@
         <a href="#privacidad">Privacidad</a>
       </div>
       <div class="foot-col">
+        <h4>Legal</h4>
+        <a href="terminos.html">Términos y Condiciones</a>
+        <a href="privacidad.html">Aviso de Privacidad</a>
+        <a href="#privacidad">Cómo cuidamos tus datos</a>
+      </div>
+      <div class="foot-col">
         <h4>Contacto</h4>
-        <a href="mailto:omareduardo_@hotmail.com">omareduardo_@hotmail.com</a>
-        <a href="tel:+526142168738">+52 614 216 8738</a>
+        <a href="mailto:admin@iogga.com">admin@iogga.com</a>
+        <a href="tel:+526146887271">614 688 7271</a>
         <div class="socials">
           <a href="https://instagram.com/ioggain" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
           <a href="https://facebook.com/ioggain" target="_blank" rel="noopener" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 22v-8h2.7l.4-3.1h-3.1V8.9c0-.9.25-1.5 1.55-1.5H17V4.6c-.29-.04-1.3-.12-2.46-.12-2.43 0-4.09 1.48-4.09 4.2v2.34H7.7V14h2.75v8Z"/></svg></a>
@@ -714,7 +732,7 @@
     if (!WAITLIST_ENDPOINT){
       var s = encodeURIComponent("Lista de espera iogga — " + nombre),
           b = encodeURIComponent("Nombre: " + nombre + "\nCorreo: " + email + "\nTeléfono: " + tel + "\nTipo: " + tipo);
-      window.location.href = "mailto:omareduardo_@hotmail.com?subject=" + s + "&body=" + b;
+      window.location.href = "mailto:admin@iogga.com?subject=" + s + "&body=" + b;
       show("ok","¡Gracias! Abrimos tu correo para confirmar tu registro.");
       f.reset(); return;
     }

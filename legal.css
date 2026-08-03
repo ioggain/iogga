@@ -1,0 +1,64 @@
+/* iogga — estilos compartidos para páginas legales */
+:root{
+  --primary:#6366f1; --primary-ink:#4f46e5; --accent:#14b8a6;
+  --ink:#1d1d1f; --ink-2:#6e6e73; --ink-3:#86868b;
+  --bg:#fff; --bg-2:#f5f5f7; --line:#e5e5e8; --line-2:#d2d2d7;
+  --f:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --ease:cubic-bezier(.28,.11,.32,1);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:1.02rem;
+  line-height:1.65;letter-spacing:-.011em;-webkit-font-smoothing:antialiased}
+a{color:var(--primary-ink);text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2{margin:0;font-weight:700;letter-spacing:-.03em;line-height:1.1;text-wrap:balance}
+
+.nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.75);
+  backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:54px;
+  max-width:1180px;margin-inline:auto;padding-inline:clamp(20px,5vw,32px)}
+.logo{--h:26px;display:inline-flex;align-items:center;gap:.5rem;background:none;border:0;
+  padding:.25rem;margin:-.25rem;cursor:pointer;font-family:inherit;border-radius:12px;transition:opacity .2s;text-decoration:none}
+.logo:hover{opacity:.65;text-decoration:none}
+.logo:focus-visible{outline:3px solid rgba(99,102,241,.5);outline-offset:2px}
+.logo .mark{width:calc(var(--h)*1.04);height:var(--h);background:var(--primary);
+  -webkit-mask:url(assets/logo-mask.png) center/contain no-repeat;mask:url(assets/logo-mask.png) center/contain no-repeat}
+.logo .word{font-weight:600;font-size:1.32rem;letter-spacing:-.035em;color:var(--ink)}
+.nav a.back{font-size:.88rem;color:var(--ink-2)}
+
+.doc{max-width:760px;margin-inline:auto;padding:clamp(48px,7vw,88px) clamp(20px,5vw,32px) 72px}
+.doc .kicker{font-size:.82rem;font-weight:600;color:var(--primary-ink);text-transform:uppercase;
+  letter-spacing:.08em;margin:0 0 .7rem}
+.doc h1{font-size:clamp(2.1rem,1.4rem + 2.6vw,3.2rem);margin-bottom:1rem}
+.doc .intro{font-size:clamp(1.08rem,1rem + .4vw,1.3rem);color:var(--ink-2);line-height:1.45;
+  letter-spacing:-.018em;margin:0 0 .5rem}
+.doc .updated{margin-top:1.6rem;padding:.7rem 1.1rem;background:var(--bg-2);border-radius:12px;
+  font-size:.86rem;color:var(--ink-2);display:inline-block}
+
+.doc section{margin-top:2.6rem;padding-top:2.2rem;border-top:1px solid var(--line)}
+.doc section:first-of-type{border-top:0;padding-top:0}
+.doc h2{font-size:clamp(1.25rem,1.1rem + .7vw,1.6rem);margin-bottom:.7rem}
+.doc h2 .num{color:var(--primary);font-variant-numeric:tabular-nums;margin-right:.45rem}
+.doc p{margin:0 0 1rem}
+.doc p:last-child{margin-bottom:0}
+.doc ul{margin:0 0 1rem;padding-left:1.15rem}
+.doc li{margin-bottom:.45rem}
+.doc .callout{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;
+  padding:1.2rem 1.4rem;margin:0 0 1rem}
+.doc .callout.strong{background:rgba(99,102,241,.07);border-color:rgba(99,102,241,.22)}
+.doc .callout p:last-child{margin-bottom:0}
+.doc dl{margin:0}
+.doc dt{font-weight:600;margin-top:1rem}
+.doc dd{margin:.15rem 0 0;color:var(--ink-2)}
+
+.contact-card{background:var(--bg-2);border:1px solid var(--line);border-radius:18px;padding:1.4rem 1.6rem}
+.contact-card a{display:block;padding:.15rem 0}
+
+footer{background:var(--bg-2);border-top:1px solid var(--line);padding:36px 0 32px;
+  font-size:.82rem;color:var(--ink-3)}
+.foot-in{max-width:1180px;margin-inline:auto;padding-inline:clamp(20px,5vw,32px);
+  display:flex;flex-wrap:wrap;gap:.6rem 1.5rem;justify-content:space-between;align-items:center}
+.foot-in nav{display:flex;gap:1.2rem;flex-wrap:wrap}
+.foot-in a{color:var(--ink-2)}

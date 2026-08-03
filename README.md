@@ -39,9 +39,14 @@ Luego GitHub → **Settings → Pages → Custom domain**: escribe `iogga.com`, 
 
 ---
 
-## 📥 Lista de espera (correos y teléfonos)
-Ver **[LISTA-DE-ESPERA.md](LISTA-DE-ESPERA.md)** — 4 pasos para guardar los registros en una
-Hoja de Google que puedes consultar cuando quieras. Gratis y sin límite.
+## 📥 Lista de espera y panel privado
+Ver **[LISTA-DE-ESPERA.md](LISTA-DE-ESPERA.md)** — 4 pasos (10 min, una sola vez) para guardar
+nombre, correo, teléfono y tipo en una Hoja de Google tuya. Gratis y sin límite.
+
+Después puedes consultarlos de dos formas:
+- **`iogga.com/panel.html`** — panel privado con clave: totales, buscador, descarga en CSV y
+  copiar como texto. No está enlazado desde el sitio y lleva `noindex`.
+- **Tu Hoja de Google** — directamente.
 
 Mientras no esté configurada, el formulario abre el correo del visitante como respaldo.
 
@@ -62,15 +67,18 @@ Todo el contenido está en **`index.html`**. En GitHub: abre el archivo → láp
 **Commit changes**.
 
 ### Poner las fotos de los fundadores
-1. Sube las fotos a la carpeta `assets/` (por ejemplo `omar.jpg` e `isela.jpg`).
-2. En la sección `#fundadores`, cambia:
-   ```html
-   <div class="av" aria-hidden="true">O</div>
-   ```
-   por:
-   ```html
-   <div class="av"><img src="assets/omar.jpg" alt="Omar Eduardo Hernández"></div>
-   ```
+**No hay que tocar el código.** Solo sube las dos fotos con estos nombres exactos:
+
+```
+assets/omar.jpg
+assets/isela.jpg
+```
+
+Desde GitHub: entra a la carpeta **`assets`** → botón **Add file → Upload files** → arrastra
+las fotos (renómbralas antes) → **Commit changes**.
+
+Si el archivo existe, la foto aparece sola; si no, se muestra el monograma.
+Recomendado: cuadradas, mínimo 400×400 px.
 
 ---
 
@@ -78,11 +86,15 @@ Todo el contenido está en **`index.html`**. En GitHub: abre el archivo → láp
 | Archivo | Para qué sirve |
 |---|---|
 | `index.html` | Todo el sitio (diseño, textos, interacción) |
+| `privacidad.html` | Aviso de Privacidad (LFPDPPP) |
+| `terminos.html` | Términos y Condiciones |
+| `legal.css` | Estilos de las páginas legales |
+| `panel.html` | Panel privado para consultar y exportar los registros |
 | `LISTA-DE-ESPERA.md` | Cómo conectar la base de datos de registros |
 | `manifest.webmanifest` · `sw.js` | Hacen la web instalable como app (PWA) |
-| `assets/` | Logo e íconos de la app |
+| `assets/` | Logo, íconos y fotos de fundadores |
 | `CNAME` | Dominio personalizado (`iogga.com`) |
-| `robots.txt` · `sitemap.xml` | SEO |
+| `robots.txt` · `sitemap.xml` | SEO (el panel va excluido) |
 
 ---
 

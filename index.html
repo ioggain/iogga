@@ -2,439 +2,380 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>IOGGA — Convierte tu intención en un plan que sí sucede</title>
-<meta name="description" content="IOGGA conecta lo que quieres hacer —con quién, cuándo, dónde, con cuánto y cómo llegar— con las personas, lugares y promociones que lo hacen posible. Planea, coincide y descubre negocios locales. Chihuahua, México." />
-<meta name="theme-color" content="#0C0A14" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>IOGGA — The Apportunity</title>
+<meta name="description" content="Que los mejores momentos y oportunidades de tu vida no dependan de las coincidencias. Organiza planes en segundos, coincide con las personas indicadas y descubre negocios y promociones a tu alrededor." />
+<meta name="theme-color" content="#ffffff" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%2329ABE2'/%3E%3C/svg%3E" />
 
-<!-- Open Graph / redes sociales -->
 <meta property="og:type" content="website" />
-<meta property="og:title" content="IOGGA — Convierte tu intención en un plan que sí sucede" />
-<meta property="og:description" content="La plataforma que conecta tu intención con personas, lugares y promociones de negocios locales. En un solo flujo." />
-<meta property="og:url" content="https://www.iogga.com/" />
+<meta property="og:title" content="IOGGA — The Apportunity" />
+<meta property="og:description" content="Que los mejores momentos y oportunidades de tu vida no dependan de las coincidencias." />
+<meta property="og:url" content="https://iogga.com/" />
 <meta property="og:locale" content="es_MX" />
 <meta name="twitter:card" content="summary_large_image" />
 
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23FF5B79'/%3E%3Cstop offset='0.5' stop-color='%238B6BFF'/%3E%3Cstop offset='1' stop-color='%2312E1C0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='26' fill='%230C0A14'/%3E%3Ccircle cx='36' cy='50' r='16' fill='none' stroke='url(%23g)' stroke-width='7'/%3E%3Ccircle cx='64' cy='50' r='16' fill='none' stroke='url(%23g)' stroke-width='7'/%3E%3C/svg%3E" />
-
 <style>
   :root{
-    --bg:#0C0A14;
-    --bg-2:#100D1C;
-    --bg-3:#15112339;
-    --surface:rgba(255,255,255,0.045);
-    --surface-2:rgba(255,255,255,0.07);
-    --line:rgba(255,255,255,0.09);
-    --line-strong:rgba(255,255,255,0.16);
-    --text:#F4F2FA;
-    --muted:#ABA5C4;
-    --muted-2:#7C7794;
+    --brand:#29ABE2;         /* iogga sky blue */
+    --brand-ink:#0F86BC;     /* darker for text on white */
+    --biz:#6C74E8;           /* periwinkle (negocios) */
+    --ink:#1d1d1f;           /* Apple near-black */
+    --ink-2:#6e6e73;         /* Apple secondary */
+    --ink-3:#86868b;
+    --bg:#ffffff;
+    --bg-2:#f5f5f7;          /* Apple light gray */
+    --bg-3:#fafafc;
+    --line:#e3e3e6;
+    --line-2:#d2d2d7;
+    --card:#ffffff;
 
-    --coral:#FF5B79;   /* personas */
-    --teal:#12E1C0;    /* negocios */
-    --violet:#8B6BFF;  /* marca / puente */
-    --amber:#FFB84D;   /* promos / QR */
+    --maxw:1024px;
+    --wide:1180px;
+    --pad:clamp(20px,5vw,32px);
+    --r:20px;
+    --r-lg:28px;
 
-    --grad:linear-gradient(100deg,#FF5B79 0%,#B06BFF 46%,#12E1C0 100%);
-    --grad-soft:linear-gradient(100deg,rgba(255,91,121,.16),rgba(139,107,255,.16) 50%,rgba(18,225,192,.16));
-
-    --maxw:1160px;
-    --pad:clamp(20px,5vw,40px);
-    --radius:22px;
-    --radius-lg:30px;
-
-    --step--1:clamp(.86rem,.83rem + .16vw,.95rem);
-    --step-0:clamp(1rem,.96rem + .2vw,1.12rem);
-    --step-1:clamp(1.2rem,1.1rem + .5vw,1.5rem);
-    --step-2:clamp(1.55rem,1.3rem + 1.2vw,2.3rem);
-    --step-3:clamp(2.1rem,1.6rem + 2.5vw,3.6rem);
-    --step-4:clamp(2.9rem,2rem + 4.6vw,6rem);
-
-    --ease:cubic-bezier(.22,.61,.36,1);
+    /* Apple type ramp (SF Pro / system) */
+    --f-sans:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --t-hero:clamp(2.6rem,1.4rem + 5vw,5.2rem);
+    --t-h2:clamp(2rem,1.3rem + 2.8vw,3.5rem);
+    --t-h3:clamp(1.5rem,1.15rem + 1.5vw,2.25rem);
+    --t-lead:clamp(1.15rem,1.02rem + .6vw,1.6rem);
+    --t-body:clamp(1rem,.97rem + .15vw,1.12rem);
+    --ease:cubic-bezier(.28,.11,.32,1);
   }
 
   *,*::before,*::after{box-sizing:border-box}
-  html{scroll-behavior:smooth}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
   @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-
   body{
-    margin:0;
-    background:var(--bg);
-    color:var(--text);
-    font-family:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
-    font-size:var(--step-0);
-    line-height:1.6;
-    -webkit-font-smoothing:antialiased;
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--f-sans);font-size:var(--t-body);line-height:1.5;
+    letter-spacing:-.01em;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
     overflow-x:hidden;
   }
-
-  /* ambient background */
-  #ambient{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.9}
-  .bg-glow{position:fixed;z-index:0;pointer-events:none;filter:blur(90px);opacity:.5;border-radius:50%}
-  .bg-glow.g1{width:46vw;height:46vw;left:-14vw;top:-8vw;background:radial-gradient(circle,rgba(255,91,121,.5),transparent 62%)}
-  .bg-glow.g2{width:50vw;height:50vw;right:-16vw;top:6vw;background:radial-gradient(circle,rgba(18,225,192,.42),transparent 62%)}
-  .bg-glow.g3{width:52vw;height:52vw;left:22vw;top:44vw;background:radial-gradient(circle,rgba(139,107,255,.4),transparent 64%)}
-
-  .wrap{position:relative;z-index:2;width:100%;max-width:var(--maxw);margin-inline:auto;padding-inline:var(--pad)}
-
-  h1,h2,h3{font-family:"Bricolage Grotesque","Manrope",sans-serif;font-weight:700;line-height:1.02;letter-spacing:-.02em;text-wrap:balance;margin:0}
-  h2{font-size:var(--step-3)}
-  h3{font-size:var(--step-1);letter-spacing:-.01em;line-height:1.1}
+  h1,h2,h3,h4{margin:0;font-weight:700;line-height:1.05;letter-spacing:-.025em;text-wrap:balance}
+  h1{font-size:var(--t-hero);font-weight:700;letter-spacing:-.035em}
+  h2{font-size:var(--t-h2)}
+  h3{font-size:var(--t-h3)}
   p{margin:0}
   a{color:inherit;text-decoration:none}
+  img{max-width:100%;display:block}
+  .brandc{color:var(--brand-ink)}
 
-  .grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .wrap{width:100%;max-width:var(--maxw);margin-inline:auto;padding-inline:var(--pad)}
+  .wrap.wide{max-width:var(--wide)}
 
-  .eyebrow{
-    display:inline-flex;align-items:center;gap:.55rem;
-    font-size:var(--step--1);font-weight:700;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--muted);
+  /* buttons — Apple style */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;font-family:inherit;
+    font-size:1.05rem;font-weight:500;letter-spacing:-.01em;padding:.7em 1.4em;border-radius:980px;
+    border:1px solid transparent;cursor:pointer;transition:background .22s var(--ease),transform .22s var(--ease),opacity .22s;white-space:nowrap}
+  .btn:focus-visible{outline:3px solid rgba(41,171,226,.5);outline-offset:2px}
+  .btn-fill{background:var(--brand);color:#fff}
+  .btn-fill:hover{background:#1f9ad0}
+  .btn-soft{background:rgba(41,171,226,.1);color:var(--brand-ink)}
+  .btn-soft:hover{background:rgba(41,171,226,.16)}
+  .btn-dark{background:var(--ink);color:#fff}
+  .btn-dark:hover{background:#000}
+  .btn-wa{background:#25D366;color:#0b3d1f;font-weight:600}
+  .btn-wa:hover{background:#20c15d}
+  .tlink{display:inline-flex;align-items:center;gap:.15rem;color:var(--brand-ink);font-size:1.05rem;font-weight:400}
+  .tlink:hover{text-decoration:underline}
+  .tlink svg{width:16px;height:16px;transition:transform .2s}
+  .tlink:hover svg{transform:translateX(2px)}
+
+  /* logo mark via mask (tintable) */
+  .logo{--h:26px;display:inline-flex;align-items:center;gap:.55rem}
+  .logo .mark{width:calc(var(--h)*1.04);height:var(--h);
+    -webkit-mask:url(/assets/logo-mask.png) center/contain no-repeat;mask:url(/assets/logo-mask.png) center/contain no-repeat;
+    background:var(--brand)}
+  .logo .word{font-weight:600;font-size:1.35rem;letter-spacing:-.02em;color:var(--ink)}
+
+  /* ---------- NAV (Apple) ---------- */
+  .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line)}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;height:52px;max-width:var(--wide);margin-inline:auto;padding-inline:var(--pad)}
+  .nav-links{display:flex;gap:2.2rem}
+  .nav-links a{font-size:.86rem;font-weight:400;color:#333;opacity:.85;transition:opacity .2s}
+  .nav-links a:hover{opacity:1;color:var(--brand-ink)}
+  .nav-right{display:flex;align-items:center;gap:1rem}
+  .nav-right .btn{font-size:.82rem;padding:.42em 1em}
+  .nav-toggle{display:none;background:none;border:0;cursor:pointer;width:34px;height:34px;color:var(--ink)}
+  .nav-toggle svg{width:22px;height:22px}
+  @media (max-width:830px){
+    .nav-links{position:fixed;inset:52px 0 auto 0;flex-direction:column;gap:0;background:rgba(255,255,255,.98);
+      backdrop-filter:blur(20px);border-bottom:1px solid var(--line);padding:.4rem var(--pad) 1.2rem;
+      transform:translateY(-115%);transition:transform .35s var(--ease)}
+    .nav-links.open{transform:none}
+    .nav-links a{padding:.9rem 0;font-size:1.05rem;border-bottom:1px solid var(--line)}
+    .nav-toggle{display:grid;place-items:center}
+    .nav-right .btn-desktop{display:none}
   }
-  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--grad);box-shadow:0 0 12px rgba(139,107,255,.8)}
 
-  .btn{
-    display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
-    font-family:inherit;font-weight:700;font-size:var(--step-0);
-    padding:.9em 1.5em;border-radius:100px;border:1px solid transparent;
-    cursor:pointer;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .25s,border-color .25s;
-    white-space:nowrap;
-  }
-  .btn:focus-visible{outline:2px solid var(--violet);outline-offset:3px}
-  .btn-primary{background:var(--grad);color:#12081a;box-shadow:0 10px 34px -12px rgba(139,107,255,.75)}
-  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 18px 44px -12px rgba(139,107,255,.9)}
-  .btn-ghost{background:var(--surface);border-color:var(--line-strong);color:var(--text)}
-  .btn-ghost:hover{background:var(--surface-2);transform:translateY(-2px)}
-  .btn-wa{background:#25D366;color:#052e16}
-  .btn-wa:hover{transform:translateY(-2px);box-shadow:0 14px 34px -12px rgba(37,211,102,.7)}
-
-  /* ---------- NAV ---------- */
-  header.nav{position:sticky;top:0;z-index:50;transition:background .3s,border-color .3s,backdrop-filter .3s}
-  header.nav.scrolled{background:rgba(12,10,20,.72);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
-  .nav-inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;height:72px}
-  .brand{display:flex;align-items:center;gap:.6rem;font-family:"Bricolage Grotesque";font-weight:800;font-size:1.4rem;letter-spacing:-.03em}
-  .brand .logo{width:30px;height:30px;flex:none}
-  .nav-links{display:flex;align-items:center;gap:2rem}
-  .nav-links a{font-size:var(--step--1);font-weight:600;color:var(--muted);transition:color .2s}
-  .nav-links a:hover{color:var(--text)}
-  .nav-cta{display:flex;align-items:center;gap:.75rem}
-  .nav-toggle{display:none;background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;width:44px;height:44px;cursor:pointer;color:var(--text)}
-  .nav-toggle svg{width:22px;height:22px;margin:auto;display:block}
-
-  @media (max-width:860px){
-    .nav-links{
-      position:fixed;inset:72px 0 auto 0;flex-direction:column;align-items:stretch;gap:0;
-      background:rgba(12,10,20,.96);backdrop-filter:blur(18px);border-bottom:1px solid var(--line);
-      padding:.5rem var(--pad) 1.4rem;transform:translateY(-120%);transition:transform .35s var(--ease);
-    }
-    .nav-links.open{transform:translateY(0)}
-    .nav-links a{padding:.95rem 0;font-size:1.05rem;border-bottom:1px solid var(--line)}
-    .nav-toggle{display:block}
-    .nav-cta .btn-desktop{display:none}
-  }
+  section{padding:clamp(64px,10vw,120px) 0;position:relative}
+  .tint{background:var(--bg-2)}
+  .center{text-align:center}
+  .eyebrow{font-size:clamp(1rem,.9rem + .5vw,1.35rem);font-weight:600;color:var(--brand-ink);letter-spacing:-.01em;margin:0 0 .4rem}
+  .lead{font-size:var(--t-lead);color:var(--ink-2);font-weight:400;line-height:1.35;letter-spacing:-.015em}
+  .sec-intro{max-width:60ch;margin:0 auto clamp(40px,6vw,72px)}
+  .sec-intro.left{margin-left:0;text-align:left}
+  .sec-intro h2{margin-bottom:1rem}
 
   /* ---------- HERO ---------- */
-  .hero{position:relative;padding:clamp(48px,8vw,96px) 0 clamp(56px,7vw,90px)}
-  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(32px,5vw,64px);align-items:center}
-  @media (max-width:960px){.hero-grid{grid-template-columns:1fr;gap:40px}}
+  .hero{padding:clamp(56px,8vw,96px) 0 clamp(40px,6vw,72px);text-align:center;overflow:hidden}
+  .hero .eyebrow{font-size:clamp(1.1rem,.9rem + 1vw,1.6rem)}
+  .hero h1{max-width:16ch;margin:0 auto}
+  .hero .lead{max-width:40ch;margin:1.4rem auto 0}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:.6rem 1.6rem;justify-content:center;align-items:center;margin-top:2rem}
+  .hero-note{margin-top:1.1rem;font-size:.85rem;color:var(--ink-3)}
 
-  .hero h1{font-size:var(--step-4);font-weight:800;margin:.5rem 0 0}
-  .hero .lede{color:var(--muted);font-size:var(--step-1);max-width:34ch;margin-top:1.3rem;line-height:1.45}
-  .hero-cta{display:flex;flex-wrap:wrap;gap:.85rem;margin-top:2rem}
-  .hero-trust{display:flex;flex-wrap:wrap;gap:.5rem 1.4rem;margin-top:2rem;color:var(--muted-2);font-size:var(--step--1);font-weight:600}
-  .hero-trust span{display:inline-flex;align-items:center;gap:.5rem}
-  .hero-trust span::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--violet)}
+  /* phone mockup with live plan builder */
+  .phone-wrap{margin:clamp(40px,6vw,64px) auto 0;max-width:390px}
+  .phone{position:relative;background:#fff;border:1px solid var(--line-2);border-radius:44px;padding:12px;
+    box-shadow:0 50px 100px -40px rgba(0,0,0,.28),0 20px 40px -30px rgba(0,0,0,.2)}
+  .phone::before{content:"";position:absolute;top:20px;left:50%;transform:translateX(-50%);width:36%;height:26px;background:#000;border-radius:0 0 16px 16px;z-index:3}
+  .screen{background:linear-gradient(180deg,#fbfdff,#f2f8fc);border-radius:33px;overflow:hidden;min-height:560px;position:relative}
+  .app-top{display:flex;align-items:center;justify-content:space-between;padding:34px 20px 10px}
+  .app-top .logo .word{font-size:1.1rem}.app-top .logo .mark{--h:20px}
+  .app-top .live{display:inline-flex;align-items:center;gap:.35rem;font-size:.66rem;font-weight:600;color:var(--brand-ink);
+    background:rgba(41,171,226,.12);padding:.25em .6em;border-radius:980px}
+  .app-top .live i{width:6px;height:6px;border-radius:50%;background:var(--brand);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .app-body{padding:6px 18px 22px}
+  .app-q{font-size:.72rem;font-weight:600;color:var(--ink-3);margin:14px 0 7px;text-transform:none}
+  .chips{display:flex;flex-wrap:wrap;gap:.35rem}
+  .chip{font:inherit;font-size:.8rem;font-weight:500;color:var(--ink);background:#fff;border:1px solid var(--line-2);
+    border-radius:980px;padding:.34em .8em;cursor:pointer;transition:.16s var(--ease);line-height:1.2}
+  .chip:hover{border-color:var(--brand)}
+  .chip[aria-pressed="true"]{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600}
+  .chip:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+  .app-result{margin-top:16px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px 13px;box-shadow:0 8px 24px -16px rgba(0,0,0,.25)}
+  .app-result .rh{font-size:.68rem;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+  .m{display:flex;align-items:center;gap:.6rem;padding:6px 0}
+  .m .ic{flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--bg-2)}
+  .m .ic svg{width:17px;height:17px;color:var(--brand-ink)}
+  .m.promo .ic{background:rgba(108,116,232,.12)}.m.promo .ic svg{color:var(--biz)}
+  .m b{font-size:.82rem;font-weight:600;display:block;line-height:1.2}
+  .m small{font-size:.7rem;color:var(--ink-2)}
+  .m .qr{margin-left:auto;font-size:.6rem;font-weight:700;color:var(--biz);border:1px solid rgba(108,116,232,.4);border-radius:6px;padding:.2em .4em}
 
-  /* interactive plan builder */
-  .planner{
-    position:relative;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
-    border:1px solid var(--line);border-radius:var(--radius-lg);padding:clamp(18px,2.4vw,26px);
-    box-shadow:0 40px 90px -40px rgba(0,0,0,.9);
-  }
-  .planner::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:var(--grad-soft);
-    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
-  .planner-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.35rem}
-  .planner-head .k{font-size:var(--step--1);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-  .planner-head .live{display:inline-flex;align-items:center;gap:.45rem;font-size:.72rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.08em}
-  .planner-head .live i{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal);animation:pulse 1.8s infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  /* ---------- quotes (problem) ---------- */
+  .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,4vw,48px)}
+  @media (max-width:820px){.qgrid{grid-template-columns:1fr}}
+  .qcol h3{margin-bottom:.4rem}
+  .qcol .side-tag{font-size:.8rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+  .qcol.users .side-tag{color:var(--brand-ink)}
+  .qcol.biz .side-tag{color:var(--biz)}
+  .qlist{list-style:none;margin:1.2rem 0 0;padding:0;display:flex;flex-direction:column;gap:.7rem}
+  .qlist li{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.85rem 1.05rem;
+    font-size:1.02rem;color:var(--ink);line-height:1.35}
+  .tint .qlist li{background:#fff}
+  .qcol p.sum{margin-top:1.2rem;color:var(--ink-2);font-size:1.05rem;line-height:1.4}
 
-  .p-row{display:flex;align-items:center;gap:.7rem;padding:.62rem 0;border-bottom:1px solid var(--line)}
-  .p-row .q{flex:none;width:112px;font-size:.82rem;font-weight:700;color:var(--muted)}
-  .chips{display:flex;flex-wrap:wrap;gap:.4rem}
-  .chip{
-    font:inherit;font-size:.82rem;font-weight:600;color:var(--text);
-    background:var(--surface);border:1px solid var(--line-strong);border-radius:100px;
-    padding:.32em .8em;cursor:pointer;transition:.18s var(--ease);line-height:1.2;
-  }
-  .chip:hover{border-color:var(--violet);transform:translateY(-1px)}
-  .chip[aria-pressed="true"]{background:var(--grad);color:#160a1e;border-color:transparent;font-weight:700}
-  .chip:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+  /* ---------- steps ---------- */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,2.4vw,28px);counter-reset:s}
+  @media (max-width:820px){.steps{grid-template-columns:1fr}}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:1.6rem}
+  .tint .step{background:#fff}
+  .step .sn{counter-increment:s;font-size:.9rem;font-weight:700;color:var(--brand);letter-spacing:.02em}
+  .step .sn::before{content:"0" counter(s)}
+  .step h3{font-size:1.2rem;margin:.55rem 0 .4rem;letter-spacing:-.02em}
+  .step p{color:var(--ink-2);font-size:.98rem}
+  .step.biz .sn{color:var(--biz)}
 
-  .p-result{margin-top:1rem;background:var(--bg-2);border:1px solid var(--line);border-radius:18px;padding:1rem 1.1rem}
-  .p-result .r-top{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.7rem}
-  .p-result .r-top b{font-family:"Bricolage Grotesque";font-size:1.2rem}
-  .match{display:flex;align-items:center;gap:.7rem;padding:.5rem 0;font-size:.9rem}
-  .match .ic{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--surface-2)}
-  .match .ic svg{width:18px;height:18px}
-  .match small{color:var(--muted);display:block;font-size:.78rem;font-weight:500}
-  .match b{font-weight:700}
-  .match.promo .ic{background:rgba(255,184,77,.14)}
-  .match.promo .ic svg{color:var(--amber)}
-  .match.people .ic svg{color:var(--coral)}
-  .match.place .ic svg{color:var(--teal)}
-  .qr-badge{margin-left:auto;font-size:.7rem;font-weight:800;letter-spacing:.05em;color:var(--amber);border:1px solid rgba(255,184,77,.35);border-radius:8px;padding:.2em .5em}
+  /* ---------- bento / what apps ignore ---------- */
+  .ignore-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media (max-width:820px){.ignore-grid{grid-template-columns:repeat(2,1fr)}}
+  .ig{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1.2rem 1rem;text-align:center}
+  .tint .ig{background:#fff}
+  .ig .igic{width:42px;height:42px;margin:0 auto .6rem;border-radius:12px;display:grid;place-items:center;background:rgba(41,171,226,.1)}
+  .ig .igic svg{width:22px;height:22px;color:var(--brand-ink)}
+  .ig b{display:block;font-size:.98rem}
+  .ig small{color:var(--ink-3);font-size:.78rem}
 
-  /* ---------- SECTIONS ---------- */
-  section{position:relative;padding:clamp(60px,9vw,120px) 0}
-  .sec-head{max-width:56ch;margin-bottom:clamp(34px,5vw,60px)}
-  .sec-head .eyebrow{margin-bottom:1rem}
-  .sec-head p.sub{color:var(--muted);font-size:var(--step-1);margin-top:1.1rem;line-height:1.45}
+  /* ---------- stats ---------- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(20px,3vw,40px);text-align:center}
+  @media (max-width:820px){.stats{grid-template-columns:1fr 1fr;gap:36px 20px}}
+  .stat .big{font-size:clamp(2.4rem,1.4rem + 3.5vw,4rem);font-weight:700;letter-spacing:-.04em;line-height:1;
+    background:linear-gradient(120deg,var(--brand),var(--biz));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat p{margin-top:.6rem;color:var(--ink-2);font-size:.96rem;max-width:22ch;margin-inline:auto}
+  .src{margin-top:2.2rem;text-align:center;color:var(--ink-3);font-size:.78rem}
 
-  /* problem */
-  .problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
-  @media (max-width:820px){.problem-grid{grid-template-columns:1fr}}
-  .pcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:1.6rem}
-  .pcard .n{font-family:"Bricolage Grotesque";font-size:.9rem;font-weight:700;color:var(--coral);letter-spacing:.05em}
-  .pcard h3{margin:.6rem 0 .5rem;font-size:1.25rem}
-  .pcard p{color:var(--muted);font-size:var(--step--1)}
+  /* ---------- credibility ---------- */
+  .creds{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media (max-width:720px){.creds{grid-template-columns:1fr}}
+  .cred{display:flex;gap:.9rem;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1.15rem 1.25rem}
+  .tint .cred{background:#fff}
+  .cred .ck{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--brand);color:#fff;margin-top:1px}
+  .cred .ck svg{width:15px;height:15px}
+  .cred b{font-size:1rem;font-weight:600}
+  .cred small{display:block;color:var(--ink-2);font-size:.85rem;margin-top:.15rem}
 
-  /* how it works */
-  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;counter-reset:step}
-  @media (max-width:980px){.flow{grid-template-columns:repeat(2,1fr)}}
-  @media (max-width:520px){.flow{grid-template-columns:1fr}}
-  .step{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:1.5rem 1.3rem;overflow:hidden}
-  .step::after{content:"";position:absolute;left:0;top:0;height:3px;width:100%;background:var(--grad);opacity:.7}
-  .step .num{font-family:"Bricolage Grotesque";font-size:2.6rem;font-weight:800;line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;opacity:.9}
-  .step h3{font-size:1.08rem;margin:.7rem 0 .45rem}
-  .step p{color:var(--muted);font-size:.9rem}
-
-  /* two-sided */
-  .sides{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem}
-  @media (max-width:860px){.sides{grid-template-columns:1fr}}
-  .side{position:relative;border-radius:var(--radius-lg);padding:clamp(24px,3vw,38px);border:1px solid var(--line);background:var(--surface);overflow:hidden}
-  .side .tag{display:inline-flex;align-items:center;gap:.5rem;font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;padding:.4em .8em;border-radius:100px}
-  .side.people{background:linear-gradient(180deg,rgba(255,91,121,.12),rgba(255,91,121,.02))}
-  .side.people .tag{color:var(--coral);border:1px solid rgba(255,91,121,.4)}
-  .side.people h3{color:#fff}
-  .side.biz{background:linear-gradient(180deg,rgba(18,225,192,.11),rgba(18,225,192,.02))}
-  .side.biz .tag{color:var(--teal);border:1px solid rgba(18,225,192,.4)}
-  .side h3{font-size:var(--step-2);margin:1rem 0 .3rem}
-  .side .sd-lede{color:var(--muted);margin-bottom:1.3rem}
-  .flist{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.8rem}
-  .flist li{display:flex;gap:.7rem;align-items:flex-start;font-size:var(--step--1);color:#E7E4F2}
-  .flist li svg{flex:none;width:20px;height:20px;margin-top:2px}
-  .side.people .flist li svg{color:var(--coral)}
-  .side.biz .flist li svg{color:var(--teal)}
-
-  /* quote */
-  .quote{max-width:20ch;margin-inline:auto;text-align:center}
-  .quote .qmark{font-family:"Bricolage Grotesque";font-size:4rem;line-height:0;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .quote blockquote{margin:1.5rem 0 0;font-family:"Bricolage Grotesque";font-weight:600;font-size:var(--step-2);line-height:1.15;max-width:22ch;margin-inline:auto;letter-spacing:-.01em}
-  .quote .attr{margin-top:1.4rem;color:var(--muted);font-size:var(--step--1);font-weight:600}
-
-  /* variables */
-  .vars{display:grid;grid-template-columns:repeat(6,1fr);gap:.9rem}
-  @media (max-width:900px){.vars{grid-template-columns:repeat(3,1fr)}}
-  @media (max-width:520px){.vars{grid-template-columns:repeat(2,1fr)}}
-  .vcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:1.2rem 1rem;text-align:center;transition:.25s var(--ease)}
-  .vcard:hover{transform:translateY(-4px);border-color:var(--line-strong);background:var(--surface-2)}
-  .vcard .vic{width:44px;height:44px;margin:0 auto .7rem;border-radius:12px;display:grid;place-items:center;background:var(--grad-soft)}
-  .vcard .vic svg{width:22px;height:22px;color:var(--text)}
-  .vcard b{display:block;font-size:.95rem}
-  .vcard small{color:var(--muted-2);font-size:.75rem}
-
-  /* differentiation */
-  .diff{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(28px,4vw,56px);align-items:center}
-  @media (max-width:860px){.diff{grid-template-columns:1fr}}
-  .diff .not{display:flex;flex-direction:column;gap:.6rem}
-  .diff .not .no{display:flex;align-items:center;gap:.7rem;color:var(--muted);font-size:var(--step-1);font-weight:600}
-  .diff .not .no s{text-decoration-color:var(--coral);opacity:.75}
-  .diff .not .yes{margin-top:.6rem;font-family:"Bricolage Grotesque";font-weight:700;font-size:var(--step-2);line-height:1.1}
-
-  /* credibility */
-  .creds{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
-  @media (max-width:820px){.creds{grid-template-columns:repeat(2,1fr)}}
-  .cred{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:1.5rem;text-align:left}
-  .cred .cbig{font-family:"Bricolage Grotesque";font-weight:800;font-size:2rem;line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .cred p{margin-top:.6rem;font-weight:600;font-size:.95rem}
-  .cred small{color:var(--muted);font-size:.8rem;display:block;margin-top:.2rem}
-
-  /* team */
-  .team{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem}
+  /* ---------- founders ---------- */
+  .team{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:900px;margin-inline:auto}
   @media (max-width:720px){.team{grid-template-columns:1fr}}
-  .member{display:flex;gap:1.1rem;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:1.4rem}
-  .member .av{flex:none;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-family:"Bricolage Grotesque";font-weight:800;font-size:1.5rem;color:#150a1c;background:var(--grad)}
-  .member h3{font-size:1.2rem}
-  .member .role{color:var(--violet);font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;margin:.15rem 0 .4rem}
-  .member p{color:var(--muted);font-size:.85rem}
+  .member{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:1.8rem;text-align:center}
+  .tint .member{background:#fff}
+  .member .av{width:88px;height:88px;border-radius:50%;margin:0 auto 1rem;display:grid;place-items:center;
+    font-size:2rem;font-weight:600;color:#fff;background:linear-gradient(140deg,var(--brand),var(--biz))}
+  .member h3{font-size:1.3rem}
+  .member .role{color:var(--brand-ink);font-weight:600;font-size:.85rem;margin:.25rem 0 .7rem}
+  .member p{color:var(--ink-2);font-size:.95rem;line-height:1.45}
 
-  /* CTA / waitlist */
-  .cta-final{position:relative;border-radius:var(--radius-lg);padding:clamp(34px,6vw,72px);text-align:center;overflow:hidden;
-    background:radial-gradient(120% 140% at 50% 0%,rgba(139,107,255,.22),transparent 60%),var(--bg-2);border:1px solid var(--line)}
-  .cta-final h2{font-size:var(--step-3);max-width:18ch;margin-inline:auto}
-  .cta-final p{color:var(--muted);font-size:var(--step-1);max-width:44ch;margin:1.1rem auto 0}
-  .waitlist{display:flex;gap:.6rem;max-width:480px;margin:2rem auto 0;flex-wrap:wrap;justify-content:center}
-  .waitlist input{
-    flex:1 1 240px;min-width:0;background:var(--surface);border:1px solid var(--line-strong);border-radius:100px;
-    padding:.9em 1.3em;color:var(--text);font:inherit;font-size:var(--step-0);
-  }
-  .waitlist input::placeholder{color:var(--muted-2)}
-  .waitlist input:focus{outline:none;border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,107,255,.25)}
-  .form-note{margin-top:1rem;font-size:.8rem;color:var(--muted-2)}
-  .form-msg{margin-top:1.1rem;font-weight:700;font-size:.95rem;min-height:1.2em}
-  .form-msg.ok{color:var(--teal)}
-  .form-msg.err{color:var(--coral)}
-  .or{margin:1.4rem auto .2rem;color:var(--muted-2);font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+  /* ---------- download ---------- */
+  .dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,48px);align-items:start}
+  @media (max-width:820px){.dl-grid{grid-template-columns:1fr}}
+  .badges{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.4rem}
+  .badge{display:inline-flex;align-items:center;gap:.6rem;background:var(--ink);color:#fff;border-radius:14px;padding:.7rem 1.1rem;opacity:.55;position:relative}
+  .badge svg{width:22px;height:22px}
+  .badge .bt{font-size:.62rem;line-height:1;opacity:.8}
+  .badge .bn{font-size:1.05rem;font-weight:600;line-height:1.1}
+  .badge .soon{position:absolute;top:-9px;right:-8px;background:var(--brand);color:#fff;font-size:.58rem;font-weight:700;padding:.2em .5em;border-radius:980px;letter-spacing:.03em}
+  .install{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(20px,3vw,32px)}
+  .tint .install{background:#fff}
+  .install h3{font-size:1.25rem;margin-bottom:1rem}
+  .os{display:flex;gap:.55rem;margin-bottom:1rem}
+  .os button{flex:1;font:inherit;font-size:.92rem;font-weight:500;padding:.6em;border-radius:12px;border:1px solid var(--line-2);background:#fff;cursor:pointer;transition:.18s}
+  .os button[aria-selected="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .os-steps{list-style:none;margin:0;padding:0;counter-reset:i;display:flex;flex-direction:column;gap:.8rem}
+  .os-steps li{counter-increment:i;display:flex;gap:.8rem;align-items:flex-start;font-size:.98rem;color:var(--ink)}
+  .os-steps li::before{content:counter(i);flex:none;width:26px;height:26px;border-radius:50%;background:rgba(41,171,226,.12);
+    color:var(--brand-ink);font-weight:700;font-size:.85rem;display:grid;place-items:center}
+  #installBtn{margin-top:1.3rem;width:100%;display:none}
 
-  /* footer */
-  footer{position:relative;z-index:2;border-top:1px solid var(--line);padding:clamp(48px,6vw,72px) 0 40px;margin-top:20px}
-  .foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:2rem}
-  @media (max-width:720px){.foot-grid{grid-template-columns:1fr;gap:1.6rem}}
-  .foot-brand p{color:var(--muted);font-size:.9rem;margin-top:1rem;max-width:34ch}
-  .foot-col h4{font-size:.78rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted-2);margin:0 0 1rem;font-family:"Manrope";font-weight:800}
-  .foot-col a,.foot-col span{display:block;color:var(--muted);font-size:.9rem;padding:.28rem 0;transition:color .2s}
-  .foot-col a:hover{color:var(--text)}
-  .foot-bottom{display:flex;flex-wrap:wrap;gap:.6rem 1.4rem;justify-content:space-between;align-items:center;
-    margin-top:3rem;padding-top:1.6rem;border-top:1px solid var(--line);color:var(--muted-2);font-size:.8rem}
-  .socials{display:flex;gap:.6rem}
-  .socials a{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--line);color:var(--muted);transition:.2s}
-  .socials a:hover{color:var(--text);border-color:var(--line-strong);transform:translateY(-2px)}
-  .socials svg{width:19px;height:19px}
+  /* ---------- privacy ---------- */
+  .priv{max-width:760px;margin-inline:auto;text-align:center}
+  .priv .pgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:2rem;text-align:left}
+  @media (max-width:620px){.priv .pgrid{grid-template-columns:1fr}}
+  .priv .pc{display:flex;gap:.7rem;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem}
+  .priv .pc svg{flex:none;width:20px;height:20px;color:var(--brand-ink);margin-top:2px}
+  .priv .pc b{font-weight:600;font-size:.98rem}
+  .priv .pc small{display:block;color:var(--ink-2);font-size:.85rem;margin-top:.1rem}
 
-  /* reveal */
-  .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+  /* ---------- final CTA ---------- */
+  .final{text-align:center}
+  .final h2{max-width:20ch;margin:0 auto}
+  .final .lead{max-width:44ch;margin:1.1rem auto 0}
+  .waitlist{display:flex;gap:.5rem;max-width:460px;margin:2rem auto 0;flex-wrap:wrap;justify-content:center}
+  .waitlist input{flex:1 1 240px;min-width:0;background:#fff;border:1px solid var(--line-2);border-radius:980px;
+    padding:.8em 1.3em;font:inherit;font-size:1.05rem;color:var(--ink)}
+  .waitlist input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 4px rgba(41,171,226,.18)}
+  .form-msg{margin-top:1rem;min-height:1.2em;font-weight:600;font-size:.95rem}
+  .form-msg.ok{color:#1a9c53}.form-msg.err{color:#d33}
+  .or{margin:1.5rem 0 .3rem;color:var(--ink-3);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}
+
+  /* ---------- footer ---------- */
+  footer{background:var(--bg-2);border-top:1px solid var(--line);padding:clamp(40px,5vw,64px) 0 32px;font-size:.85rem;color:var(--ink-2)}
+  .foot-top{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:2rem}
+  @media (max-width:720px){.foot-top{grid-template-columns:1fr;gap:1.6rem}}
+  .foot-brand p{margin-top:.9rem;max-width:34ch;color:var(--ink-2)}
+  .foot-col h4{font-size:.82rem;color:var(--ink);margin:0 0 .8rem;font-weight:600}
+  .foot-col a,.foot-col span{display:block;color:var(--ink-2);padding:.24rem 0;transition:color .2s}
+  .foot-col a:hover{color:var(--brand-ink)}
+  .socials{display:flex;gap:.5rem;margin-top:.8rem}
+  .socials a{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#fff;border:1px solid var(--line);color:var(--ink-2);transition:.2s}
+  .socials a:hover{color:var(--brand-ink);border-color:var(--brand);transform:translateY(-2px)}
+  .socials svg{width:17px;height:17px}
+  .foot-bottom{margin-top:2.4rem;padding-top:1.4rem;border-top:1px solid var(--line-2);display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;justify-content:space-between;color:var(--ink-3);font-size:.78rem}
+
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
   .reveal.in{opacity:1;transform:none}
   @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
-
-  .skip{position:absolute;left:-999px}
-  .skip:focus{left:12px;top:12px;z-index:99;background:var(--text);color:var(--bg);padding:.6em 1em;border-radius:8px}
+  .skip{position:absolute;left:-999px}.skip:focus{left:12px;top:12px;z-index:200;background:var(--ink);color:#fff;padding:.6em 1em;border-radius:8px}
 </style>
 </head>
 <body>
-<a href="#como" class="skip">Saltar al contenido</a>
-
-<canvas id="ambient" aria-hidden="true"></canvas>
-<div class="bg-glow g1" aria-hidden="true"></div>
-<div class="bg-glow g2" aria-hidden="true"></div>
-<div class="bg-glow g3" aria-hidden="true"></div>
+<a href="#hero" class="skip">Saltar al contenido</a>
 
 <!-- NAV -->
-<header class="nav" id="nav">
-  <div class="wrap nav-inner">
-    <a href="#top" class="brand" aria-label="IOGGA inicio">
-      <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
-        <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#FF5B79"/><stop offset=".5" stop-color="#8B6BFF"/><stop offset="1" stop-color="#12E1C0"/>
-        </linearGradient></defs>
-        <circle cx="37" cy="50" r="20" fill="none" stroke="url(#lg)" stroke-width="8"/>
-        <circle cx="63" cy="50" r="20" fill="none" stroke="url(#lg)" stroke-width="8"/>
-      </svg>
-      <span>iogga</span>
+<header class="nav">
+  <div class="nav-in">
+    <a href="#hero" class="logo" aria-label="IOGGA inicio">
+      <span class="mark" aria-hidden="true"></span><span class="word">iogga</span>
     </a>
     <nav class="nav-links" id="navLinks" aria-label="Principal">
       <a href="#como">Cómo funciona</a>
-      <a href="#personas">Para ti</a>
-      <a href="#negocios">Para negocios</a>
-      <a href="#nosotros">Nosotros</a>
-      <a href="#unete">Contacto</a>
+      <a href="#negocios">Negocios</a>
+      <a href="#por-que">Por qué IOGGA</a>
+      <a href="#fundadores">Fundadores</a>
+      <a href="#descargar">Descargar</a>
     </nav>
-    <div class="nav-cta">
-      <a href="#unete" class="btn btn-primary btn-desktop">Únete gratis</a>
-      <button class="nav-toggle" id="navToggle" aria-label="Abrir menú" aria-expanded="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    <div class="nav-right">
+      <a href="#descargar" class="btn btn-fill btn-desktop">Descargar</a>
+      <button class="nav-toggle" id="navToggle" aria-label="Menú" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
       </button>
     </div>
   </div>
 </header>
 
-<main id="top">
+<main>
 <!-- HERO -->
-<section class="hero">
-  <div class="wrap hero-grid">
-    <div class="hero-copy">
-      <span class="eyebrow"><span class="dot"></span>Chihuahua, México · Plataforma de intención</span>
-      <h1>Convierte tu <span class="grad-text">intención</span> en un plan que sí sucede.</h1>
-      <p class="lede">Dinos qué quieres hacer —con quién, cuándo, dónde, con cuánto y cómo llegar— y IOGGA lo conecta con las personas, lugares y promociones que lo hacen posible. En un solo flujo.</p>
-      <div class="hero-cta">
-        <a href="#unete" class="btn btn-primary">Unirme a la lista</a>
-        <a href="#negocios" class="btn btn-ghost">Soy un negocio</a>
-      </div>
-      <div class="hero-trust">
-        <span>Idea ganadora · Foro Cactus 2024</span>
-        <span>Obra registrada · INDAUTOR</span>
-        <span>+100 encuestas de validación</span>
-      </div>
+<section class="hero" id="hero">
+  <div class="wrap">
+    <p class="eyebrow">The Apportunity.</p>
+    <h1>Que los mejores momentos no dependan de la <span class="brandc">suerte.</span></h1>
+    <p class="lead">Dinos qué quieres hacer, con quién, cuándo, con cuánto y cómo llegar. IOGGA lo convierte en un plan real y lo conecta con las personas, lugares y promociones que lo hacen posible.</p>
+    <div class="hero-cta">
+      <a href="#descargar" class="btn btn-fill">Descargar la app</a>
+      <a href="#como" class="tlink">Ver cómo funciona <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></a>
     </div>
+    <p class="hero-note">Gratis para empezar · Próximamente en App Store y Google Play</p>
 
-    <!-- Interactive plan builder -->
-    <div class="planner reveal" id="planner">
-      <div class="planner-head">
-        <span class="k">Arma tu plan</span>
-        <span class="live"><i></i>Coincidencias en vivo</span>
-      </div>
+    <!-- phone mockup -->
+    <div class="phone-wrap reveal">
+      <div class="phone">
+        <div class="screen">
+          <div class="app-top">
+            <span class="logo"><span class="mark" aria-hidden="true"></span><span class="word">iogga</span></span>
+            <span class="live"><i></i>en vivo</span>
+          </div>
+          <div class="app-body">
+            <p class="app-q">¿Qué quieres hacer?</p>
+            <div class="chips" data-group="que">
+              <button class="chip" aria-pressed="true">Cenar tacos</button>
+              <button class="chip">Café</button>
+              <button class="chip">Cine</button>
+              <button class="chip">Salir a bailar</button>
+            </div>
+            <p class="app-q">¿Con quién?</p>
+            <div class="chips" data-group="quien">
+              <button class="chip" aria-pressed="true">Amigos</button>
+              <button class="chip">Pareja</button>
+              <button class="chip">Familia</button>
+            </div>
+            <p class="app-q">¿Cuándo?</p>
+            <div class="chips" data-group="cuando">
+              <button class="chip" aria-pressed="true">Hoy</button>
+              <button class="chip">Este finde</button>
+            </div>
+            <p class="app-q">Presupuesto</p>
+            <div class="chips" data-group="pres">
+              <button class="chip">$</button>
+              <button class="chip" aria-pressed="true">$$</button>
+              <button class="chip">$$$</button>
+            </div>
 
-      <div class="p-row">
-        <span class="q">¿Qué?</span>
-        <div class="chips" data-group="que">
-          <button class="chip" aria-pressed="true">Cenar tacos</button>
-          <button class="chip">Café</button>
-          <button class="chip">Cine</button>
-          <button class="chip">Salir a bailar</button>
-        </div>
-      </div>
-      <div class="p-row">
-        <span class="q">¿Con quién?</span>
-        <div class="chips" data-group="quien">
-          <button class="chip" aria-pressed="true">Amigos</button>
-          <button class="chip">Pareja</button>
-          <button class="chip">Familia</button>
-        </div>
-      </div>
-      <div class="p-row">
-        <span class="q">¿Cuándo?</span>
-        <div class="chips" data-group="cuando">
-          <button class="chip" aria-pressed="true">Hoy</button>
-          <button class="chip">Este finde</button>
-          <button class="chip">Entre semana</button>
-        </div>
-      </div>
-      <div class="p-row">
-        <span class="q">Presupuesto</span>
-        <div class="chips" data-group="pres">
-          <button class="chip">$</button>
-          <button class="chip" aria-pressed="true">$$</button>
-          <button class="chip">$$$</button>
-        </div>
-      </div>
-      <div class="p-row">
-        <span class="q">¿Cómo llego?</span>
-        <div class="chips" data-group="trans">
-          <button class="chip" aria-pressed="true">Auto</button>
-          <button class="chip">Caminando</button>
-          <button class="chip">Transporte</button>
-        </div>
-      </div>
-
-      <div class="p-result" id="pResult" aria-live="polite">
-        <div class="r-top">
-          <b>Tus coincidencias</b>
-          <span class="qr-badge">QR listo</span>
-        </div>
-        <div class="match people">
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.6"/><path d="M16 14.5a5.5 5.5 0 0 1 5.5 5.5"/></svg></span>
-          <div><b id="mPeople">3 amigos disponibles</b><small id="mPeopleSub">confirmaron para hoy en la noche</small></div>
-        </div>
-        <div class="match place">
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
-          <div><b id="mPlace">Taquería El Fogón · a 6 min</b><small id="mPlaceSub">dentro de tu presupuesto · abierto ahora</small></div>
-        </div>
-        <div class="match promo">
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a2 2 0 0 1 0-4V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v2a2 2 0 0 1 0 4v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2Z"/><path d="M9 9h.01M15 15h.01M15 9l-6 6"/></svg></span>
-          <div><b id="mPromo">2x1 en tacos al pastor</b><small id="mPromoSub">canjea con tu código QR en caja</small></div>
+            <div class="app-result" aria-live="polite">
+              <div class="rh">Tus coincidencias</div>
+              <div class="m">
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.6"/></svg></span>
+                <div><b id="mPeople">3 amigos disponibles</b><small id="mPeopleSub">confirmaron para esta noche</small></div>
+              </div>
+              <div class="m">
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+                <div><b id="mPlace">Taquería El Fogón · 6 min</b><small id="mPlaceSub">dentro de tu presupuesto</small></div>
+              </div>
+              <div class="m promo">
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a2 2 0 0 1 0-4V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v2a2 2 0 0 1 0 4v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2Z"/><path d="M15 9l-6 6"/></svg></span>
+                <div><b id="mPromo">2x1 en tacos al pastor</b><small id="mPromoSub">canjea con tu código QR</small></div>
+                <span class="qr">QR</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -442,169 +383,233 @@
 </section>
 
 <!-- PROBLEM -->
-<section id="problema">
+<section class="tint" id="problema">
   <div class="wrap">
-    <div class="sec-head reveal">
-      <span class="eyebrow"><span class="dot"></span>El problema</span>
-      <h2>Organizar algo no debería costar <span class="grad-text">40 mensajes.</span></h2>
-      <p class="sub">Las buenas ideas mueren en el chat. Y los negocios gastan en publicidad sin saber quién los está buscando de verdad.</p>
+    <div class="sec-intro center reveal">
+      <h2>Cada día se pierden momentos<br>que sí podían pasar.</h2>
+      <p class="lead" style="margin-top:1rem">No por falta de ganas. Por falta de coordinación y visibilidad.</p>
     </div>
-    <div class="problem-grid">
-      <div class="pcard reveal"><div class="n">Para las personas</div><h3>Coordinar es un caos</h3><p>Horarios que no cuadran, presupuestos que nadie dice y respuestas que llegan tarde. Entre tantos mensajes, el plan se pierde.</p></div>
-      <div class="pcard reveal"><div class="n">Herramientas sueltas</div><h3>Nada junta el contexto</h3><p>El chat conversa, los mapas ubican, los cupones ofertan… pero ninguno considera con quién vas, cuánto puedes gastar o cómo llegar.</p></div>
-      <div class="pcard reveal"><div class="n">Para los negocios</div><h3>Publicidad a ciegas</h3><p>Pagas por impresiones y audiencias estimadas, con costos altos y resultados inciertos. Sin saber quién quiere comprar hoy.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- HOW IT WORKS -->
-<section id="como">
-  <div class="wrap">
-    <div class="sec-head reveal">
-      <span class="eyebrow"><span class="dot"></span>Cómo funciona</span>
-      <h2>De la idea al plan, en <span class="grad-text">cinco pasos.</span></h2>
-      <p class="sub">IOGGA integra planeación social, coordinación de invitados, opciones locales y promociones en un solo flujo.</p>
-    </div>
-    <div class="flow">
-      <div class="step reveal"><div class="num">01</div><h3>Dices qué quieres</h3><p>Elige la actividad: cenar, un café, cine, salir. Tu intención arranca el plan.</p></div>
-      <div class="step reveal"><div class="num">02</div><h3>Defines el contexto</h3><p>Cuándo, con quién, cuánto quieres gastar y cómo vas a llegar.</p></div>
-      <div class="step reveal"><div class="num">03</div><h3>Invitas o publicas</h3><p>Comparte con contactos, un grupo o de forma abierta. Tú decides quién lo ve.</p></div>
-      <div class="step reveal"><div class="num">04</div><h3>Recibes coincidencias</h3><p>Personas compatibles, lugares viables y promociones hechas para tu plan.</p></div>
-      <div class="step reveal"><div class="num">05</div><h3>Confirmas y canjeas</h3><p>Confirmas la actividad y usas tu código QR para el beneficio. Listo.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- TWO SIDES -->
-<section>
-  <div class="wrap sides">
-    <div class="side people reveal" id="personas">
-      <span class="tag">Para las personas</span>
-      <h3>Menos coordinar, más disfrutar.</h3>
-      <p class="sd-lede">Convierte “deberíamos salir” en un plan real, adaptado a tu contexto.</p>
-      <ul class="flist">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>Organiza actividades sin cadenas de mensajes.</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>Opciones adaptadas a tu tiempo, dinero y transporte.</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>Descubre promociones y negocios cerca de ti.</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>Notificaciones cuando algo coincide con tu plan.</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>Tú controlas quién ve cada uno de tus planes.</li>
-      </ul>
-    </div>
-    <div class="side biz reveal" id="negocios">
-      <span class="tag">Para los negocios</span>
-      <h3>Llega a intención real, no a impresiones.</h3>
-      <p class="sd-lede">Conecta con personas que están buscando ahora lo que tú ofreces.</p>
-      <ul class="flist">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>Publica productos y promociones basadas en demanda.</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>Ajusta incentivos según el interés en tu zona.</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>Valida canjes con códigos digitales o QR.</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>Mide resultados: uso, canjes y conversión real.</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>Ideal para presupuestos de marketing limitados.</li>
-      </ul>
-    </div>
-  </div>
-</section>
-
-<!-- QUOTE -->
-<section>
-  <div class="wrap quote reveal">
-    <div class="qmark">“</div>
-    <blockquote>De “¿cuántos vieron mi anuncio?” a <span class="grad-text">“¿cuántos buscan hoy lo que ofrezco?”</span></blockquote>
-    <p class="attr">— El cambio que IOGGA propone para el marketing local.</p>
-  </div>
-</section>
-
-<!-- VARIABLES -->
-<section>
-  <div class="wrap">
-    <div class="sec-head reveal">
-      <span class="eyebrow"><span class="dot"></span>Lo que otras apps ignoran</span>
-      <h2>Las 6 variables que deciden si un plan <span class="grad-text">sucede.</span></h2>
-      <p class="sub">Ninguna otra herramienta las junta en un solo lugar. IOGGA sí.</p>
-    </div>
-    <div class="vars">
-      <div class="vcard reveal"><div class="vic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></div><b>Actividad</b><small>qué</small></div>
-      <div class="vcard reveal"><div class="vic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.4"/></svg></div><b>Invitados</b><small>con quién</small></div>
-      <div class="vcard reveal"><div class="vic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg></div><b>Tiempo</b><small>cuándo</small></div>
-      <div class="vcard reveal"><div class="vic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><b>Presupuesto</b><small>cuánto</small></div>
-      <div class="vcard reveal"><div class="vic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></div><b>Ubicación</b><small>dónde</small></div>
-      <div class="vcard reveal"><div class="vic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14M4 17l1.5-6A2 2 0 0 1 7.4 9.5h9.2a2 2 0 0 1 1.9 1.5L20 17"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="16.5" cy="17.5" r="1.6"/></svg></div><b>Transporte</b><small>cómo llego</small></div>
-    </div>
-  </div>
-</section>
-
-<!-- DIFFERENTIATION -->
-<section>
-  <div class="wrap diff">
-    <div class="reveal">
-      <span class="eyebrow"><span class="dot"></span>Diferenciación</span>
-      <div class="not" style="margin-top:1.2rem">
-        <div class="no"><s>No es solo una app de eventos.</s></div>
-        <div class="no"><s>No es solo una red social.</s></div>
-        <div class="no"><s>No es solo una app de cupones.</s></div>
-        <div class="yes grad-text">Es las tres, conectadas por tu intención.</div>
+    <div class="qgrid">
+      <div class="qcol users reveal">
+        <span class="side-tag">Las personas</span>
+        <h3>“Yo sí iba… hubieras avisado.”</h3>
+        <ul class="qlist">
+          <li>“Yo andaba ahí mismo y ni nos vimos.”</li>
+          <li>“No puedo creer que lo compraste… yo tenía uno extra sin usar.”</li>
+          <li>“De todos los días… ayer sí estaban libres.”</li>
+          <li>“Te juro que nunca vi tu mensaje. Qué mal :(”</li>
+        </ul>
+        <p class="sum">Organizar una salida se pierde entre mensajes, horarios que no cuadran y respuestas que llegan tarde.</p>
+      </div>
+      <div class="qcol biz reveal">
+        <span class="side-tag">Los negocios</span>
+        <h3>“Pago para que me vean. A ciegas.”</h3>
+        <ul class="qlist">
+          <li>“Pagué por promocionar la publicación… y sigo sin saber si alguien la vio.”</li>
+          <li>“Le pago a la agencia, a la plataforma y al que ‘sabe cómo funciona’.”</li>
+          <li>“El marketing es una caja negra: pagas, esperas y rezas.”</li>
+          <li>“No necesito más alcance. Necesito saber quién me busca ahora.”</li>
+        </ul>
+        <p class="sum">Los negocios gastan a ciegas para ser vistos, mientras quienes sí quieren su producto pasan de largo.</p>
       </div>
     </div>
-    <div class="reveal">
-      <p style="color:var(--muted);font-size:var(--step-1);line-height:1.5">
-        IOGGA conecta una <b style="color:var(--text)">necesidad declarada</b> con las personas y negocios capaces de responder en el momento adecuado. Intención personal, coordinación social, contexto logístico y oferta comercial local — en un mismo flujo, medible y seguro.
-      </p>
+  </div>
+</section>
+
+<!-- HOW IT WORKS (users) -->
+<section id="como">
+  <div class="wrap">
+    <div class="sec-intro center reveal">
+      <p class="eyebrow">Para las personas</p>
+      <h2>Un plan real, en segundos.</h2>
+      <p class="lead" style="margin-top:1rem">Sin cadenas de mensajes. IOGGA te muestra al instante las oportunidades que están sucediendo a tu alrededor.</p>
     </div>
+    <div class="steps">
+      <div class="step reveal"><span class="sn"></span><h3>Dices qué quieres</h3><p>Elige la actividad y define tu tiempo disponible. Tu intención arranca el plan.</p></div>
+      <div class="step reveal"><span class="sn"></span><h3>Pones tu contexto</h3><p>Presupuesto, con quién vas y qué transporte tienes. Todo lo que hace viable un plan.</p></div>
+      <div class="step reveal"><span class="sn"></span><h3>Eliges una oferta</h3><p>Recibes lugares y promociones personalizadas, hechas para tu plan y tu bolsillo.</p></div>
+      <div class="step reveal"><span class="sn"></span><h3>Invitas a tu gente</h3><p>Comparte con amigos específicos, un grupo o de forma abierta. Tú decides quién lo ve.</p></div>
+      <div class="step reveal"><span class="sn"></span><h3>Coinciden y confirman</h3><p>Ves quién está disponible y confirmas en un toque. Adiós a las agendas imposibles.</p></div>
+      <div class="step reveal"><span class="sn"></span><h3>Canjeas tu código</h3><p>Llegas al lugar y escaneas tu código QR para aplicar tu promoción. Listo.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- BUSINESSES -->
+<section class="tint" id="negocios">
+  <div class="wrap">
+    <div class="sec-intro center reveal">
+      <p class="eyebrow" style="color:var(--biz)">Para los negocios</p>
+      <h2>Un marketplace magnético.</h2>
+      <p class="lead" style="margin-top:1rem">Imagina saber cuántas personas están buscando tu producto <b style="color:var(--ink)">en tiempo real</b>. Deja de pagar por impresiones y llega a intención real.</p>
+    </div>
+    <div class="steps">
+      <div class="step biz reveal"><span class="sn"></span><h3>Crea tu perfil</h3><p>Publica tu negocio, tus productos y servicios con su información y disponibilidad.</p></div>
+      <div class="step biz reveal"><span class="sn"></span><h3>Publica ofertas</h3><p>Lanza promociones y define su vigencia y condiciones, sin costo inicial.</p></div>
+      <div class="step biz reveal"><span class="sn"></span><h3>Ajusta según demanda</h3><p>Ve el interés real en cada producto y ajusta tus promociones en tiempo real.</p></div>
+      <div class="step biz reveal"><span class="sn"></span><h3>Recibe y escanea</h3><p>Llegan clientes con intención activa y escaneas sus códigos de descuento.</p></div>
+      <div class="step biz reveal"><span class="sn"></span><h3>Mide resultados</h3><p>Consulta canjes y conversión. Pagas comisión solo cuando de verdad vendes.</p></div>
+      <div class="step biz reveal"><span class="sn"></span><h3>Ideal para PyMEs</h3><p>Pensado para negocios con presupuestos de marketing limitados. Bajo riesgo, alto enfoque.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY / WHAT APPS IGNORE -->
+<section id="por-que">
+  <div class="wrap">
+    <div class="sec-intro center reveal">
+      <h2>Lo que otras apps ignoran.</h2>
+      <p class="lead" style="margin-top:1rem">Las apps de eventos, mapas, calendarios y cupones resuelven partes sueltas. Ninguna conecta lo que de verdad decide un plan.</p>
+    </div>
+    <div class="ignore-grid">
+      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></div><b>Tu tiempo</b><small>cuándo puedes</small></div>
+      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><b>Tu presupuesto</b><small>cuánto quieres gastar</small></div>
+      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.4"/></svg></div><b>Tu compañía</b><small>con quién vas</small></div>
+      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14M4 17l1.5-6A2 2 0 0 1 7.4 9.5h9.2a2 2 0 0 1 1.9 1.5L20 17"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="16.5" cy="17.5" r="1.6"/></svg></div><b>Tu transporte</b><small>cómo llegas</small></div>
+      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></div><b>Ubicación y destino</b><small>dónde estás y a dónde vas</small></div>
+      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v2M5 12H3m18 0h-2M6 6l1.5 1.5M18 6l-1.5 1.5"/><circle cx="12" cy="13" r="4"/></svg></div><b>El clima</b><small>si el plan es viable hoy</small></div>
+      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div><b>Tu intención</b><small>tus deseos en tiempo real</small></div>
+      <div class="ig reveal"><div class="igic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2M8 7v13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V7"/></svg></div><b>La oferta local</b><small>promos hechas para ti</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="tint">
+  <div class="wrap wide">
+    <div class="sec-intro center reveal">
+      <h2>Un mercado enorme,<br>esperando esta conexión.</h2>
+    </div>
+    <div class="stats">
+      <div class="stat reveal"><div class="big">244M</div><p>de personas organizan reuniones por internet en Latinoamérica</p></div>
+      <div class="stat reveal"><div class="big">82%</div><p>de los usuarios busca información sobre negocios locales</p></div>
+      <div class="stat reveal"><div class="big">50%</div><p>de las compras en línea se relacionan con productos y servicios locales</p></div>
+      <div class="stat reveal"><div class="big">$100&nbsp;MMD</div><p>tamaño del mercado de comercio local en línea</p></div>
+    </div>
+    <p class="src">Fuentes: We Are Social &amp; Hootsuite (2023), Statista (2023), INEGI.</p>
   </div>
 </section>
 
 <!-- CREDIBILITY -->
-<section id="nosotros">
+<section>
   <div class="wrap">
-    <div class="sec-head reveal">
-      <span class="eyebrow"><span class="dot"></span>Avances</span>
-      <h2>Un proyecto <span class="grad-text">real</span>, en marcha desde Chihuahua.</h2>
+    <div class="sec-intro center reveal">
+      <h2>Un proyecto real, en marcha.</h2>
     </div>
     <div class="creds">
-      <div class="cred reveal"><div class="cbig">2024</div><p>Idea ganadora</p><small>Foro Cactus 2024</small></div>
-      <div class="cred reveal"><div class="cbig">+100</div><p>Encuestas de validación</p><small>con usuarios y negocios</small></div>
-      <div class="cred reveal"><div class="cbig">✓</div><p>Obra registrada</p><small>INDAUTOR · software</small></div>
-      <div class="cred reveal"><div class="cbig">POC</div><p>Prueba de concepto</p><small>y diseño funcional listo</small></div>
+      <div class="cred reveal"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Idea ganadora</b><small>Foro Cactus 2024</small></div></div>
+      <div class="cred reveal"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>+300 encuestas</b><small>de validación de la idea</small></div></div>
+      <div class="cred reveal"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Prueba de concepto</b><small>primer PoC de la app funcionando</small></div></div>
+      <div class="cred reveal"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Registro de marca</b><small>IOGGA® registrada</small></div></div>
+      <div class="cred reveal"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Derechos de autor</b><small>software registrado en México</small></div></div>
+      <div class="cred reveal"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Dominio propio</b><small>iogga.com</small></div></div>
     </div>
+  </div>
+</section>
 
-    <div class="team" style="margin-top:1.4rem">
+<!-- FOUNDERS -->
+<section class="tint" id="fundadores">
+  <div class="wrap">
+    <div class="sec-intro center reveal">
+      <h2>Fundadores.</h2>
+    </div>
+    <div class="team">
       <div class="member reveal">
-        <div class="av">O</div>
-        <div>
-          <h3>Omar Eduardo Hernández</h3>
-          <div class="role">Fundador y CEO</div>
-          <p>Dirección y gestión de proyectos tecnológicos, innovación y estrategia. Lidera producto y vinculación de IOGGA.</p>
-        </div>
+        <div class="av" aria-hidden="true">O</div>
+        <h3>Omar Eduardo Hernández</h3>
+        <div class="role">Fundador y CEO</div>
+        <p>Maestría en Gestión de Proyectos Tecnológicos, con certificaciones en Business Analytics y gestión de proyectos digitales. Lidera la estrategia, el producto y la vinculación de IOGGA.</p>
       </div>
       <div class="member reveal">
-        <div class="av">I</div>
-        <div>
-          <h3>E. Isela Domínguez</h3>
-          <div class="role">Cofundadora</div>
-          <p>Psicóloga industrial con +10 años en coordinación educativa, pedagogía STEM y proyectos con enfoque humano.</p>
-        </div>
+        <div class="av" aria-hidden="true">I</div>
+        <h3>E. Isela Domínguez Flores</h3>
+        <div class="role">Cofundadora</div>
+        <p>Psicóloga industrial con más de 10 años de experiencia coordinando instituciones educativas y pedagogía STEM, con experiencia internacional en los sectores de salud, humanitario y terapéutico.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- CTA / WAITLIST -->
-<section id="unete">
+<!-- DOWNLOAD -->
+<section id="descargar">
   <div class="wrap">
-    <div class="cta-final reveal">
-      <span class="eyebrow" style="justify-content:center"><span class="dot"></span>Lista de espera</span>
-      <h2 style="margin-top:1rem">Sé de los primeros en <span class="grad-text">Chihuahua.</span></h2>
-      <p>Déjanos tu correo y te avisamos en cuanto abramos. Sin spam — solo el lanzamiento y las mejores promociones de arranque.</p>
+    <div class="sec-intro center reveal">
+      <p class="eyebrow">Descarga</p>
+      <h2>Llévala en tu bolsillo.</h2>
+      <p class="lead" style="margin-top:1rem">Instala IOGGA en la pantalla de inicio de tu celular hoy mismo. Muy pronto también en las tiendas oficiales.</p>
+    </div>
+    <div class="dl-grid">
+      <div class="reveal">
+        <h3 style="font-size:1.3rem;margin-bottom:.5rem">Próximamente en las tiendas</h3>
+        <p style="color:var(--ink-2)">Estamos preparando el lanzamiento oficial en iOS y Android. Únete a la lista y sé de los primeros en recibir el enlace.</p>
+        <div class="badges">
+          <span class="badge"><span class="soon">Pronto</span>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 2c.1 1.2-.4 2.4-1.1 3.2-.7.9-1.9 1.5-3 1.5-.1-1.2.4-2.4 1.1-3.2.8-.9 2-1.5 3-1.5ZM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.8 3.1-1.4 0-1.8-.9-3.7-.9s-2.3.9-3.7.9c-1.6 0-2.8-1.6-3.7-3C1.3 18.6.8 14.5 2.4 12c.9-1.5 2.4-2.4 3.9-2.4 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4 1 6.7Z"/></svg>
+            <span><span class="bt">Pronto en</span><br><span class="bn">App Store</span></span>
+          </span>
+          <span class="badge"><span class="soon">Pronto</span>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.6 2.3 13 11.7l2.5-2.5L5.3 3.4a1.9 1.9 0 0 0-1.7-1.1Zm-.9 1.2A1.9 1.9 0 0 0 2.5 4.5v15a1.9 1.9 0 0 0 .2.9l9.4-9.4Zm14 6.2 3.6 2c1 .6 1 2 0 2.6l-3.6 2-2.8-2.8Zm-2.2 4.2L4.9 22.4c.5.2 1.1.1 1.7-.2l9.4-5.4Z"/></svg>
+            <span><span class="bt">Pronto en</span><br><span class="bn">Google Play</span></span>
+          </span>
+        </div>
+        <p style="color:var(--ink-2);margin-top:1.6rem">¿Quieres probar el concepto ahora? La prueba de concepto (PoC) está disponible.</p>
+        <a href="https://iogga.com" class="tlink" style="margin-top:.4rem">Probar el PoC en iogga.com <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></a>
+      </div>
+
+      <div class="install reveal">
+        <h3>Instálala ahora en tu celular</h3>
+        <div class="os" role="tablist">
+          <button id="tabIos" role="tab" aria-selected="true">iPhone</button>
+          <button id="tabAndroid" role="tab" aria-selected="false">Android</button>
+        </div>
+        <ol class="os-steps" id="stepsIos">
+          <li>Abre <b>iogga.com</b> en <b>Safari</b>.</li>
+          <li>Toca el botón <b>Compartir</b> (el cuadro con la flecha hacia arriba).</li>
+          <li>Elige <b>“Agregar a inicio”</b>.</li>
+          <li>Toca <b>Agregar</b>. ¡Listo! El ícono de IOGGA queda en tu pantalla.</li>
+        </ol>
+        <ol class="os-steps" id="stepsAndroid" hidden>
+          <li>Abre <b>iogga.com</b> en <b>Chrome</b>.</li>
+          <li>Toca el menú <b>⋮</b> (arriba a la derecha).</li>
+          <li>Elige <b>“Instalar app”</b> o <b>“Agregar a pantalla principal”</b>.</li>
+          <li>Confirma. ¡Listo! IOGGA aparece como una app más.</li>
+        </ol>
+        <button class="btn btn-fill" id="installBtn">Instalar IOGGA</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRIVACY -->
+<section class="tint" id="privacidad">
+  <div class="wrap">
+    <div class="priv reveal">
+      <p class="eyebrow">Privacidad desde el diseño</p>
+      <h2>Tú decides qué compartes.</h2>
+      <p class="lead" style="margin-top:1rem">En IOGGA, tu información es tuya. Diseñamos la plataforma con la privacidad como principio, no como añadido.</p>
+      <div class="pgrid">
+        <div class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/></svg><div><b>Tú controlas tus planes</b><small>Decides quién puede ver cada actividad: contactos, grupos o de forma abierta.</small></div></div>
+        <div class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7v10M20 7v10M8 12h8M8 12l3-3M8 12l3 3"/></svg><div><b>Datos minimizados</b><small>Solo pedimos lo necesario para hacer posible tu plan. Nada más.</small></div></div>
+        <div class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg><div><b>Consentimiento y transparencia</b><small>Nada se usa sin tu permiso. Sabes siempre para qué sirve tu información.</small></div></div>
+        <div class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><div><b>Análisis anonimizado</b><small>La información para negocios se presenta de forma agregada y anónima.</small></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section>
+  <div class="wrap final">
+    <div class="reveal">
+      <h2>Sé de los primeros en unirte.</h2>
+      <p class="lead">Déjanos tu correo y te avisamos apenas abramos el lanzamiento. Sin spam — solo la app y las mejores promociones de arranque.</p>
       <form class="waitlist" id="waitlistForm" novalidate>
-        <input type="email" id="wlEmail" name="email" placeholder="tu@correo.com" autocomplete="email" aria-label="Tu correo electrónico" required />
-        <button type="submit" class="btn btn-primary">Unirme</button>
+        <input type="email" id="wlEmail" placeholder="tu@correo.com" autocomplete="email" aria-label="Tu correo" required />
+        <button type="submit" class="btn btn-fill">Unirme</button>
       </form>
       <div class="form-msg" id="formMsg" role="status"></div>
-      <p class="form-note">Al unirte aceptas recibir novedades de IOGGA. Puedes darte de baja cuando quieras.</p>
-
       <div class="or">o escríbenos directo</div>
-      <a class="btn btn-wa" href="https://wa.me/526142168738?text=Hola%20IOGGA%2C%20quiero%20unirme%20a%20la%20lista%20de%20espera"
-         target="_blank" rel="noopener">
+      <a class="btn btn-wa" href="https://wa.me/526142168738?text=Hola%20IOGGA%2C%20quiero%20unirme%20a%20la%20lista%20de%20espera" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2Zm5.8 14.16c-.24.68-1.42 1.32-1.95 1.36-.5.04-.98.22-3.3-.7-2.79-1.1-4.55-3.94-4.69-4.13-.14-.19-1.12-1.49-1.12-2.84s.71-2.01.96-2.29c.25-.28.55-.35.73-.35.18 0 .37 0 .53.01.17.01.4-.06.62.48.24.57.82 1.98.89 2.13.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.72 1.18 1.54 1.91 1.06.94 1.95 1.24 2.23 1.38.28.14.44.12.6-.07.16-.19.69-.8.87-1.08.18-.28.37-.23.62-.14.25.09 1.6.75 1.87.89.28.14.46.21.53.32.07.12.07.66-.17 1.34Z"/></svg>
         Escríbenos por WhatsApp
       </a>
@@ -615,46 +620,34 @@
 
 <!-- FOOTER -->
 <footer>
-  <div class="wrap">
-    <div class="foot-grid">
+  <div class="wrap wide">
+    <div class="foot-top">
       <div class="foot-brand">
-        <a href="#top" class="brand" aria-label="IOGGA inicio">
-          <svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
-            <circle cx="37" cy="50" r="20" fill="none" stroke="url(#lg)" stroke-width="8"/>
-            <circle cx="63" cy="50" r="20" fill="none" stroke="url(#lg)" stroke-width="8"/>
-          </svg>
-          <span>iogga</span>
-        </a>
-        <p>Convertimos la intención en oportunidad. Una comunidad funciona mejor cuando sus personas, sus planes y sus negocios coinciden en el momento oportuno.</p>
+        <span class="logo"><span class="mark" aria-hidden="true"></span><span class="word">iogga</span></span>
+        <p>The Apportunity. Que los mejores momentos y oportunidades de tu vida no dependan de las coincidencias.</p>
       </div>
       <div class="foot-col">
         <h4>Explora</h4>
-        <a href="#como">Cómo funciona</a>
-        <a href="#personas">Para las personas</a>
+        <a href="#como">Para las personas</a>
         <a href="#negocios">Para negocios</a>
-        <a href="#nosotros">Nosotros</a>
+        <a href="#por-que">Por qué IOGGA</a>
+        <a href="#descargar">Descargar</a>
+        <a href="#privacidad">Privacidad</a>
       </div>
       <div class="foot-col">
         <h4>Contacto</h4>
         <a href="mailto:omareduardo_@hotmail.com">omareduardo_@hotmail.com</a>
         <a href="tel:+526142168738">+52 614 216 8738</a>
-        <span>Chihuahua, Chihuahua, México</span>
-        <div class="socials" style="margin-top:1rem">
-          <a href="https://instagram.com/ioggain" target="_blank" rel="noopener" aria-label="Instagram">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
-          </a>
-          <a href="https://facebook.com/ioggain" target="_blank" rel="noopener" aria-label="Facebook">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 22v-8h2.7l.4-3.1h-3.1V8.9c0-.9.25-1.5 1.55-1.5H17V4.6c-.29-.04-1.3-.12-2.46-.12-2.43 0-4.09 1.48-4.09 4.2v2.34H7.7V14h2.75v8Z"/></svg>
-          </a>
-          <a href="https://tiktok.com/@ioggain" target="_blank" rel="noopener" aria-label="TikTok">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c.3 2.1 1.5 3.6 3.5 3.9v2.6c-1.3.1-2.5-.3-3.6-1v5.9c0 3.2-2.4 5.6-5.5 5.6a5.4 5.4 0 0 1-5.4-5.4c0-3.3 3-5.9 6.4-5.2v2.8c-.4-.1-.8-.2-1.2-.2-1.4 0-2.5 1.1-2.5 2.6 0 1.4 1.1 2.6 2.6 2.6 1.4 0 2.5-1.1 2.5-2.6V3Z"/></svg>
-          </a>
+        <div class="socials">
+          <a href="https://instagram.com/ioggain" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+          <a href="https://facebook.com/ioggain" target="_blank" rel="noopener" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 22v-8h2.7l.4-3.1h-3.1V8.9c0-.9.25-1.5 1.55-1.5H17V4.6c-.29-.04-1.3-.12-2.46-.12-2.43 0-4.09 1.48-4.09 4.2v2.34H7.7V14h2.75v8Z"/></svg></a>
+          <a href="https://tiktok.com/@ioggain" target="_blank" rel="noopener" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c.3 2.1 1.5 3.6 3.5 3.9v2.6c-1.3.1-2.5-.3-3.6-1v5.9c0 3.2-2.4 5.6-5.5 5.6a5.4 5.4 0 0 1-5.4-5.4c0-3.3 3-5.9 6.4-5.2v2.8c-.4-.1-.8-.2-1.2-.2-1.4 0-2.5 1.1-2.5 2.6 0 1.4 1.1 2.6 2.6 2.6 1.4 0 2.5-1.1 2.5-2.6V3Z"/></svg></a>
         </div>
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© <span id="year"></span> IOGGA · Omar Eduardo Hernández Hernández. Todos los derechos reservados.</span>
-      <span>Hecho con intención en Chihuahua 🇲🇽</span>
+      <span>© <span id="year"></span> IOGGA®. Todos los derechos reservados.</span>
+      <span>The Apportunity.</span>
     </div>
   </div>
 </footer>
@@ -662,169 +655,71 @@
 <script>
 (function(){
   "use strict";
-  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  /* year */
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   document.getElementById("year").textContent = new Date().getFullYear();
 
-  /* nav scroll + mobile menu */
-  var nav = document.getElementById("nav");
-  var links = document.getElementById("navLinks");
-  var toggle = document.getElementById("navToggle");
-  function onScroll(){ nav.classList.toggle("scrolled", window.scrollY > 12); }
-  onScroll(); window.addEventListener("scroll", onScroll, {passive:true});
-  toggle.addEventListener("click", function(){
-    var open = links.classList.toggle("open");
-    toggle.setAttribute("aria-expanded", open ? "true" : "false");
-  });
-  links.addEventListener("click", function(e){
-    if(e.target.tagName === "A"){ links.classList.remove("open"); toggle.setAttribute("aria-expanded","false"); }
-  });
+  /* mobile menu */
+  var links=document.getElementById("navLinks"), tgl=document.getElementById("navToggle");
+  tgl.addEventListener("click",function(){var o=links.classList.toggle("open");tgl.setAttribute("aria-expanded",o?"true":"false");});
+  links.addEventListener("click",function(e){if(e.target.tagName==="A"){links.classList.remove("open");tgl.setAttribute("aria-expanded","false");}});
 
-  /* reveal on scroll */
-  var reveals = document.querySelectorAll(".reveal");
+  /* reveal */
+  var rev=document.querySelectorAll(".reveal");
   if("IntersectionObserver" in window && !reduce){
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(en){
-        if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); }
-      });
-    }, {threshold:.12, rootMargin:"0px 0px -8% 0px"});
-    reveals.forEach(function(el){ io.observe(el); });
-  } else {
-    reveals.forEach(function(el){ el.classList.add("in"); });
-  }
+    var io=new IntersectionObserver(function(en){en.forEach(function(e){if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});},{threshold:.1,rootMargin:"0px 0px -6% 0px"});
+    rev.forEach(function(el){io.observe(el);});
+  } else { rev.forEach(function(el){el.classList.add("in");}); }
 
-  /* interactive plan builder */
-  var results = {
-    "Cenar tacos": {people:["3 amigos disponibles","confirmaron para esta noche"], place:["Taquería El Fogón · a 6 min","dentro de tu presupuesto · abierto ahora"], promo:["2x1 en tacos al pastor","canjea con tu código QR en caja"]},
-    "Café":        {people:["2 personas se apuntan","les queda cerca del centro"], place:["Café Nube · a 4 min","wifi y buen ambiente para platicar"], promo:["Postre gratis con tu bebida","muestra el QR al ordenar"]},
-    "Cine":        {people:["4 amigos con la tarde libre","votaron por la función de las 8"], place:["Cinépolis Fashion Mall · a 12 min","función 8:20 pm disponible"], promo:["Combo 2x1 entre semana","válido con código IOGGA"]},
-    "Salir a bailar": {people:["6 personas del grupo","listas para el finde"], place:["La Terraza · a 9 min","antro con buena música en vivo"], promo:["Cover sin costo antes de 11 pm","presenta tu QR en la entrada"]}
+  /* plan builder */
+  var data={
+    "Cenar tacos":{p:["3 amigos disponibles","confirmaron para esta noche"],l:["Taquería El Fogón · 6 min","dentro de tu presupuesto"],o:["2x1 en tacos al pastor","canjea con tu código QR"]},
+    "Café":{p:["2 personas se apuntan","les queda cerca del centro"],l:["Café Nube · 4 min","buen ambiente para platicar"],o:["Postre gratis con tu bebida","muestra el QR al ordenar"]},
+    "Cine":{p:["4 amigos con la tarde libre","votaron por la función de las 8"],l:["Cinépolis · 12 min","función 8:20 pm disponible"],o:["Combo 2x1 entre semana","válido con código IOGGA"]},
+    "Salir a bailar":{p:["6 personas del grupo","listas para el finde"],l:["La Terraza · 9 min","música en vivo esta noche"],o:["Cover gratis antes de 11 pm","presenta tu QR en la entrada"]}
   };
-  var groups = {};
-  document.querySelectorAll(".planner .chips").forEach(function(g){
-    var name = g.getAttribute("data-group");
-    g.querySelectorAll(".chip").forEach(function(chip){
-      chip.setAttribute("role","button");
-      if(!chip.hasAttribute("aria-pressed")) chip.setAttribute("aria-pressed","false");
-      if(chip.getAttribute("aria-pressed")==="true") groups[name]=chip.textContent.trim();
-      chip.addEventListener("click", function(){
-        g.querySelectorAll(".chip").forEach(function(c){ c.setAttribute("aria-pressed","false"); });
-        chip.setAttribute("aria-pressed","true");
-        groups[name]=chip.textContent.trim();
-        render();
+  var sel={que:"Cenar tacos"};
+  document.querySelectorAll(".phone .chips").forEach(function(g){
+    var n=g.getAttribute("data-group");
+    g.querySelectorAll(".chip").forEach(function(c){
+      if(!c.hasAttribute("aria-pressed"))c.setAttribute("aria-pressed","false");
+      if(c.getAttribute("aria-pressed")==="true")sel[n]=c.textContent.trim();
+      c.addEventListener("click",function(){
+        g.querySelectorAll(".chip").forEach(function(x){x.setAttribute("aria-pressed","false");});
+        c.setAttribute("aria-pressed","true");sel[n]=c.textContent.trim();if(n==="que")render();
       });
     });
   });
-  function set(id, val){ var el=document.getElementById(id); if(el) el.textContent=val; }
-  function render(){
-    var r = results[groups.que] || results["Cenar tacos"];
-    set("mPeople", r.people[0]); set("mPeopleSub", r.people[1]);
-    set("mPlace", r.place[0]);   set("mPlaceSub", r.place[1]);
-    set("mPromo", r.promo[0]);   set("mPromoSub", r.promo[1]);
-  }
+  function T(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+  function render(){var r=data[sel.que]||data["Cenar tacos"];
+    T("mPeople",r.p[0]);T("mPeopleSub",r.p[1]);T("mPlace",r.l[0]);T("mPlaceSub",r.l[1]);T("mPromo",r.o[0]);T("mPromoSub",r.o[1]);}
   render();
 
-  /* waitlist form -> abre correo prellenado al fundador + confirmación.
-     Para guardar automáticamente en el futuro: cambia esto por un endpoint de
-     Formspree/Google Forms (ver instrucciones que dejó el equipo). */
-  var form = document.getElementById("waitlistForm");
-  var msg = document.getElementById("formMsg");
-  var emailIn = document.getElementById("wlEmail");
-  var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  form.addEventListener("submit", function(e){
-    e.preventDefault();
-    var val = emailIn.value.trim();
-    if(!re.test(val)){
-      msg.className="form-msg err"; msg.textContent="Escribe un correo válido, por favor.";
-      emailIn.focus(); return;
-    }
-    var subject = encodeURIComponent("Quiero unirme a la lista de espera de IOGGA");
-    var body = encodeURIComponent("¡Hola IOGGA!\n\nQuiero unirme a la lista de espera.\nMi correo: " + val + "\n\n¡Avísenme cuando lancen!");
-    window.location.href = "mailto:omareduardo_@hotmail.com?subject=" + subject + "&body=" + body;
-    msg.className="form-msg ok"; msg.textContent="¡Gracias! Abrimos tu correo para confirmar tu registro. 🎉";
-    form.reset();
+  /* download OS tabs */
+  var ti=document.getElementById("tabIos"),ta=document.getElementById("tabAndroid"),
+      si=document.getElementById("stepsIos"),sa=document.getElementById("stepsAndroid");
+  function os(ios){ti.setAttribute("aria-selected",ios?"true":"false");ta.setAttribute("aria-selected",ios?"false":"true");si.hidden=!ios;sa.hidden=ios;}
+  ti.addEventListener("click",function(){os(true);});ta.addEventListener("click",function(){os(false);});
+  if(/Android/i.test(navigator.userAgent))os(false);
+
+  /* PWA install */
+  var deferred=null, ib=document.getElementById("installBtn");
+  window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();deferred=e;ib.style.display="block";});
+  ib.addEventListener("click",function(){if(!deferred)return;deferred.prompt();deferred.userChoice.finally(function(){deferred=null;ib.style.display="none";});});
+
+  /* waitlist */
+  var f=document.getElementById("waitlistForm"),msg=document.getElementById("formMsg"),inp=document.getElementById("wlEmail"),
+      re=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  f.addEventListener("submit",function(e){
+    e.preventDefault();var v=inp.value.trim();
+    if(!re.test(v)){msg.className="form-msg err";msg.textContent="Escribe un correo válido, por favor.";inp.focus();return;}
+    var s=encodeURIComponent("Quiero unirme a la lista de espera de IOGGA"),
+        b=encodeURIComponent("¡Hola IOGGA!\n\nQuiero unirme a la lista de espera.\nMi correo: "+v+"\n\n¡Avísenme cuando lancen!");
+    window.location.href="mailto:omareduardo_@hotmail.com?subject="+s+"&body="+b;
+    msg.className="form-msg ok";msg.textContent="¡Gracias! Abrimos tu correo para confirmar. 🎉";f.reset();
   });
 
-  /* ambient converging particles: people (coral) from left, business (teal) from right */
-  var canvas = document.getElementById("ambient");
-  var ctx = canvas.getContext("2d");
-  var W, H, DPR, parts = [], raf;
-  function size(){
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
-    W = canvas.width = Math.floor(innerWidth * DPR);
-    H = canvas.height = Math.floor(innerHeight * DPR);
-    canvas.style.width = innerWidth + "px";
-    canvas.style.height = innerHeight + "px";
-  }
-  function make(){
-    parts = [];
-    var count = innerWidth < 640 ? 26 : 46;
-    for(var i=0;i<count;i++){
-      var side = i % 2 === 0 ? -1 : 1; // -1 coral(left), 1 teal(right)
-      parts.push({
-        side: side,
-        x: (side<0 ? Math.random()*0.42 : 0.58 + Math.random()*0.42) * W,
-        y: Math.random()*H,
-        r: (Math.random()*1.8 + 1) * DPR,
-        vx: (side<0 ? 1 : -1) * (Math.random()*0.18 + 0.05) * DPR,
-        vy: (Math.random()-0.5) * 0.12 * DPR,
-        a: Math.random()*0.5 + 0.25
-      });
-    }
-  }
-  function draw(){
-    ctx.clearRect(0,0,W,H);
-    var cx = W/2;
-    for(var i=0;i<parts.length;i++){
-      var p = parts[i];
-      p.x += p.vx; p.y += p.vy;
-      // recycle when crossing to far side
-      if((p.side<0 && p.x > W*0.62) || (p.side>0 && p.x < W*0.38)){
-        p.x = (p.side<0 ? Math.random()*0.15 : 0.85 + Math.random()*0.15) * W;
-        p.y = Math.random()*H;
-      }
-      var col = p.side<0 ? "255,91,121" : "18,225,192";
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-      ctx.fillStyle = "rgba("+col+","+p.a+")";
-      ctx.fill();
-    }
-    // connect near-center pairs -> "coincidencia"
-    for(var a=0;a<parts.length;a++){
-      for(var b=a+1;b<parts.length;b++){
-        var pa=parts[a], pb=parts[b];
-        if(pa.side===pb.side) continue;
-        var dx=pa.x-pb.x, dy=pa.y-pb.y, d=Math.sqrt(dx*dx+dy*dy);
-        var near = Math.abs((pa.x+pb.x)/2 - cx) < W*0.16;
-        if(d < 150*DPR && near){
-          ctx.beginPath();
-          ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y);
-          ctx.strokeStyle = "rgba(139,107,255,"+(0.16*(1-d/(150*DPR)))+")";
-          ctx.lineWidth = DPR;
-          ctx.stroke();
-        }
-      }
-    }
-    raf = requestAnimationFrame(draw);
-  }
-  if(!reduce){
-    size(); make(); draw();
-    var to;
-    window.addEventListener("resize", function(){
-      clearTimeout(to);
-      to = setTimeout(function(){ cancelAnimationFrame(raf); size(); make(); draw(); }, 200);
-    });
-  } else {
-    size(); make();
-    // draw a single static frame
-    var cx2=W/2;
-    parts.forEach(function(p){
-      var col = p.side<0 ? "255,91,121" : "18,225,192";
-      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fillStyle="rgba("+col+","+p.a+")"; ctx.fill();
-    });
-  }
+  /* register service worker (PWA) */
+  if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}
 })();
 </script>
 </body>

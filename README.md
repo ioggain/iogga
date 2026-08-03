@@ -1,74 +1,78 @@
 # IOGGA — Sitio web oficial
 
-Sitio web de **IOGGA**: la plataforma que convierte tu intención en un plan que sí sucede,
-conectando personas, planes y negocios locales. Chihuahua, México.
+**The Apportunity.** Sitio web de IOGGA, la plataforma que convierte tu intención en un plan real
+y conecta personas, planes y negocios locales.
 
-Es un sitio de **una sola página** (`index.html`), rápido, moderno y 100% gratis de hospedar
-con **GitHub Pages**.
+Sitio de **una sola página** (`index.html`), estilo limpio y contemporáneo (inspirado en Apple),
+que además se puede **instalar como app** en el celular (PWA). Hosting **100% gratis** con GitHub Pages.
 
 ---
 
-## 🚀 Cómo publicarlo GRATIS (paso a paso)
+## 🚀 Publicarlo GRATIS en tu dominio iogga.com (paso a paso)
 
 ### 1) Activar GitHub Pages
-1. Entra al repositorio en GitHub → pestaña **Settings** (Configuración).
-2. En el menú de la izquierda, clic en **Pages**.
-3. En **Source** elige **Deploy from a branch**.
-4. En **Branch** selecciona la rama donde está este código y la carpeta **/ (root)**.
-5. Clic en **Save**. En 1–2 minutos tu sitio estará en línea.
+1. En GitHub, abre el repositorio → pestaña **Settings**.
+2. Menú izquierdo → **Pages**.
+3. **Source**: *Deploy from a branch*.
+4. **Branch**: elige la rama con este código y carpeta **/(root)** → **Save**.
+5. En 1–2 minutos el sitio estará en línea.
 
-### 2) Conectar tu dominio de GoDaddy (www.iogga.com)
-El archivo `CNAME` ya está configurado con `www.iogga.com`.
+### 2) Conectar tu dominio de GoDaddy
+El archivo `CNAME` ya apunta a **iogga.com**. En **GoDaddy → Mis dominios → iogga.com → DNS**:
 
-En **GoDaddy** → *Mis dominios* → `iogga.com` → **DNS**:
-
-**a) Para `www` (recomendado):** crea/edita un registro **CNAME**
+**a) Dominio raíz `iogga.com`** — crea estos 4 registros **A**:
 ```
-Tipo: CNAME   |   Nombre: www   |   Valor: <tu-usuario>.github.io
-```
-
-**b) Para el dominio raíz `iogga.com`:** crea **4 registros A** apuntando a GitHub Pages:
-```
-Tipo: A   |   Nombre: @   |   Valor: 185.199.108.153
-Tipo: A   |   Nombre: @   |   Valor: 185.199.109.153
-Tipo: A   |   Nombre: @   |   Valor: 185.199.110.153
-Tipo: A   |   Nombre: @   |   Valor: 185.199.111.153
+Tipo A · Nombre @ · Valor 185.199.108.153
+Tipo A · Nombre @ · Valor 185.199.109.153
+Tipo A · Nombre @ · Valor 185.199.110.153
+Tipo A · Nombre @ · Valor 185.199.111.153
 ```
 
-Luego en GitHub → **Settings → Pages → Custom domain** escribe `www.iogga.com` y guarda.
-Activa también **Enforce HTTPS** (puede tardar unos minutos en habilitarse).
+**b) Subdominio `www`** — crea un registro **CNAME**:
+```
+Tipo CNAME · Nombre www · Valor <tu-usuario>.github.io
+```
 
-> Los cambios de DNS pueden tardar de unos minutos hasta 24 horas en propagarse.
+Luego en GitHub → **Settings → Pages → Custom domain** escribe `iogga.com`, guarda y activa
+**Enforce HTTPS**.
+
+> El DNS puede tardar de unos minutos hasta 24 h en propagar.
 
 ---
 
-## ✏️ Cómo editar el sitio (fácil)
+## 📱 "Descargar" la app (PWA)
+El sitio ya es una **app instalable**. En la sección **Descargar** se explica al visitante cómo
+ponerla en la pantalla de inicio:
+- **iPhone (Safari):** Compartir → *Agregar a inicio*.
+- **Android (Chrome):** menú ⋮ → *Instalar app*.
 
-Todo el contenido está en **`index.html`**. Para cambiar textos:
+Cuando la app nativa esté lista en **App Store / Google Play**, solo hay que reemplazar los
+enlaces de los badges "Pronto" en la sección `#descargar`.
 
-1. En GitHub, abre `index.html` y haz clic en el lápiz ✏️ (**Edit**).
-2. Cambia el texto que quieras (busca la palabra que ves en la página).
-3. Baja y haz clic en **Commit changes**. ¡Listo, se actualiza solo!
+Archivos que hacen posible la instalación: `manifest.webmanifest`, `sw.js`, y los íconos en `assets/`.
 
-O simplemente pídele a tu asistente los cambios y él los hace por ti.
+---
 
-### Cosas rápidas que puedes personalizar
-- **Correo / teléfono / redes:** están en el `<footer>` y en el botón de WhatsApp.
-- **Lista de espera:** hoy abre un correo prellenado hacia `omareduardo_@hotmail.com`.
-  Para guardar correos automáticamente, crea un formulario gratis en
-  [Formspree](https://formspree.io) o [Google Forms](https://forms.google.com) y
-  reemplaza la lógica del `<form id="waitlistForm">` por el endpoint que te den.
+## ✏️ Cómo editar
+Todo el contenido está en **`index.html`**. En GitHub, abre el archivo → lápiz ✏️ → cambia el texto
+→ **Commit changes**. O pídele los cambios a tu asistente.
+
+- **Contacto / redes:** en el `<footer>` y el botón de WhatsApp.
+- **Fundadores:** sección `#fundadores` (hoy con monogramas; sube fotos profesionales para reemplazarlos).
+- **Lista de espera:** hoy abre un correo prellenado a `omareduardo_@hotmail.com`. Para guardar
+  correos automáticamente, usa [Formspree](https://formspree.io) o Google Forms y conecta el `<form>`.
 
 ---
 
 ## 📁 Archivos
-| Archivo        | Para qué sirve                                  |
-|----------------|-------------------------------------------------|
-| `index.html`   | Todo el sitio (diseño + textos + interacción)   |
-| `CNAME`        | Tu dominio personalizado (`www.iogga.com`)      |
-| `robots.txt`   | SEO — permite que Google indexe el sitio        |
-| `sitemap.xml`  | SEO — mapa del sitio para buscadores            |
+| Archivo | Para qué sirve |
+|---|---|
+| `index.html` | Todo el sitio (diseño, textos, interacción) |
+| `manifest.webmanifest` · `sw.js` | Hacen la web instalable como app (PWA) |
+| `assets/` | Logo e íconos de la app |
+| `CNAME` | Dominio personalizado (`iogga.com`) |
+| `robots.txt` · `sitemap.xml` | SEO |
 
 ---
 
-*Convertimos la intención en oportunidad.*
+*The Apportunity — que los mejores momentos no dependan de la suerte.*

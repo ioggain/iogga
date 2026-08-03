@@ -14,7 +14,11 @@
 <meta property="og:description" content="La app donde tus planes cobran vida y conectar es más fácil que nunca." />
 <meta property="og:url" content="https://www.iogga.com/" />
 <meta property="og:locale" content="es_MX" />
+<meta property="og:image" content="https://www.iogga.com/assets/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://www.iogga.com/assets/og.png" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -89,8 +93,7 @@
     margin:-.25rem;cursor:pointer;font-family:inherit;border-radius:12px;transition:opacity .2s}
   .logo:hover{opacity:.65}
   .logo:focus-visible{outline:3px solid rgba(99,102,241,.5);outline-offset:2px}
-  .logo .mark{width:calc(var(--h)*1.04);height:var(--h);background:var(--primary);
-    -webkit-mask:url(assets/logo-mask.png) center/contain no-repeat;mask:url(assets/logo-mask.png) center/contain no-repeat}
+  .logo .mark{width:var(--h);height:var(--h);border-radius:50%;background:var(--primary);flex:none}
   .logo .word{font-weight:600;font-size:1.32rem;letter-spacing:-.035em;color:var(--ink)}
 
   /* NAV */
@@ -128,8 +131,8 @@
   .hero .lead{max-width:42ch;margin:1.4rem auto 0}
   .hero-cta{display:flex;flex-wrap:wrap;gap:.6rem 1.5rem;justify-content:center;align-items:center;margin-top:2.1rem}
   .hero-note{margin-top:1.1rem;font-size:.86rem;color:var(--ink-3)}
-  .hero-mark{width:78px;height:78px;margin:0 auto 1.8rem;background:var(--primary);
-    -webkit-mask:url(assets/logo-mask.png) center/contain no-repeat;mask:url(assets/logo-mask.png) center/contain no-repeat}
+  .hero-mark{width:74px;height:74px;margin:0 auto 1.8rem;border-radius:50%;background:var(--primary);
+    box-shadow:0 16px 40px -16px rgba(99,102,241,.75)}
 
   /* pill row */
   .pills{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-top:2.6rem}

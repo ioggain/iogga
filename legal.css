@@ -23,8 +23,7 @@ h1,h2{margin:0;font-weight:700;letter-spacing:-.03em;line-height:1.1;text-wrap:b
   padding:.25rem;margin:-.25rem;cursor:pointer;font-family:inherit;border-radius:12px;transition:opacity .2s;text-decoration:none}
 .logo:hover{opacity:.65;text-decoration:none}
 .logo:focus-visible{outline:3px solid rgba(99,102,241,.5);outline-offset:2px}
-.logo .mark{width:calc(var(--h)*1.04);height:var(--h);background:var(--primary);
-  -webkit-mask:url(assets/logo-mask.png) center/contain no-repeat;mask:url(assets/logo-mask.png) center/contain no-repeat}
+.logo .mark{width:var(--h);height:var(--h);border-radius:50%;background:var(--primary);flex:none}
 .logo .word{font-weight:600;font-size:1.32rem;letter-spacing:-.035em;color:var(--ink)}
 .nav a.back{font-size:.88rem;color:var(--ink-2)}
 

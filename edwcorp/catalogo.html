@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Catálogo de programas y talleres — EdwCorp</title>
+<meta name="description" content="55 programas de capacitación con objetivo, público y duración definidos: gestión de proyectos, PMO, liderazgo, negocios, mercadotecnia, innovación y tecnología." />
+<meta name="theme-color" content="#0a1c2e" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230a1c2e'/%3E%3Cpath d='M30 28h42v11H43v11h26v11H43v11h29v11H30z' fill='%23fff'/%3E%3C/svg%3E" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Catálogo de programas y talleres — EdwCorp" />
+<meta property="og:description" content="55 programas listos para implementar o adaptar a tu organización." />
+<meta property="og:url" content="https://www.edwcorp.org/catalogo.html" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet" />
+
+<style>
+  :root{
+    --navy:#0a1c2e;--brand:#1257a6;--brand-ink:#0d4382;--gold:#b08528;--gold-soft:#d8b25c;
+    --ink:#101b26;--ink-2:#4d5b6b;--ink-3:#7b8894;--bg:#fff;--bg-2:#f4f6f9;--line:#e3e8ee;--line-2:#cfd7e0;
+    --wide:1200px;--pad:clamp(20px,5vw,34px);--r:14px;
+    --f:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --fd:"Source Serif 4",Georgia,serif;
+    --ease:cubic-bezier(.28,.11,.32,1);
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:1.02rem;line-height:1.6;
+    letter-spacing:-.008em;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  h1,h2{margin:0;font-family:var(--fd);font-weight:700;letter-spacing:-.025em;line-height:1.1}
+  h1{font-size:clamp(2.1rem,1.5rem + 2.6vw,3.2rem)}
+  h3{margin:0;font-size:1.02rem;font-weight:700;line-height:1.35}
+  p{margin:0}a{color:inherit;text-decoration:none}ul{margin:0;padding:0;list-style:none}
+  .wrap{width:100%;max-width:var(--wide);margin-inline:auto;padding-inline:var(--pad)}
+  .eyebrow{font-size:.76rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-soft);
+    display:flex;align-items:center;gap:.6rem;margin-bottom:1rem}
+  .eyebrow::before{content:"";width:26px;height:2px;background:var(--gold-soft)}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;font-family:inherit;font-size:.98rem;
+    font-weight:600;padding:.85em 1.6em;border-radius:6px;border:1px solid transparent;cursor:pointer;
+    transition:background .22s var(--ease),border-color .22s}
+  .btn-fill{background:var(--brand);color:#fff}.btn-fill:hover{background:var(--brand-ink)}
+  .btn-gold{background:var(--gold);color:#1c1403}.btn-gold:hover{background:var(--gold-soft)}
+  .btn-ghost{border-color:rgba(255,255,255,.32);color:#fff}.btn-ghost:hover{background:rgba(255,255,255,.1)}
+
+  .logo{display:inline-flex;align-items:baseline;font-weight:800;font-size:1.3rem;letter-spacing:-.045em;color:var(--navy)}
+  .logo i{font-style:normal;color:var(--brand)}
+  .logo .dot{width:5px;height:5px;border-radius:50%;background:var(--gold);align-self:center;margin-left:.28rem}
+  .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.9);backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;height:64px;max-width:var(--wide);
+    margin-inline:auto;padding-inline:var(--pad)}
+  .nav-in .back{font-size:.9rem;color:var(--ink-2);font-weight:500}
+  .nav-in .back:hover{color:var(--brand)}
+  .nav-in .btn{font-size:.85rem;padding:.6em 1.15em}
+  .nav-mid{display:flex;gap:1.5rem}
+  @media (max-width:700px){.nav-mid{display:none}}
+
+  .top{background:linear-gradient(165deg,#0a1c2e,#123457);color:#fff;padding:clamp(56px,8vw,90px) 0 clamp(50px,7vw,80px)}
+  .top h1{color:#fff;max-width:20ch}
+  .top p{margin-top:1.2rem;color:#b3c6d9;font-size:clamp(1.02rem,.98rem + .4vw,1.25rem);max-width:62ch}
+
+  .tools{position:sticky;top:64px;z-index:90;background:rgba(255,255,255,.95);backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);padding:1rem 0}
+  .tools-in{display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+  .search{position:relative;flex:1;min-width:230px}
+  .search svg{position:absolute;left:.85rem;top:50%;transform:translateY(-50%);width:17px;height:17px;color:var(--ink-3)}
+  .search input{width:100%;font-family:inherit;font-size:.98rem;padding:.7em .9em .7em 2.5rem;border:1px solid var(--line-2);
+    border-radius:8px;background:#fff;color:var(--ink);transition:border-color .2s,box-shadow .2s}
+  .search input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(18,87,166,.14)}
+  .filters{display:flex;gap:.5rem;flex-wrap:wrap}
+  .filters button{font-family:inherit;font-size:.86rem;font-weight:600;padding:.55em 1.05em;border-radius:999px;
+    border:1px solid var(--line-2);background:#fff;color:var(--ink-2);cursor:pointer;transition:all .2s}
+  .filters button:hover{border-color:var(--brand);color:var(--brand)}
+  .filters button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+  .count{font-size:.86rem;color:var(--ink-3);white-space:nowrap}
+
+  main{padding:clamp(34px,5vw,58px) 0 clamp(56px,8vw,96px)}
+  .catgroup{margin-bottom:clamp(34px,4.5vw,56px)}
+  .catgroup h2{font-size:clamp(1.35rem,1.15rem + .9vw,1.85rem);padding-bottom:.9rem;border-bottom:2px solid var(--navy);
+    display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+  .catgroup h2 span{font-family:var(--f);font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--gold)}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.3rem}
+  @media (max-width:960px){.cards{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:620px){.cards{grid-template-columns:1fr}}
+  .course{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:1.35rem 1.35rem 1.45rem;
+    display:flex;flex-direction:column;gap:.7rem;transition:border-color .22s,box-shadow .22s,transform .22s var(--ease)}
+  .course:hover{border-color:var(--line-2);box-shadow:0 12px 30px rgba(10,28,46,.07);transform:translateY(-2px)}
+  .course .obj{font-size:.93rem;color:var(--ink-2)}
+  .course .meta{margin-top:auto;padding-top:.85rem;border-top:1px dashed var(--line-2);display:grid;gap:.4rem}
+  .course .meta div{display:flex;gap:.5rem;align-items:flex-start;font-size:.84rem;color:var(--ink-3)}
+  .course .meta b{color:var(--ink-2);font-weight:600;min-width:5.6rem;flex:none}
+  .hours{align-self:flex-start;font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--brand);background:rgba(18,87,166,.08);border-radius:999px;padding:.32em .8em}
+  .empty{text-align:center;color:var(--ink-3);padding:3rem 0}
+
+  .cta{background:var(--bg-2);border-top:1px solid var(--line);padding:clamp(48px,7vw,86px) 0}
+  .ctabox{background:linear-gradient(150deg,#0e2b47,#123457);color:#fff;border-radius:22px;padding:clamp(2rem,4vw,3.2rem);
+    display:flex;gap:2rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .ctabox h2{color:#fff;font-size:clamp(1.5rem,1.2rem + 1.5vw,2.2rem)}
+  .ctabox p{color:#b3c6d9;margin-top:.8rem;max-width:54ch}
+  footer{background:var(--navy);color:#9fb4c8;padding:2.6rem 0;font-size:.9rem}
+  .fin{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+  footer a:hover{color:#fff}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="index.html" class="logo"><b>Edw</b><i>Corp</i><span class="dot"></span></a>
+    <div class="nav-mid">
+      <a class="back" href="index.html">← Volver al inicio</a>
+    </div>
+    <a class="btn btn-fill" href="index.html#contacto">Solicitar propuesta</a>
+  </div>
+</nav>
+
+<header class="top">
+  <div class="wrap">
+    <p class="eyebrow">Catálogo</p>
+    <h1>Programas y talleres listos para implementar.</h1>
+    <p>Cada programa incluye objetivo, público y duración de referencia. Se imparten tal cual, se combinan en rutas de formación por puesto o se rediseñan por completo para tu organización. También desarrollamos programas nuevos a la medida, incluidos los de STEM, software y hardware.</p>
+  </div>
+</header>
+
+<div class="tools">
+  <div class="wrap tools-in">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="search" id="q" placeholder="Buscar programa, tema o público…" aria-label="Buscar en el catálogo" />
+    </div>
+    <div class="filters" id="filters" role="group" aria-label="Filtrar por área"></div>
+    <span class="count" id="count"></span>
+  </div>
+</div>
+
+<main>
+  <div class="wrap" id="list"></div>
+</main>
+
+<section class="cta">
+  <div class="wrap">
+    <div class="ctabox">
+      <div>
+        <h2>¿No encuentras exactamente lo que necesitas?</h2>
+        <p>La mayoría de nuestros proyectos empieza así. Diseñamos el programa completo desde cero: competencias, contenidos, materiales, evaluación y medición de impacto.</p>
+      </div>
+      <a class="btn btn-gold" href="index.html#contacto">Diseñar un programa a medida</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap fin">
+    <span>© <span id="year">2026</span> EdwCorp. Todos los derechos reservados.</span>
+    <span><a href="index.html">Inicio</a> · <a href="privacidad.html">Privacidad</a> · <a href="mailto:CEO@edwcorp.org">CEO@edwcorp.org</a></span>
+  </div>
+</footer>
+
+<script>
+document.getElementById("year").textContent = new Date().getFullYear();
+
+var CATS = [
+  { id:"proyectos",  nombre:"Dirección y administración de proyectos" },
+  { id:"equipos",    nombre:"Gestión de equipos y liderazgo" },
+  { id:"negocios",   nombre:"Negocios y emprendimiento" },
+  { id:"marketing",  nombre:"Mercadotecnia y ventas" },
+  { id:"innovacion", nombre:"Innovación y transformación digital" }
+];
+
+var CURSOS = [
+  /* --- Dirección y administración de proyectos --- */
+  {c:"proyectos",s:"Habilidades técnicas y herramientas avanzadas",n:"Gestión del cronograma (CPM, PERT, Gantt, WBS)",o:"Aplicar técnicas como CPM y PERT para la planificación y control del cronograma de proyectos.",d:"Gerentes de proyectos, planners y equipos de planificación.",h:10},
+  {c:"proyectos",s:"Habilidades técnicas y herramientas avanzadas",n:"Estimación de costos y presupuestos en proyectos",o:"Desarrollar habilidades para estimar costos y gestionar presupuestos eficientemente.",d:"Gerentes de proyectos, financieros y equipos de planificación.",h:10},
+  {c:"proyectos",s:"Habilidades técnicas y herramientas avanzadas",n:"Gestión de riesgos en proyectos",o:"Identificar, analizar y mitigar riesgos en proyectos de cualquier industria.",d:"Gerentes de proyectos, líderes de equipos y analistas de riesgos.",h:12},
+  {c:"proyectos",s:"Habilidades técnicas y herramientas avanzadas",n:"Gestión de reportes e informes de resultados",o:"Estructurar y presentar reportes de progreso y resultados de proyectos de manera efectiva.",d:"Gerentes de proyectos, analistas y equipos de PMO.",h:8},
+  {c:"proyectos",s:"Habilidades técnicas y herramientas avanzadas",n:"Gestión de calidad en proyectos (ISO 9001)",o:"Aplicar los principios de calidad basados en la norma ISO 9001 en la gestión de proyectos.",d:"Líderes de calidad, project managers y auditores.",h:12},
+  {c:"proyectos",s:"Habilidades técnicas y herramientas avanzadas",n:"Mejora continua aplicada a proyectos (Lean y Six Sigma)",o:"Implementar metodologías Lean y Six Sigma para optimizar procesos en proyectos.",d:"Gerentes de mejora continua, project managers y equipos de calidad.",h:12},
+  {c:"proyectos",s:"Estrategias para PMO",n:"Métricas clave y KPIs en proyectos",o:"Definir e implementar indicadores clave de desempeño para el monitoreo efectivo de proyectos.",d:"Gerentes de proyectos, analistas y equipos de PMO.",h:10},
+  {c:"proyectos",s:"Estrategias para PMO",n:"Gobernanza de proyectos y portafolios",o:"Establecer estructuras y procesos de gobernanza para la gestión estratégica de proyectos y portafolios.",d:"Directivos, líderes de PMO y gerentes de proyectos.",h:12},
+  {c:"proyectos",s:"Estrategias para PMO",n:"Transformación digital en PMOs",o:"Integrar herramientas y tecnologías digitales para modernizar la gestión de proyectos en una PMO.",d:"Líderes de PMO, gerentes de proyectos y equipos de transformación digital.",h:12},
+  {c:"proyectos",s:"Estrategias para PMO",n:"Implementación de PMOs",o:"Diseñar e implementar oficinas de gestión de proyectos en entornos ágiles, híbridos y tradicionales.",d:"Gerentes de proyectos, Scrum Masters y líderes de transformación organizacional.",h:10},
+  {c:"proyectos",s:"Estrategias para PMO",n:"Introducción a la gestión de proyectos",o:"Conocer los principios básicos de la gestión de proyectos y su aplicación en distintos ámbitos.",d:"Profesionales sin experiencia en gestión de proyectos, emprendedores y estudiantes.",h:8},
+  {c:"proyectos",s:"Estrategias para PMO",n:"Herramientas básicas para la gestión de proyectos",o:"Aprender el uso de herramientas digitales para la planificación y seguimiento de proyectos.",d:"Profesionales de gestión de proyectos, equipos de trabajo y emprendedores.",h:12},
+  {c:"proyectos",s:"Metodologías ágiles y frameworks",n:"Implementación de Kanban en organizaciones",o:"Aplicar Kanban para mejorar la gestión del flujo de trabajo y la eficiencia organizacional.",d:"Equipos de proyectos, gerentes de operaciones y líderes ágiles.",h:10},
+  {c:"proyectos",s:"Metodologías ágiles y frameworks",n:"Hybrid Project Management",o:"Integrar metodologías híbridas para la gestión flexible y eficiente de proyectos.",d:"Gerentes de proyectos, PMOs y equipos de desarrollo.",h:12},
+  {c:"proyectos",s:"Metodologías ágiles y frameworks",n:"Gestión de proyectos ágiles",o:"Conocer las características clave de los proyectos ágiles y sus beneficios.",d:"Profesionales interesados en metodologías ágiles, líderes de equipo y gerentes.",h:8},
+  {c:"proyectos",s:"Metodologías ágiles y frameworks",n:"SCRUM: principios y prácticas clave",o:"Aplicar los principios y roles de Scrum para una gestión ágil efectiva.",d:"Scrum Masters, Product Owners y equipos de desarrollo.",h:10},
+
+  /* --- Gestión de equipos y liderazgo --- */
+  {c:"equipos",s:"Liderazgo y desarrollo",n:"Desarrollo de talento",o:"Potenciar las habilidades y competencias de los colaboradores para su crecimiento profesional.",d:"Profesionales y líderes en desarrollo.",h:8},
+  {c:"equipos",s:"Liderazgo y desarrollo",n:"Habilidades directivas",o:"Mejorar la capacidad de liderazgo, toma de decisiones y gestión de equipos.",d:"Gerentes, supervisores y líderes de equipo.",h:12},
+  {c:"equipos",s:"Liderazgo y desarrollo",n:"Liderazgo y gestión de equipos de trabajo",o:"Desarrollar estrategias efectivas para liderar y motivar equipos.",d:"Líderes de equipo, gerentes y jefes de área.",h:10},
+  {c:"equipos",s:"Liderazgo y desarrollo",n:"Gestión de equipos distribuidos o remotos",o:"Brindar herramientas para liderar y coordinar equipos en distintas ubicaciones.",d:"Gerentes, supervisores y líderes de equipos remotos.",h:10},
+  {c:"equipos",s:"Liderazgo y desarrollo",n:"Gestión de equipos de alto rendimiento",o:"Desarrollar equipos altamente productivos y motivados.",d:"Líderes y gerentes.",h:12},
+  {c:"equipos",s:"Liderazgo y desarrollo",n:"Coaching y mentoring para gerentes de proyectos",o:"Implementar estrategias de coaching y mentoring en la gestión de proyectos.",d:"Gerentes de proyectos y líderes de equipo.",h:10},
+  {c:"equipos",s:"Productividad y cambio",n:"Administración del tiempo",o:"Optimizar la gestión del tiempo y aumentar la productividad.",d:"Profesionales y líderes de equipo.",h:6},
+  {c:"equipos",s:"Productividad y cambio",n:"Gestión del cambio organizacional",o:"Implementar estrategias efectivas para gestionar el cambio en las organizaciones.",d:"Directivos, gerentes y líderes de cambio.",h:12},
+  {c:"equipos",s:"Productividad y cambio",n:"Ciencia y estrategias en reuniones de trabajo",o:"Optimizar la gestión y productividad de las reuniones laborales.",d:"Profesionales que dirigen reuniones.",h:6},
+  {c:"equipos",s:"Productividad y cambio",n:"Mindfulness y cultura física",o:"Aplicar técnicas de mindfulness para mejorar el bienestar y la productividad.",d:"Profesionales en cualquier sector.",h:6},
+  {c:"equipos",s:"Comunicación y negociación",n:"Stakeholder management y negociación",o:"Mejorar la gestión de partes interesadas y las habilidades de negociación.",d:"Gerentes de proyectos y líderes de equipo.",h:8},
+  {c:"equipos",s:"Comunicación y negociación",n:"Comunicación efectiva en proyectos",o:"Desarrollar habilidades de comunicación clara y efectiva en el contexto de proyectos.",d:"Profesionales de gestión de proyectos.",h:8},
+  {c:"equipos",s:"Comunicación y negociación",n:"Resolución de conflictos en equipos de proyecto",o:"Brindar estrategias para la gestión y resolución de conflictos en equipos.",d:"Líderes de equipo y gerentes de proyectos.",h:8},
+  {c:"equipos",s:"Comunicación y negociación",n:"Comunicación efectiva y asertiva",o:"Fortalecer habilidades de comunicación clara y persuasiva.",d:"Profesionales de cualquier área.",h:6},
+
+  /* --- Negocios y emprendimiento --- */
+  {c:"negocios",s:"Empresas y negocios",n:"Desarrollo de startups",o:"Proporcionar herramientas para la creación y crecimiento de startups.",d:"Emprendedores, empresarios y líderes de proyectos.",h:12},
+  {c:"negocios",s:"Empresas y negocios",n:"Reingeniería de empresas",o:"Optimizar procesos y rediseñar estrategias para mejorar el rendimiento empresarial.",d:"Directivos, gerentes y consultores de negocio.",h:12},
+  {c:"negocios",s:"Empresas y negocios",n:"Diseño de plan de negocios",o:"Crear planes de negocio efectivos para el crecimiento y la sostenibilidad de las empresas.",d:"Emprendedores, empresarios y gerentes.",h:10},
+  {c:"negocios",s:"Empresas y negocios",n:"Desarrollo organizacional",o:"Implementar estrategias para fortalecer la estructura y la cultura organizacional.",d:"Directivos, gerentes de RR. HH. y consultores organizacionales.",h:12},
+  {c:"negocios",s:"Empresas y negocios",n:"Comunicación interna empresarial",o:"Mejorar la comunicación dentro de la empresa para fomentar la colaboración y la eficiencia.",d:"Profesionales de RR. HH., líderes de equipo y directivos.",h:8},
+  {c:"negocios",s:"Empresas y negocios",n:"Desarrollo de nuevos productos y servicios",o:"Diseñar e implementar estrategias de innovación en productos y servicios.",d:"Equipos de innovación, marketing y desarrollo de negocios.",h:10},
+  {c:"negocios",s:"Empresas y negocios",n:"Gestión de crisis",o:"Brindar estrategias para la toma de decisiones y el liderazgo en situaciones de crisis.",d:"Directivos, gerentes y líderes de equipo.",h:8},
+  {c:"negocios",s:"Empresas y negocios",n:"Planeación estratégica",o:"Diseñar e implementar planes estratégicos alineados con los objetivos organizacionales.",d:"Directivos, gerentes y consultores de negocio.",h:12},
+  {c:"negocios",s:"Empresas y negocios",n:"Emprende en cabeza ajena",o:"Fomentar la creatividad y la innovación en procesos y productos.",d:"Emprendedores, gerentes y equipos de innovación.",h:8},
+
+  /* --- Mercadotecnia y ventas --- */
+  {c:"marketing",s:"Mercadotecnia y ventas",n:"Plan integral de mercadotecnia",o:"Diseñar estrategias de marketing efectivas para el posicionamiento y crecimiento de la empresa.",d:"Profesionales de marketing, emprendedores y gerentes de negocio.",h:12},
+  {c:"marketing",s:"Mercadotecnia y ventas",n:"Gestión de ventas",o:"Optimizar el proceso de ventas y fortalecer la relación con los clientes.",d:"Ejecutivos de ventas, gerentes comerciales y emprendedores.",h:10},
+  {c:"marketing",s:"Mercadotecnia y ventas",n:"Estrategia del pitch",o:"Desarrollar presentaciones persuasivas para captar inversores, clientes o socios.",d:"Emprendedores, vendedores y equipos comerciales.",h:8},
+  {c:"marketing",s:"Mercadotecnia y ventas",n:"Identidad e imagen corporativa",o:"Construir y gestionar una identidad de marca sólida y coherente.",d:"Equipos de marketing, diseñadores y empresarios.",h:10},
+  {c:"marketing",s:"Mercadotecnia y ventas",n:"Técnicas de negociación",o:"Mejorar las habilidades de negociación para alcanzar acuerdos exitosos.",d:"Profesionales de ventas, gerentes y líderes de equipo.",h:8},
+  {c:"marketing",s:"Mercadotecnia y ventas",n:"Servicio y atención al cliente",o:"Crear conciencia del trato que se necesita para elevar la opinión y la satisfacción de los clientes.",d:"Personal administrativo, comercial y de servicio al cliente.",h:4},
+
+  /* --- Innovación y transformación digital --- */
+  {c:"innovacion",s:"Innovación y tecnología",n:"Transformación digital y herramientas digitales para PyMEs",o:"Implementar estrategias digitales para mejorar la competitividad empresarial.",d:"Directivos, gerentes y empresarios.",h:12},
+  {c:"innovacion",s:"Innovación y tecnología",n:"Inteligencia artificial para administrativos",o:"Utilizar herramientas de IA aplicadas a procesos administrativos.",d:"Personal administrativo de empresas e instituciones educativas.",h:10},
+  {c:"innovacion",s:"Innovación y tecnología",n:"Análisis de datos con IA y Power BI",o:"Optimizar los procesos de toma de decisiones y reportes con herramientas tecnológicas.",d:"Pequeñas y medianas empresas.",h:10},
+  {c:"innovacion",s:"Innovación y tecnología",n:"Gestión de proyectos tecnológicos",o:"Aplicar metodologías para la planificación y ejecución de proyectos tecnológicos.",d:"Gerentes de TI, líderes de proyectos y desarrolladores.",h:12},
+  {c:"innovacion",s:"Innovación y tecnología",n:"Introducción al diseño de proyectos IoT",o:"Comprender los fundamentos y aplicaciones del Internet de las Cosas (IoT).",d:"Ingenieros, desarrolladores y emprendedores tecnológicos.",h:10},
+  {c:"innovacion",s:"Innovación y tecnología",n:"Office 365 y Google Workspace",o:"Dominar las herramientas de productividad y colaboración de Microsoft y Google con mayor eficiencia.",d:"Profesionales y equipos de trabajo.",h:6},
+  {c:"innovacion",s:"Innovación y tecnología",n:"Microsoft Teams intermedio y avanzado",o:"Profundizar en el uso de Microsoft Teams para mejorar la colaboración en equipos.",d:"Empresas, docentes y equipos de trabajo.",h:6},
+  {c:"innovacion",s:"Innovación y tecnología",n:"Vigilancia tecnológica con Google Alerts",o:"Utilizar Google Alerts para monitorear tendencias y competencia en el mercado.",d:"Emprendedores, analistas y equipos de innovación.",h:6},
+  {c:"innovacion",s:"Innovación y tecnología",n:"Aviso de privacidad y protección de datos personales",o:"Conocer las normativas y mejores prácticas para la protección de datos.",d:"Empresas, abogados y responsables de cumplimiento normativo.",h:8},
+  {c:"innovacion",s:"Innovación y tecnología",n:"Divulgación científica y tecnológica",o:"Desarrollar habilidades para comunicar avances científicos y tecnológicos de manera efectiva.",d:"Investigadores, docentes y divulgadores.",h:10}
+];
+
+var listEl = document.getElementById("list"),
+    countEl = document.getElementById("count"),
+    qEl = document.getElementById("q"),
+    filtersEl = document.getElementById("filters");
+
+var activo = "todos";
+
+/* Botones de filtro */
+function buildFilters(){
+  var html = '<button type="button" data-cat="todos" aria-pressed="true">Todas</button>';
+  CATS.forEach(function(c){
+    var n = CURSOS.filter(function(x){ return x.c === c.id; }).length;
+    html += '<button type="button" data-cat="'+c.id+'" aria-pressed="false">'+c.nombre.split(" y ")[0]+' ('+n+')</button>';
+  });
+  filtersEl.innerHTML = html;
+  filtersEl.querySelectorAll("button").forEach(function(b){
+    b.addEventListener("click", function(){
+      activo = b.dataset.cat;
+      filtersEl.querySelectorAll("button").forEach(function(o){
+        o.setAttribute("aria-pressed", o === b ? "true" : "false");
+      });
+      render();
+    });
+  });
+}
+
+function norm(s){ return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""); }
+
+function render(){
+  var q = norm(qEl.value.trim());
+  var res = CURSOS.filter(function(x){
+    if (activo !== "todos" && x.c !== activo) return false;
+    if (!q) return true;
+    return norm(x.n + " " + x.o + " " + x.d + " " + x.s).indexOf(q) > -1;
+  });
+
+  countEl.textContent = res.length + (res.length === 1 ? " programa" : " programas");
+
+  if (!res.length){
+    listEl.innerHTML = '<p class="empty">No encontramos programas con ese criterio.<br>Escríbenos y lo diseñamos a la medida.</p>';
+    return;
+  }
+
+  var html = "";
+  CATS.forEach(function(cat){
+    var grupo = res.filter(function(x){ return x.c === cat.id; });
+    if (!grupo.length) return;
+    html += '<section class="catgroup"><h2>'+cat.nombre+'<span>'+grupo.length+' programas</span></h2><div class="cards">';
+    grupo.forEach(function(x){
+      html += '<article class="course">' +
+                '<span class="hours">'+x.h+' horas</span>' +
+                '<h3>'+x.n+'</h3>' +
+                '<p class="obj">'+x.o+'</p>' +
+                '<div class="meta">' +
+                  '<div><b>Dirigido a</b><span>'+x.d+'</span></div>' +
+                  '<div><b>Módulo</b><span>'+x.s+'</span></div>' +
+                '</div>' +
+              '</article>';
+    });
+    html += '</div></section>';
+  });
+  listEl.innerHTML = html;
+}
+
+buildFilters();
+qEl.addEventListener("input", render);
+render();
+</script>
+</body>
+</html>

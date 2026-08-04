@@ -43,6 +43,116 @@
   --ease-iogga: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   MODO CLARO DE IOGGA
+   ──────────────────────────────────────────────────────────────────────────
+   Toda la app está escrita con la escala "zinc" y con blanco/negro. Tailwind
+   los sirve como variables de color, así que cambiando las variables aquí
+   cambia la app ENTERA: ni una pantalla se toca a mano y nunca puede quedar
+   una mitad clara y otra oscura.
+
+   La paleta es hueso y tinta, cálida, tipo estudio de yoga:
+   ningún blanco puro (#faf8f4 es hueso, no blanco) y ninguna tinta negra
+   (#232019 es café muy oscuro, no negro). Todos los tonos comparten la misma
+   temperatura cálida, por eso combinan entre sí.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root[data-theme="light"] {
+  /* Fondos y superficies: del hueso más claro al papel más marcado */
+  --color-zinc-950: #faf8f4; /* fondo de la app */
+  --color-zinc-900: #f3efe8; /* tarjetas y hojas */
+  --color-zinc-800: #e9e4da;
+  --color-zinc-700: #d8d2c6;
+
+  /* Textos: del más tenue al más firme */
+  --color-zinc-600: #aca496;
+  --color-zinc-500: #8b8477;
+  --color-zinc-400: #6c6558;
+  --color-zinc-300: #514b3f;
+  --color-zinc-200: #3c372d;
+  --color-zinc-100: #2e2a21;
+  --color-zinc-50: #241f18;
+
+  /* Tinta: sustituye al blanco. Así "texto blanco" se vuelve texto tinta y
+     "fondo blanco al 5%" se vuelve un velo de tinta al 5%, sin tocar nada. */
+  --color-white: #232019;
+  /* El velo que oscurece el fondo cuando se abre una ventana: gris cálido
+     suave, nunca negro plano. Con el desenfoque queda como vidrio esmerilado. */
+  --color-black: #6b6355;
+
+  /* Marca, un punto más profunda para que respire sobre el hueso */
+  --color-iogga-primary: #5a52d5;
+  --color-iogga-accent: #0e9285;
+  --color-iogga-dark: #faf8f4;
+
+  /* Los acentos (verde de éxito, rojo de peligro, ámbar de aviso…) están
+     escritos en tonos claros, pensados para leerse sobre negro. Aquí se
+     cambian por su versión profunda, que es la que se lee sobre hueso. Es el
+     mismo color, la misma intención, con el contraste al derecho. */
+  --color-emerald-200: #065f46; --color-emerald-300: #047857; --color-emerald-400: #059669;
+  --color-green-200:   #14532d; --color-green-300:   #15803d; --color-green-400:   #16a34a;
+  --color-teal-300:    #0f766e; --color-teal-400:    #0d9488;
+  --color-red-200:     #7f1d1d; --color-red-300:     #b91c1c; --color-red-400:     #dc2626;
+  --color-rose-300:    #be123c; --color-rose-400:    #e11d48;
+  --color-amber-200:   #78350f; --color-amber-300:   #b45309; --color-amber-400:   #d97706;
+  --color-yellow-300:  #a16207; --color-yellow-400:  #ca8a04;
+  --color-orange-300:  #c2410c; --color-orange-400:  #ea580c;
+  --color-indigo-300:  #4338ca; --color-indigo-400:  #4f46e5;
+  --color-violet-300:  #6d28d9; --color-violet-400:  #7c3aed;
+  --color-fuchsia-300: #a21caf; --color-fuchsia-400: #c026d3;
+  --color-pink-300:    #be185d; --color-pink-400:    #db2777;
+  --color-sky-300:     #0369a1; --color-sky-400:     #0284c7;
+  --color-blue-300:    #1d4ed8; --color-blue-400:    #2563eb;
+  --color-cyan-300:    #0e7490; --color-cyan-400:    #0891b2;
+
+  /* El fondo cambia de tono según el modo (morado en persona, verde en
+     negocio). En claro es un susurro: casi el mismo hueso, apenas teñido, para
+     que el color lo pongan los botones y no una sábana de color. */
+  --color-indigo-950: #f6f4f9;
+  --color-teal-950: #f3f7f5;
+}
+
+/* Encima de un BOTÓN DE COLOR el texto siempre va en blanco, en los dos modos:
+   un botón morado o verde lleno pide letra blanca, aquí y en cualquier app.
+   Se devuelve el blanco de verdad solo dentro de esos botones (los que usan
+   una veladura —bg-…/10— no entran, porque ahí el fondo sigue siendo claro). */
+:root[data-theme="light"] .bg-iogga-primary,
+:root[data-theme="light"] .bg-iogga-accent,
+:root[data-theme="light"] .bg-green-500,
+:root[data-theme="light"] .bg-emerald-500,
+:root[data-theme="light"] .bg-red-500,
+:root[data-theme="light"] .bg-indigo-500,
+:root[data-theme="light"] .bg-indigo-600,
+:root[data-theme="light"] .bg-violet-500,
+:root[data-theme="light"] .bg-fuchsia-500,
+:root[data-theme="light"] .bg-amber-500,
+:root[data-theme="light"] .bg-sky-500,
+:root[data-theme="light"] .bg-blue-500 {
+  --color-white: #ffffff;
+}
+
+/* Encima de una FOTO el texto siempre va en blanco, en los dos modos: una foto
+   es oscura por naturaleza y lleva su velo oscuro para que se lea. Aquí se
+   devuelve el blanco de verdad SOLO dentro de esos recuadros, redefiniendo la
+   variable en ese pedacito del árbol. Una regla, ninguna pantalla tocada. */
+:root[data-theme="light"] :has(> .iogga-scrim) {
+  --color-white: #ffffff;
+}
+
+/* El recuadro del código QR se queda blanco de verdad en los dos modos:
+   un QR sobre fondo que no sea blanco puede no leerse al escanear. */
+:root[data-theme="light"] .iogga-qr-card {
+  background: #ffffff;
+}
+
+/* La pantalla de arranque es un momento a oscuras a propósito (el celular
+   parece apagado), así que se queda igual en los dos modos. */
+:root[data-theme="light"] .iogga-splash {
+  background: #16130f;
+}
+:root[data-theme="light"] .iogga-splash .iogga-splash-dot {
+  background: #faf8f4;
+}
+
 /* Quien pide menos movimiento en su teléfono (Ajustes > Accesibilidad), lo
    recibe: regla universal de iOS y Android. */
 @media (prefers-reduced-motion: reduce) {

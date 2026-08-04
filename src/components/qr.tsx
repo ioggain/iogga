@@ -313,7 +313,7 @@ export function RedeemQRModal({
                 </button>
               </div>
             )}
-            <div className="p-5 bg-white rounded-[32px] shadow-2xl">
+            <div className="iogga-qr-card p-5 bg-white rounded-[32px] shadow-2xl">
               <canvas ref={canvasRef} className="rounded-xl" />
             </div>
             <div className="space-y-1">

@@ -58,6 +58,8 @@ import {
   CalendarPlus,
   ClipboardPaste,
   Image as ImageIcon,
+  Sun,
+  Moon,
   Volume2,
   VolumeX
 } from 'lucide-react';
@@ -1084,6 +1086,30 @@ export default function App() {
       return next;
     });
   };
+  // ---- APARIENCIA: modo claro y modo oscuro ----
+  // La primera vez se respeta lo que el teléfono ya tiene puesto (regla de iOS
+  // y Android). Después manda lo que la persona elija, y se recuerda.
+  const [theme, setTheme] = useState<'oscuro' | 'claro'>(() => {
+    try {
+      const saved = localStorage.getItem('iogga_theme');
+      if (saved === 'claro' || saved === 'oscuro') return saved;
+      return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'claro' : 'oscuro';
+    } catch {
+      return 'oscuro';
+    }
+  });
+  useEffect(() => {
+    try {
+      // Un solo atributo en la raíz cambia TODA la paleta (ver index.css).
+      document.documentElement.dataset.theme = theme === 'claro' ? 'light' : 'dark';
+      localStorage.setItem('iogga_theme', theme);
+      // La barra de estado del teléfono se pinta del mismo color que la app,
+      // para que no quede una franja de otro color arriba.
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'claro' ? '#faf8f4' : '#09090b');
+    } catch { /* sin storage */ }
+  }, [theme]);
+
   // Sonidos de la app: el valor real vive en lib/sound (localStorage); aquí solo
   // se copia para que el interruptor de Configuración se pinte al instante.
   const [soundOn, setSoundOnState] = useState<boolean>(() => isSoundOn());
@@ -4205,7 +4231,7 @@ export default function App() {
                                                   {/* Image Section */}
                                                   <div className="relative shrink-0 w-24 h-24 rounded-2xl overflow-hidden shadow-lg border border-white/10">
                                                     <img src={promo.image} className="w-full h-full object-cover transition-transform duration-700 group-hover/promo:scale-110" referrerPolicy="no-referrer" />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                                                    <div className="absolute inset-0 iogga-scrim bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                                                     {isInviterSelected && (
                                                       <div className="absolute bottom-0 left-0 right-0 bg-iogga-primary/90 backdrop-blur-sm py-1 text-center">
                                                         <span className="text-[6px] font-black text-white uppercase tracking-widest">Recomendado</span>
@@ -4533,7 +4559,7 @@ export default function App() {
                                   </div>
                                 )}
                                 <img src={plan.image || `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=400&q=80`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-4 flex flex-col justify-end">
+                                <div className="absolute inset-0 iogga-scrim bg-gradient-to-t from-black/90 via-black/20 to-transparent p-4 flex flex-col justify-end">
                                   <div className="flex items-center gap-2 mb-2">
                                     <div 
                                       className="shrink-0 cursor-pointer hover:scale-110 transition-transform"
@@ -4881,7 +4907,7 @@ export default function App() {
                                       {/* Image Section */}
                                       <div className="relative shrink-0 w-20 h-20 rounded-2xl overflow-hidden shadow-lg border border-white/10">
                                         <img src={promo.image} className="w-full h-full object-cover transition-transform duration-700 group-hover/promo:scale-110" referrerPolicy="no-referrer" />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                                        <div className="absolute inset-0 iogga-scrim bg-gradient-to-t from-black/40 to-transparent" />
                                       </div>
 
                                       {/* Content Section */}
@@ -5831,7 +5857,7 @@ export default function App() {
                                 className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform"
                               >
                                 <img src={pr.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                                <div className="absolute inset-0 iogga-scrim bg-gradient-to-t from-black/70 to-transparent" />
                                 <span className="absolute bottom-1 left-1.5 right-1.5 text-[11px] font-bold text-white truncate text-left">{pr.title}</span>
                               </button>
                             ))}
@@ -5952,7 +5978,7 @@ export default function App() {
                       const Cuadro = ({ pl, gris }: { pl: Plan; gris?: boolean; key?: string }) => (
                         <button onClick={() => setSelectedPlanForDetails(pl)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
                           <img src={pl.image || `https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=300&q=80`} className={`w-full h-full object-cover ${gris ? 'grayscale opacity-60' : ''}`} referrerPolicy="no-referrer" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                          <div className="absolute inset-0 iogga-scrim bg-gradient-to-t from-black/70 to-transparent" />
                           {gris && <span className="absolute top-1 right-1 text-[7px] font-black text-zinc-300 bg-zinc-800/90 px-1.5 py-0.5 rounded-full uppercase tracking-widest">{pl.closed ? 'Cerrado' : 'Terminó'}</span>}
                           <span className="absolute bottom-1 left-1.5 right-1.5 text-[11px] font-bold text-white truncate text-left">{pl.activity}</span>
                         </button>
@@ -6001,7 +6027,7 @@ export default function App() {
                             {myActivePurchases.map(r => (
                               <button key={r.code} onClick={() => setViewQR(r)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
                                 <img src={promos.find(p => p.id === r.promoId)?.image || 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=300&q=80'} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                                <div className="absolute inset-0 iogga-scrim bg-gradient-to-t from-black/70 to-transparent" />
                                 <span className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white"><QrCode size={12} /></span>
                                 <span className="absolute bottom-1 left-1.5 right-1.5 text-[11px] font-bold text-white truncate text-left">{r.promoTitle}</span>
                               </button>
@@ -6018,7 +6044,7 @@ export default function App() {
                                 {myPastPurchases.map(r => (
                                   <button key={r.code} onClick={() => setPurchaseDetail(r)} className="aspect-square rounded-lg overflow-hidden relative active:scale-95 transition-transform">
                                     <img src={promos.find(p => p.id === r.promoId)?.image || 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=300&q=80'} className="w-full h-full object-cover grayscale opacity-60" referrerPolicy="no-referrer" />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                                    <div className="absolute inset-0 iogga-scrim bg-gradient-to-t from-black/70 to-transparent" />
                                     <span className="absolute top-1 right-1 text-[7px] font-black text-zinc-300 bg-zinc-800/90 px-1.5 py-0.5 rounded-full uppercase tracking-widest">{r.status === 'redeemed' ? 'Usada' : 'Caducó'}</span>
                                     <span className="absolute bottom-1 left-1.5 right-1.5 text-[11px] font-bold text-white truncate text-left">{r.promoTitle}</span>
                                   </button>
@@ -6233,7 +6259,7 @@ export default function App() {
                 active={activeTab === 'active'}
                 onClick={() => goTab('active')}
                 icon={<LayoutGrid size={24} />}
-                label="Mis Planes"
+                label="Planes"
                 color="text-iogga-primary"
               />
               <NavButton 
@@ -7723,7 +7749,7 @@ export default function App() {
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                  <div className="absolute inset-0 iogga-scrim bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                   <div className="absolute bottom-4 left-4 flex items-center justify-between right-4">
                     <div className="flex items-center gap-3">
                       <div 
@@ -8099,6 +8125,28 @@ export default function App() {
                   </div>
                   <ArrowRight size={16} />
                 </button>
+
+                {/* APARIENCIA: lo primero del menú, un toque y cambia toda la app.
+                    Interruptor de dos opciones con sol y luna, igual que iOS,
+                    WhatsApp e Instagram. Se ve de un vistazo cuál está puesto. */}
+                <div className="space-y-2">
+                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest px-2">Apariencia</p>
+                  <div className="grid grid-cols-2 gap-1 p-1 rounded-[24px] bg-white/5 border border-white/10">
+                    {([
+                      { k: 'claro' as const, t: 'Claro', icon: <Sun size={16} /> },
+                      { k: 'oscuro' as const, t: 'Oscuro', icon: <Moon size={16} /> },
+                    ]).map(o => (
+                      <button
+                        key={o.k}
+                        onClick={() => { setTheme(o.k); sfx('abrir'); }}
+                        className={`py-3.5 rounded-[20px] text-xs font-black flex items-center justify-center gap-2 transition-all ${theme === o.k ? 'bg-iogga-primary text-white shadow-lg shadow-iogga-primary/20' : 'text-zinc-400'}`}
+                      >
+                        {o.icon}
+                        {o.t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 <div className="space-y-2">
                   <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest px-2">Cuenta y Seguridad</p>
@@ -8731,7 +8779,7 @@ export default function App() {
                 </div>
                 <div className="relative rounded-2xl overflow-hidden h-36 border border-white/10">
                   <img src={couponDraft.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                  <div className="absolute inset-0 iogga-scrim bg-gradient-to-t from-black/70 to-transparent" />
                 </div>
                 <input
                   type="text"
@@ -11053,7 +11101,7 @@ export default function App() {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.9, ease: 'easeInOut' } }}
           onClick={revealSplash}
-          className="fixed inset-0 z-[500] bg-black flex items-center justify-center overflow-hidden cursor-pointer"
+          className="iogga-splash fixed inset-0 z-[500] bg-black flex items-center justify-center overflow-hidden cursor-pointer"
         >
           {/* Fase 1: negro total, sin nada (el cel parece apagado). Espera el toque. */}
           {/* Fase 2: el logo oficial entra muy suave (fade in lento de 4s) */}
@@ -11064,7 +11112,7 @@ export default function App() {
                 animate={{ opacity: 1, scale: 1, transition: { duration: 4, ease: [0.22, 0.61, 0.36, 1] } }}
                 className="flex flex-col items-center gap-5"
               >
-                <div className="w-28 h-28 rounded-full bg-white shadow-[0_0_70px_rgba(255,255,255,0.28)]" />
+                <div className="iogga-splash-dot w-28 h-28 rounded-full bg-white shadow-[0_0_70px_rgba(255,255,255,0.28)]" />
                 <span
                   className="text-white leading-none"
                   style={{ fontFamily: '"Quicksand", sans-serif', fontWeight: 600, fontSize: '3.4rem', letterSpacing: '-0.01em' }}
@@ -11826,7 +11874,10 @@ function NavButton({ active, onClick, onDoubleClick, icon, label, color, id }: {
       <div className={`transition-all duration-300 ${active ? 'scale-110' : 'scale-100'}`}>
         {icon}
       </div>
-      <span className={`text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${active ? 'opacity-100 translate-y-0' : 'opacity-60 translate-y-0.5'}`}>
+      {/* Sin espaciado extra entre letras y en una sola línea: con 5 pestañas
+          en pantallas chicas, las etiquetas se encimaban. Se mantiene el tamaño
+          legible (11px) y se ajusta el espacio, como en la barra de iOS. */}
+      <span className={`text-[11px] font-black uppercase leading-none whitespace-nowrap transition-all duration-300 ${active ? 'opacity-100 translate-y-0' : 'opacity-60 translate-y-0.5'}`}>
         {label}
       </span>
       {active && (
@@ -11969,7 +12020,7 @@ function UserProfileModal({ user, onClose, onComingSoon, trusted = false, follow
           <div className="aspect-[4/5] rounded-[48px] overflow-hidden shadow-2xl">
             {user.isSeed && <SeedTag />}
             <img src={user.userAvatar.replace('100/100', '800/1000')} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+            <div className="absolute inset-0 iogga-scrim bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
           </div>
           
           <div className="absolute bottom-8 left-8 right-8">
@@ -12057,7 +12108,7 @@ function BusinessProfileModal({ business, offers = [], onOpenOffer, waLink, onCl
           <div className="aspect-video rounded-[48px] overflow-hidden shadow-2xl">
             {business.isSeed && <SeedTag />}
             <img src={business.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+            <div className="absolute inset-0 iogga-scrim bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
           </div>
           
           <div className="absolute -bottom-6 left-8 flex items-end gap-4">

@@ -273,9 +273,28 @@
   .partner{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:1.6rem 1.5rem 1.7rem;
     display:flex;flex-direction:column;gap:.5rem;transition:border-color .25s,box-shadow .25s}
   .partner:hover{border-color:var(--line-2);box-shadow:0 14px 32px rgba(8,36,60,.08)}
-  .partner .mono{width:56px;height:56px;border-radius:14px;display:grid;place-items:center;
+  .partner .mono{width:72px;height:72px;border-radius:18px;display:grid;place-items:center;
     background:linear-gradient(145deg,#0b72b8,#08243c);color:#fff;font-family:var(--fd);font-weight:500;
-    font-size:1.1rem;margin-bottom:.6rem}
+    font-size:1.35rem;margin-bottom:.7rem}
+  .partner .foto{width:72px;height:72px;border-radius:18px;object-fit:cover;object-position:center top;
+    margin-bottom:.7rem;border:1px solid var(--line);background:var(--bg-2)}
+
+  /* ---------- OFICINAS ---------- */
+  .oficinas{display:grid;grid-template-columns:1.15fr .85fr;gap:1rem}
+  .oficinas.sin-foto{grid-template-columns:1fr}
+  @media (max-width:820px){.oficinas{grid-template-columns:1fr}}
+  .oficinas figure{margin:0;border-radius:var(--r-lg);overflow:hidden;background:var(--navy);
+    border:1px solid var(--line);min-height:340px}
+  .oficinas figure img{width:100%;height:100%;object-fit:cover;display:block}
+  .mapa{border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line);background:var(--bg-2);
+    display:flex;flex-direction:column;min-height:340px}
+  .mapa iframe{width:100%;flex:1;border:0;min-height:250px;display:block}
+  .mapa .pie{padding:1rem 1.2rem 1.15rem;background:#fff;border-top:1px solid var(--line)}
+  .mapa .pie b{display:block;font-family:var(--fd);font-weight:500;font-size:.95rem}
+  .mapa .pie p{font-size:.88rem;color:var(--ink-2);margin-top:.2rem}
+  .mapa .pie a{display:inline-flex;align-items:center;gap:.3rem;margin-top:.6rem;font-size:.88rem;
+    font-weight:600;color:var(--brand)}
+  .mapa .pie a:hover{text-decoration:underline}
   .partner .role{color:var(--brand);font-weight:600;font-size:.85rem}
   .partner p{color:var(--ink-2);font-size:.92rem;margin-top:.4rem}
   .partner .links{margin-top:auto;padding-top:1rem;display:flex;gap:1rem;flex-wrap:wrap}
@@ -336,6 +355,11 @@
     margin-bottom:.9rem;font-weight:600}
   footer ul{display:grid;gap:.55rem}
   footer a:hover{color:#fff}
+  .fsocial{display:flex;gap:.5rem;margin-top:1.3rem}
+  .fsocial a{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+    border:1px solid rgba(255,255,255,.18);color:#b6cade;transition:all .2s}
+  .fsocial a:hover{background:var(--brand);border-color:var(--brand);color:#fff;transform:translateY(-2px)}
+  .fsocial svg{width:18px;height:18px}
   .fbottom{margin-top:2.6rem;padding-top:1.3rem;border-top:1px solid rgba(255,255,255,.13);
     display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:.83rem;color:#7791a9}
 
@@ -684,7 +708,7 @@
     </div>
     <div class="grid g3">
       <article class="partner reveal">
-        <div class="mono">OH</div>
+        <img class="foto" src="assets/omar.jpg" alt="Omar Eduardo Hernández" data-iniciales="OH" width="72" height="72" />
         <h3>Omar Eduardo Hernández</h3>
         <p class="role">Socio director · Proyectos y capacitación</p>
         <p>Máster en dirección de proyectos tecnológicos y licenciado en comunicación organizacional. Dirigió la PMO de Newton Labs una década y entrenó software industrial en Módena, Italia. Docente universitario desde 2013 y capacitador con registro STPS.</p>
@@ -694,7 +718,7 @@
         </div>
       </article>
       <article class="partner reveal">
-        <div class="mono">CV</div>
+        <img class="foto" src="assets/carlos.jpg" alt="Carlos Villalpando" data-iniciales="CV" width="72" height="72" />
         <h3>Carlos Villalpando</h3>
         <p class="role">Socio · Dirección de empresas y negocio</p>
         <p>Director ejecutivo de Bioteksa desde 2019 y fundador de Soluciones uVicate. Antes dirigió el desarrollo de negocio de biobot.farm. Especialista en administración de empresas, gestión de proyectos y liderazgo, formado en la Universidad La Salle.</p>
@@ -703,10 +727,13 @@
         </div>
       </article>
       <article class="partner reveal">
-        <div class="mono">ID</div>
-        <h3>Isela Domínguez</h3>
-        <p class="role">Socia · Talento y diseño instruccional</p>
-        <p>Responsable del diseño de programas, planes de estudio y materiales didácticos. Coordina la habilitación docente y la calidad pedagógica de cada entrega.</p>
+        <img class="foto" src="assets/isela.jpg" alt="Elsa Isela Domínguez" data-iniciales="ID" width="72" height="72" />
+        <h3>Elsa Isela Domínguez</h3>
+        <p class="role">Socia · Dirección administrativa y talento</p>
+        <p>Licenciada en psicología industrial con 10 años de experiencia en los sectores salud, industrial y educativo, incluida una estancia profesional en Canadá. Ha dirigido áreas de recursos humanos, atracción de talento y coordinación académica. Certificada en emprendimiento STEM (Universidad Austral) y pensamiento sistémico (UNAM).</p>
+        <div class="links">
+          <a href="https://www.linkedin.com/in/eiseladomínguez" target="_blank" rel="noopener">LinkedIn</a>
+        </div>
       </article>
     </div>
 
@@ -721,6 +748,36 @@
         <span class="chip">Gestión de proyectos y PMO</span>
         <span class="chip">Producción audiovisual</span>
         <span class="chip">Expertos por industria</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== OFICINAS ===================== -->
+<section id="oficinas">
+  <div class="wrap">
+    <div class="head reveal">
+      <p class="eyebrow">Dónde estamos</p>
+      <h2>Nuestras oficinas.</h2>
+      <p class="lead">Av. H. Colegio Militar 4709, Nombre de Dios, 31150 Chihuahua, Chih. Recibimos con cita.</p>
+    </div>
+    <div class="oficinas reveal" id="oficinasGrid">
+      <figure>
+        <img id="fotoOficinas" src="assets/oficinas.jpg" alt="Edificio de las oficinas de EdwCorp en Chihuahua" />
+      </figure>
+      <div class="mapa">
+        <iframe
+          title="Mapa de las oficinas de EdwCorp"
+          src="https://www.google.com/maps?q=Av.+H.+Colegio+Militar+4709,+Nombre+de+Dios,+31150+Chihuahua,+Chih.&hl=es&z=16&output=embed"
+          loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+        <div class="pie">
+          <b>EdwCorp Chihuahua</b>
+          <p>Av. H. Colegio Militar 4709, Nombre de Dios, 31150 Chihuahua, Chih.</p>
+          <a href="https://www.google.com/maps/dir/?api=1&destination=Av.+H.+Colegio+Militar+4709,+Nombre+de+Dios,+31150+Chihuahua,+Chih." target="_blank" rel="noopener">
+            Cómo llegar
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -822,6 +879,20 @@
         <a href="#top" class="flogo"><img src="assets/logo-blanco.svg" alt="EdwCorp" /></a>
         <p class="about">Diseñamos programas de capacitación, tecnología para la educación y el training de tu propia tecnología.</p>
         <p class="about" style="margin-top:.8rem;font-size:.84rem">Av. H. Colegio Militar 4709, Nombre de Dios,<br>31150 Chihuahua, Chih.</p>
+        <div class="fsocial">
+          <a href="https://www.instagram.com/edw.corp" target="_blank" rel="noopener" aria-label="EdwCorp en Instagram">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/></svg>
+          </a>
+          <a href="https://www.facebook.com/share/192VfG4Wbu/" target="_blank" rel="noopener" aria-label="EdwCorp en Facebook">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 22v-8h2.7l.4-3.1h-3.1V8.9c0-.9.25-1.5 1.55-1.5h1.65V4.6c-.3 0-1.3-.13-2.45-.13-2.42 0-4.08 1.48-4.08 4.2v2.23H7.5V14h2.67v8z"/></svg>
+          </a>
+          <a href="https://www.linkedin.com/company/110419431/" target="_blank" rel="noopener" aria-label="EdwCorp en LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.94 5.5a1.94 1.94 0 1 1-3.88 0 1.94 1.94 0 0 1 3.88 0M3.4 20.5h3.2V9.1H3.4zM9.1 9.1v11.4h3.2v-6c0-1.6.9-2.4 2-2.4s1.9.8 1.9 2.4v6h3.2v-6.6c0-3.1-1.7-4.6-3.9-4.6-1.8 0-2.7 1-3.2 1.7V9.1z"/></svg>
+          </a>
+          <a href="https://wa.me/526146887271" target="_blank" rel="noopener" aria-label="EdwCorp en WhatsApp">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2m5.8 14.16c-.24.68-1.42 1.3-1.95 1.35-.5.05-1.13.07-1.83-.11-.42-.11-.96-.29-1.65-.59-2.9-1.25-4.8-4.17-4.94-4.36-.15-.19-1.19-1.58-1.19-3.02s.76-2.14 1.03-2.44c.27-.29.58-.37.78-.37s.39 0 .56.01c.18.01.42-.07.66.5.24.58.83 2.02.9 2.17.07.15.12.32.02.51-.1.19-.15.31-.29.48-.15.17-.31.38-.44.51-.15.15-.3.31-.13.6.17.29.76 1.25 1.63 2.03 1.12 1 2.06 1.31 2.35 1.45.29.15.46.12.63-.07.17-.19.73-.85.92-1.14.19-.29.39-.24.66-.15.27.1 1.7.8 1.99.95.29.15.48.22.55.34.07.12.07.7-.17 1.38"/></svg>
+          </a>
+        </div>
       </div>
       <div>
         <h4>Servicios</h4>
@@ -838,9 +909,9 @@
         <ul>
           <li><a href="catalogo.html">Catálogo</a></li>
           <li><a href="diagnostico.html">Diagnóstico gratis</a></li>
+          <li><a href="#oficinas">Nuestras oficinas</a></li>
           <li><a href="mailto:proyectos@edwcorp.org">proyectos@edwcorp.org</a></li>
-          <li><a href="https://www.instagram.com/edw.corp" target="_blank" rel="noopener">Instagram</a></li>
-          <li><a href="https://www.linkedin.com/company/110419431/" target="_blank" rel="noopener">LinkedIn</a></li>
+          <li><a href="https://wa.me/526146887271" target="_blank" rel="noopener">+52 614 688 7271</a></li>
           <li><a href="privacidad.html">Aviso de privacidad</a> · <a href="terminos.html">Términos</a></li>
         </ul>
       </div>
@@ -883,6 +954,32 @@
     copia.removeAttribute("id");
     copia.setAttribute("aria-hidden","true");
     document.getElementById("marquee").appendChild(copia);
+  })();
+
+  /* ---- Si falta la foto de un socio, se muestran sus iniciales ---- */
+  document.querySelectorAll(".partner .foto").forEach(function(img){
+    function alIniciales(){
+      var d = document.createElement("div");
+      d.className = "mono";
+      d.textContent = img.getAttribute("data-iniciales") || "";
+      img.replaceWith(d);
+    }
+    img.addEventListener("error", alIniciales);
+    if (img.complete && img.naturalWidth === 0) alIniciales();
+  });
+
+  /* ---- Si aún no hay foto de las oficinas, el mapa ocupa todo el ancho ---- */
+  (function(){
+    var foto = document.getElementById("fotoOficinas");
+    if (!foto) return;
+    function sinFoto(){
+      var fig = foto.closest("figure");
+      if (fig) fig.remove();
+      var grid = document.getElementById("oficinasGrid");
+      if (grid) grid.classList.add("sin-foto");
+    }
+    foto.addEventListener("error", sinFoto);
+    if (foto.complete && foto.naturalWidth === 0) sinFoto();
   })();
 
   /* ---- Fondo animado del hero ---- */

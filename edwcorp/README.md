@@ -25,6 +25,7 @@ pensado para publicarse gratis en GitHub Pages y apuntar a **www.edwcorp.org**.
 | `legal.css` | Estilos compartidos por las dos páginas legales. |
 | `apps-script/Codigo.gs` | Script de Google que recibe el formulario y lo guarda en una hoja. |
 | `MODELO-DE-NEGOCIO.md` | Documento interno: líneas de ingreso, precios, sostenibilidad. |
+| `PUBLICAR.md` | **Guía paso a paso para poner el sitio en el dominio.** |
 | `CNAME`, `robots.txt`, `sitemap.xml`, `.nojekyll` | Configuración de publicación y buscadores. |
 
 Cada página es un solo archivo con su CSS adentro: para cambiar un texto, se abre el archivo,
@@ -33,6 +34,9 @@ se busca la frase y se edita. No hay que compilar nada.
 ---
 
 ## 🚀 Publicarlo en edwcorp.org
+
+**La guía completa está en [`PUBLICAR.md`](PUBLICAR.md)** — ocho pasos, todo desde el navegador.
+Lo que sigue es el resumen.
 
 El sitio vive hoy en la carpeta `edwcorp/` de este repositorio. Para publicarlo con su propio
 dominio necesita **su propio repositorio**, porque GitHub Pages permite un solo dominio

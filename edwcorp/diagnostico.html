@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Diagnóstico de madurez en capacitación — EdwCorp</title>
+<meta name="description" content="Diez preguntas para saber en qué nivel está la capacitación de tu organización y cuál es el siguiente paso. Gratis, sin registro y con resultado inmediato." />
+<meta name="theme-color" content="#08243c" />
+<link rel="icon" href="assets/isotipo.svg" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Diagnóstico de madurez en capacitación — EdwCorp" />
+<meta property="og:description" content="Dos minutos para saber en qué nivel está tu organización y qué hacer después." />
+<meta property="og:url" content="https://www.edwcorp.org/diagnostico.html" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@300;500;600&display=swap" rel="stylesheet" />
+
+<style>
+  :root{
+    --navy:#08243c;--brand:#0b72b8;--brand-ink:#085a91;--brand-tint:#eaf3fa;
+    --teal:#0f8f83;--amber:#c07615;
+    --ink:#0f1b26;--ink-2:#4a5a6b;--ink-3:#78889a;--bg:#fff;--bg-2:#f5f7fa;--line:#e1e8f0;--line-2:#c9d5e2;
+    --wide:820px;--pad:clamp(20px,5vw,34px);--r:16px;
+    --f:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --fd:"Poppins","Inter",sans-serif;
+    --ease:cubic-bezier(.28,.11,.32,1);
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;color-scheme:light;scroll-behavior:smooth}
+  body{margin:0;background:var(--bg-2);color:var(--ink);font-family:var(--f);font-size:1rem;line-height:1.6;
+    letter-spacing:-.006em;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{margin:0;font-family:var(--fd);font-weight:600;line-height:1.14;letter-spacing:-.025em;text-wrap:balance}
+  h1{font-size:clamp(1.8rem,1.4rem + 1.9vw,2.7rem)}
+  h2{font-size:clamp(1.3rem,1.1rem + 1vw,1.8rem)}
+  h3{font-size:1.05rem}
+  p{margin:0}a{color:inherit;text-decoration:none}ul{margin:0;padding:0;list-style:none}
+  .wrap{width:100%;max-width:var(--wide);margin-inline:auto;padding-inline:var(--pad)}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;font-family:var(--fd);
+    font-size:.95rem;font-weight:500;padding:.85em 1.6em;border-radius:8px;border:1px solid transparent;
+    cursor:pointer;transition:background .2s,border-color .2s,color .2s,opacity .2s}
+  .btn:focus-visible{outline:3px solid rgba(11,114,184,.45);outline-offset:2px}
+  .btn-fill{background:var(--brand);color:#fff}.btn-fill:hover{background:var(--brand-ink)}
+  .btn-line{background:#fff;border-color:var(--line-2);color:var(--ink)}
+  .btn-line:hover{border-color:var(--brand);color:var(--brand)}
+  .btn-wa{background:#25D366;color:#06351a}.btn-wa:hover{background:#1fbb59}
+  .btn[disabled]{opacity:.45;cursor:not-allowed}
+
+  .nav{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;height:64px;max-width:1200px;
+    margin-inline:auto;padding-inline:var(--pad)}
+  .nav-in img{height:25px;width:auto}
+  .nav-in .back{font-size:.9rem;color:var(--ink-2);font-weight:500}
+  .nav-in .back:hover{color:var(--brand)}
+
+  header.top{background:linear-gradient(155deg,#08243c,#0d3454);color:#fff;padding:clamp(44px,7vw,72px) 0}
+  header.top h1{color:#fff;max-width:18ch}
+  header.top p{margin-top:1rem;color:#b3c6d9;max-width:52ch;font-size:clamp(1rem,.97rem + .35vw,1.18rem)}
+  header.top .meta{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.5rem}
+  header.top .meta span{font-size:.82rem;color:#cfe0ee;background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:.35em .9em}
+
+  main{padding:clamp(28px,4vw,44px) 0 clamp(56px,8vw,90px)}
+
+  /* progreso */
+  .prog{position:sticky;top:64px;z-index:40;background:rgba(245,247,250,.95);backdrop-filter:blur(10px);
+    padding:.9rem 0;border-bottom:1px solid var(--line);margin-bottom:1.6rem}
+  .prog-in{display:flex;align-items:center;gap:1rem}
+  .prog .track{flex:1;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+  .prog .fill{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--brand),#4fc0b4);
+    transition:width .35s var(--ease)}
+  .prog b{font-family:var(--fd);font-size:.85rem;font-weight:500;color:var(--ink-2);white-space:nowrap}
+
+  .q{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:1.3rem 1.35rem 1.4rem;margin-bottom:.9rem}
+  .q .dim{font-family:var(--fd);font-size:.7rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--brand);margin-bottom:.5rem}
+  .q h3{margin-bottom:.9rem}
+  .opts{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem}
+  @media (max-width:620px){.opts{grid-template-columns:repeat(2,1fr)}}
+  .opts label{position:relative;display:block}
+  .opts input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+  .opts span{display:block;text-align:center;font-size:.87rem;padding:.7em .5em;border-radius:9px;
+    border:1px solid var(--line-2);background:#fff;color:var(--ink-2);cursor:pointer;
+    transition:all .18s var(--ease)}
+  .opts label:hover span{border-color:var(--brand);color:var(--brand)}
+  .opts input:checked + span{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+  .opts input:focus-visible + span{outline:3px solid rgba(11,114,184,.45);outline-offset:2px}
+
+  .acciones{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1.4rem;align-items:center}
+  .aviso{font-size:.87rem;color:var(--ink-3)}
+
+  /* resultado */
+  .res{display:none}
+  .res.on{display:block}
+  .form-q.off{display:none}
+  .score{background:linear-gradient(150deg,#08243c,#0d3454);color:#fff;border-radius:20px;
+    padding:clamp(1.6rem,4vw,2.4rem);text-align:center}
+  .score .n{font-family:var(--fd);font-size:clamp(3rem,2rem + 5vw,4.6rem);font-weight:600;line-height:1}
+  .score .n small{font-size:.32em;color:#8fb0cc;font-weight:400}
+  .score .lvl{display:inline-block;margin-top:.8rem;font-family:var(--fd);font-size:.78rem;font-weight:600;
+    letter-spacing:.13em;text-transform:uppercase;border:1px solid rgba(255,255,255,.3);border-radius:999px;
+    padding:.4em 1.1em;color:#cfe6f7}
+  .score p{margin-top:1.1rem;color:#b3c6d9;max-width:46ch;margin-inline:auto}
+
+  .bars{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:1.4rem;margin-top:1rem}
+  .bars h3{margin-bottom:1rem}
+  .bar{display:grid;grid-template-columns:1fr auto;gap:.35rem .8rem;margin-bottom:.95rem}
+  .bar:last-child{margin-bottom:0}
+  .bar .lb{font-size:.9rem;color:var(--ink-2)}
+  .bar .vl{font-family:var(--fd);font-size:.85rem;font-weight:500;color:var(--ink)}
+  .bar .track{grid-column:1/-1;height:9px;border-radius:99px;background:var(--bg-2);overflow:hidden;
+    border:1px solid var(--line)}
+  .bar .fill{display:block;height:100%;border-radius:99px;transition:width .7s var(--ease)}
+  .f-alto{background:linear-gradient(90deg,#0f8f83,#4fc0b4)}
+  .f-medio{background:linear-gradient(90deg,#0b72b8,#4fa8dd)}
+  .f-bajo{background:linear-gradient(90deg,#c07615,#e0a555)}
+
+  .reco{background:var(--brand-tint);border:1px solid #cfe4f4;border-radius:var(--r);padding:1.4rem;margin-top:1rem}
+  .reco .dim{font-family:var(--fd);font-size:.7rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--brand);margin-bottom:.5rem}
+  .reco p{color:var(--brand-ink);font-size:.96rem;margin-top:.5rem}
+  .reco ul{margin-top:.9rem;display:grid;gap:.4rem}
+  .reco ul li{font-size:.92rem;color:var(--brand-ink);padding-left:1.3rem;position:relative}
+  .reco ul li::before{content:"→";position:absolute;left:0;color:var(--brand)}
+
+  footer{background:var(--navy);color:#93aec6;padding:2.4rem 0;font-size:.88rem}
+  .fin{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;max-width:1200px;
+    margin-inline:auto;padding-inline:var(--pad)}
+  footer a:hover{color:#fff}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="index.html" aria-label="EdwCorp"><img src="assets/logo.svg" alt="EdwCorp" /></a>
+    <a class="back" href="index.html">← Volver al inicio</a>
+  </div>
+</nav>
+
+<header class="top">
+  <div class="wrap">
+    <h1>¿Qué tan madura es la capacitación en tu organización?</h1>
+    <p>Diez preguntas. Al terminar sabrás en qué nivel estás, dónde está tu punto débil y cuál es el siguiente paso concreto.</p>
+    <div class="meta">
+      <span>2 minutos</span><span>Sin registro</span><span>Resultado inmediato</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <div class="prog form-q" id="prog">
+      <div class="prog-in">
+        <span class="track"><span class="fill" id="progFill"></span></span>
+        <b id="progTxt">0 de 10</b>
+      </div>
+    </div>
+
+    <form id="quiz" class="form-q"></form>
+
+    <div class="acciones form-q">
+      <button class="btn btn-fill" id="verBtn" disabled>Ver mi resultado</button>
+      <span class="aviso" id="aviso">Responde las 10 preguntas.</span>
+    </div>
+
+    <!-- RESULTADO -->
+    <section class="res" id="res" aria-live="polite">
+      <div class="score">
+        <div class="n"><span id="pts">0</span><small>/30</small></div>
+        <span class="lvl" id="nivel">—</span>
+        <p id="resumen"></p>
+      </div>
+
+      <div class="bars">
+        <h3>Tu perfil por área</h3>
+        <div id="barras"></div>
+      </div>
+
+      <div class="reco">
+        <p class="dim">Tu siguiente paso</p>
+        <h3 id="recoTitulo"></h3>
+        <p id="recoTexto"></p>
+        <ul id="recoLista"></ul>
+      </div>
+
+      <div class="acciones">
+        <a class="btn btn-wa" id="waBtn" href="#" target="_blank" rel="noopener">Enviar resultado por WhatsApp</a>
+        <a class="btn btn-fill" href="index.html#contacto">Solicitar propuesta</a>
+        <button class="btn btn-line" id="otraBtn" type="button">Volver a empezar</button>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="fin">
+    <span>© <span id="year">2026</span> EdwCorp</span>
+    <span><a href="index.html">Inicio</a> · <a href="catalogo.html">Catálogo</a> · <a href="mailto:proyectos@edwcorp.org">proyectos@edwcorp.org</a></span>
+  </div>
+</footer>
+
+<script>
+document.getElementById("year").textContent = new Date().getFullYear();
+
+var AREAS = {
+  dnc:  "Detección de necesidades",
+  dis:  "Diseño instruccional",
+  tec:  "Tecnología",
+  med:  "Medición de impacto",
+  cum:  "Formalidad y cumplimiento"
+};
+
+var PREGUNTAS = [
+  {a:"dnc", t:"¿Sabes con datos qué competencias le faltan a cada puesto de tu organización?"},
+  {a:"dnc", t:"¿La capacitación del año se decide a partir de un diagnóstico y no de lo que se ofrece?"},
+  {a:"dis", t:"¿Tus cursos tienen objetivos, materiales y evaluaciones diseñados para tu operación?"},
+  {a:"dis", t:"¿Existen rutas de formación distintas según el puesto y el nivel de mando?"},
+  {a:"tec", t:"¿Tienes una plataforma donde la gente pueda tomar y repasar los contenidos?"},
+  {a:"tec", t:"¿Usan inteligencia artificial o recursos digitales para practicar y resolver dudas?"},
+  {a:"med", t:"¿Mides si lo aprendido se aplica en el puesto, no solo la satisfacción del curso?"},
+  {a:"med", t:"¿Puedes relacionar la capacitación con un indicador del negocio?"},
+  {a:"cum", t:"¿Emites constancias DS-3 y cumples con lo que pide la STPS?"},
+  {a:"cum", t:"¿Tus programas están alineados a un estándar de competencia?"}
+];
+
+var OPCIONES = [
+  {v:0, t:"No"},
+  {v:1, t:"Apenas"},
+  {v:2, t:"En parte"},
+  {v:3, t:"Sí, formalmente"}
+];
+
+var NIVELES = [
+  {min:0,  max:9,  n:"Inicial",       r:"La capacitación ocurre por urgencias, no por diseño. Cada peso invertido rinde menos de lo que podría."},
+  {min:10, max:17, n:"En desarrollo", r:"Hay esfuerzos buenos pero sueltos. Falta el sistema que los conecte con la operación."},
+  {min:18, max:24, n:"Establecido",   r:"Tienes una práctica sólida. El salto ahora está en medir impacto y escalar lo que ya funciona."},
+  {min:25, max:30, n:"Avanzado",      r:"Operas un sistema maduro. El siguiente paso es volverlo un activo: licenciarlo, certificarlo o extenderlo."}
+];
+
+var RECOS = {
+  dnc: {t:"Empieza por un diagnóstico de necesidades (DNC)",
+        p:"Sin datos de brecha, todo lo demás se construye sobre suposiciones.",
+        l:["Mapa de competencias por puesto","Informe de brechas priorizado","Programa anual con presupuesto"]},
+  dis: {t:"Diseña el programa, no compres cursos",
+        p:"Un programa propio se adapta a tu operación y te deja materiales reutilizables.",
+        l:["Rutas de formación por puesto","Manuales del participante y del instructor","Instrumentos de evaluación"]},
+  tec: {t:"Pon la tecnología a trabajar",
+        p:"Una plataforma bien elegida multiplica el alcance sin multiplicar el costo.",
+        l:["Selección e implantación de LMS","Contenidos digitales y microlearning","Práctica asistida con IA"]},
+  med: {t:"Mide la transferencia al puesto",
+        p:"Lo que no se mide no se defiende ante la dirección ni se puede mejorar.",
+        l:["Tablero de indicadores de formación","Evaluación de transferencia","Informe de impacto por programa"]},
+  cum: {t:"Formaliza el cumplimiento",
+        p:"Constancias DS-3 y estándares de competencia convierten la capacitación en algo verificable.",
+        l:["Registro y constancias DS-3 ante STPS","Alineación a estándar de competencia","Expedientes y evidencia"]}
+};
+
+var quiz = document.getElementById("quiz");
+PREGUNTAS.forEach(function(p, i){
+  var opts = OPCIONES.map(function(o){
+    return '<label><input type="radio" name="p'+i+'" value="'+o.v+'" /><span>'+o.t+'</span></label>';
+  }).join("");
+  quiz.insertAdjacentHTML("beforeend",
+    '<div class="q"><p class="dim">'+AREAS[p.a]+'</p><h3>'+(i+1)+'. '+p.t+'</h3><div class="opts">'+opts+'</div></div>');
+});
+
+var verBtn = document.getElementById("verBtn"),
+    aviso  = document.getElementById("aviso"),
+    fill   = document.getElementById("progFill"),
+    ptxt   = document.getElementById("progTxt");
+
+function respondidas(){
+  var n = 0;
+  for (var i=0;i<PREGUNTAS.length;i++){ if (quiz["p"+i] && quiz["p"+i].value !== "") n++; }
+  return n;
+}
+
+quiz.addEventListener("change", function(){
+  var n = respondidas();
+  fill.style.width = (n/PREGUNTAS.length*100) + "%";
+  ptxt.textContent = n + " de " + PREGUNTAS.length;
+  var listo = n === PREGUNTAS.length;
+  verBtn.disabled = !listo;
+  aviso.textContent = listo ? "Listo, ya puedes ver tu resultado." : "Te faltan " + (PREGUNTAS.length-n) + ".";
+});
+
+verBtn.addEventListener("click", function(e){
+  e.preventDefault();
+  if (respondidas() !== PREGUNTAS.length) return;
+
+  var porArea = {}, total = 0;
+  Object.keys(AREAS).forEach(function(k){ porArea[k] = 0; });
+  PREGUNTAS.forEach(function(p, i){
+    var v = parseInt(quiz["p"+i].value, 10);
+    porArea[p.a] += v; total += v;
+  });
+
+  var nivel = NIVELES.filter(function(n){ return total >= n.min && total <= n.max; })[0];
+  document.getElementById("pts").textContent = total;
+  document.getElementById("nivel").textContent = "Nivel " + nivel.n;
+  document.getElementById("resumen").textContent = nivel.r;
+
+  var barras = document.getElementById("barras");
+  barras.innerHTML = Object.keys(AREAS).map(function(k){
+    var v = porArea[k], pct = v/6*100;
+    var cls = pct >= 67 ? "f-alto" : (pct >= 34 ? "f-medio" : "f-bajo");
+    return '<div class="bar"><span class="lb">'+AREAS[k]+'</span><span class="vl">'+v+'/6</span>'+
+           '<span class="track"><span class="fill '+cls+'" style="width:'+pct+'%"></span></span></div>';
+  }).join("");
+
+  // area mas debil (la de menor puntaje; en empate, la primera del orden natural)
+  var debil = Object.keys(AREAS).reduce(function(a, b){ return porArea[b] < porArea[a] ? b : a; });
+  var r = RECOS[debil];
+  document.getElementById("recoTitulo").textContent = r.t;
+  document.getElementById("recoTexto").textContent = r.p + " Tu área más floja hoy es: " + AREAS[debil].toLowerCase() + ".";
+  document.getElementById("recoLista").innerHTML = r.l.map(function(x){ return "<li>"+x+"</li>"; }).join("");
+
+  var texto = "Hola EdwCorp, hice el diagnóstico de madurez.\n" +
+              "Resultado: " + total + "/30 — nivel " + nivel.n + ".\n" +
+              "Área más floja: " + AREAS[debil] + ".\n" +
+              "Me interesa saber cómo lo resolverían.";
+  document.getElementById("waBtn").href = "https://wa.me/526146887271?text=" + encodeURIComponent(texto);
+
+  document.querySelectorAll(".form-q").forEach(function(el){ el.classList.add("off"); });
+  document.getElementById("res").classList.add("on");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+document.getElementById("otraBtn").addEventListener("click", function(){
+  quiz.reset();
+  fill.style.width = "0";
+  ptxt.textContent = "0 de " + PREGUNTAS.length;
+  verBtn.disabled = true;
+  aviso.textContent = "Responde las 10 preguntas.";
+  document.getElementById("res").classList.remove("on");
+  document.querySelectorAll(".form-q").forEach(function(el){ el.classList.remove("off"); });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+</script>
+</body>
+</html>

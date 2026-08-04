@@ -15,8 +15,10 @@ pensado para publicarse gratis en GitHub Pages y apuntar a **www.edwcorp.org**.
 
 | Archivo | Qué es |
 |---|---|
-| `index.html` | Página principal. Todo el sitio: hero, servicios, método, modalidades, socios, contacto. |
-| `catalogo.html` | Catálogo de 55 programas con buscador y filtros por área. |
+| `index.html` | Página principal: propuesta de valor, servicios, modalidades, método, socios y contacto. |
+| `catalogo.html` | Catálogo de 55 programas (10 y 16 horas) con buscador y filtros. |
+| `diagnostico.html` | Herramienta gratuita: diagnóstico de madurez en capacitación, con resultado y recomendación. |
+| `assets/logo.svg` | Logotipo oficial. También `logo-blanco.svg` (fondos oscuros) e `isotipo.svg` (favicon). |
 | `privacidad.html` | Aviso de privacidad (LFPDPPP). |
 | `terminos.html` | Términos de servicio. |
 | `legal.css` | Estilos compartidos por las dos páginas legales. |
@@ -95,24 +97,31 @@ Mientras no se configure, el formulario abre el correo del visitante con los dat
    var FORM_ENDPOINT = "";
    ```
 
+Las solicitudes llegan a **proyectos@edwcorp.org** (configurado en `AVISO_A` del script).
+
 ---
 
 ## ✏️ Cosas que conviene revisar antes de publicar
 
-- **Bios de los socios.** La de Omar Eduardo Hernández viene del portafolio. Las de
-  **Carlos Villalpando** e **Isela Domínguez** están escritas de forma general a partir de su rol:
-  conviene que cada uno mande su versión (formación, certificaciones, trayectoria) y
-  reemplazarlas en la sección `<!-- SOCIOS -->` de `index.html`.
-- **Fotos.** Ahora se muestran monogramas (las iniciales en un círculo). Si quieres fotos,
-  guárdalas en `assets/` (cuadradas, ~600×600 px) y cambia el `<div class="mono">…</div>`
-  por `<img class="mono" src="assets/nombre.jpg" alt="Nombre" />`.
-- **Correos.** El sitio usa `CEO@edwcorp.org` y `proyectos@edwcorp.org`. Verifica que el
-  segundo exista (el sitio anterior mencionaba `proyectos@edwcorp.com`, con `.com`).
-- **Instituciones de la barra de confianza.** Están tomadas de la trayectoria docente del
-  portafolio. Si alguna requiere autorización para mencionarse, quítala de `index.html`.
+- **Logotipo.** `assets/logo.svg` es una reconstrucción vectorial del logo oficial (tipografía
+  Poppins incrustada, azul `#0b72b8`). Si tienes el archivo original en SVG, sustitúyelo con el
+  mismo nombre y todo el sitio lo toma. Para fondos oscuros se usa `logo-blanco.svg`.
+- **Video del header.** Hoy el fondo es una animación hecha con canvas (no requiere archivo ni
+  descarga). Para usar video: guarda `assets/hero.mp4` y `assets/hero-poster.jpg`, y en
+  `index.html` descomenta el bloque `<video>` que está justo debajo del `<canvas>`.
+- **Logos de clientes.** El cintillo muestra los nombres en gris claro. Para poner logotipos:
+  guarda cada archivo en `assets/logos/` (PNG o SVG, fondo transparente, alto ~60 px) y cambia
+  cada `<li>Nombre</li>` por `<li><img src="assets/logos/archivo.svg" alt="Nombre"></li>`.
+  Añade a la hoja de estilos: `.marquee li img{height:34px;filter:grayscale(1);opacity:.55}`.
+  Confirma que tienes autorización para mostrar cada marca.
+- **Bio de Isela Domínguez.** Las de Omar y Carlos vienen de sus perfiles; la de Isela sigue
+  siendo genérica. Pídele su versión y reemplázala en la sección `<!-- SOCIOS -->` de `index.html`.
+- **Fotos de los socios.** Hoy son monogramas. Si quieres fotos, guárdalas en `assets/`
+  (cuadradas, ~600×600 px) y cambia `<div class="mono">OH</div>` por
+  `<img class="mono" src="assets/omar.jpg" alt="Omar Eduardo Hernández" />`.
 - **Catálogo.** Los programas salen del *Portafolio de cursos, capacitaciones y entrenamiento*
-  (Nov-2025). Están en el arreglo `CURSOS` dentro de `catalogo.html`: agregar uno nuevo es
-  copiar una línea y cambiar los textos.
+  (Nov-2025), con las duraciones normalizadas a 10 y 16 horas. Están en el arreglo `CURSOS`
+  dentro de `catalogo.html`: agregar uno es copiar una línea y cambiar los textos.
 
 ---
 
@@ -133,10 +142,12 @@ python3 -m http.server 8000
 
 | Elemento | Valor |
 |---|---|
-| Azul marino corporativo | `#0a1c2e` |
-| Azul de acento | `#1257a6` |
-| Dorado | `#b08528` |
-| Tipografía de títulos | Source Serif 4 |
+| Azul de marca (el del logo) | `#0b72b8` |
+| Azul marino de fondo | `#08243c` |
+| Verde azulado (acento) | `#0f8f83` |
+| Ámbar (acento) | `#c07615` |
+| Morado (acento) | `#5b46b8` |
+| Tipografía de títulos | Poppins |
 | Tipografía de texto | Inter |
 
 Los colores están definidos como variables CSS al inicio de cada archivo (`:root{…}`);

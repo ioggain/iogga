@@ -3,320 +3,366 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>EdwCorp — Programas de formación, planes de estudio y consultoría por entregables</title>
-<meta name="description" content="Diseñamos programas completos de capacitación, planes y programas de estudio, material didáctico y consultoría por entregables para empresas e instituciones educativas." />
-<meta name="theme-color" content="#0a1c2e" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230a1c2e'/%3E%3Cpath d='M30 28h42v11H43v11h26v11H43v11h29v11H30z' fill='%23fff'/%3E%3C/svg%3E" />
+<title>EdwCorp — Diseñamos capacitación, tecnología educativa y el training de tu producto</title>
+<meta name="description" content="Diseñamos programas de capacitación para la industria, tecnología para la educación y el training de tu software o hardware. Consultoría que deja herramientas funcionando, no documentos." />
+<meta name="theme-color" content="#08243c" />
+<link rel="icon" href="assets/isotipo.svg" />
+<link rel="apple-touch-icon" href="assets/isotipo.svg" />
 
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="EdwCorp" />
-<meta property="og:title" content="EdwCorp — Formación empresarial y educativa por diseño" />
-<meta property="og:description" content="Programas de capacitación, planes de estudio, material didáctico y consultoría por entregables." />
+<meta property="og:title" content="EdwCorp — Diseñamos capacitación y tecnología educativa" />
+<meta property="og:description" content="Programas de capacitación a la medida, tecnología para la educación y training de tu producto. Con entregables, no promesas." />
 <meta property="og:url" content="https://www.edwcorp.org/" />
 <meta property="og:locale" content="es_MX" />
 <meta name="twitter:card" content="summary_large_image" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@300;500;600&display=swap" rel="stylesheet" />
 
 <style>
   :root{
-    --navy:#0a1c2e;
-    --navy-2:#102b45;
-    --brand:#1257a6;
-    --brand-ink:#0d4382;
-    --gold:#b08528;
-    --gold-soft:#d8b25c;
+    --navy:#08243c;
+    --navy-2:#0d3454;
+    --brand:#0b72b8;
+    --brand-ink:#085a91;
+    --brand-tint:#eaf3fa;
 
-    --ink:#101b26;
-    --ink-2:#4d5b6b;
-    --ink-3:#7b8894;
+    --teal:#0f8f83;      --teal-tint:#e5f3f1;
+    --amber:#c07615;     --amber-tint:#fdf1e0;
+    --plum:#5b46b8;      --plum-tint:#eeebfa;
+
+    --ink:#0f1b26;
+    --ink-2:#4a5a6b;
+    --ink-3:#78889a;
     --bg:#ffffff;
-    --bg-2:#f4f6f9;
-    --line:#e3e8ee;
-    --line-2:#cfd7e0;
+    --bg-2:#f5f7fa;
+    --line:#e1e8f0;
+    --line-2:#c9d5e2;
 
-    --maxw:1080px;
     --wide:1200px;
     --pad:clamp(20px,5vw,34px);
-    --r:14px;
-    --r-lg:22px;
+    --r:16px;
+    --r-lg:24px;
 
     --f:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --fd:"Source Serif 4",Georgia,"Times New Roman",serif;
-    --t-hero:clamp(2.4rem,1.4rem + 4.2vw,4.3rem);
-    --t-h2:clamp(1.85rem,1.3rem + 2.2vw,3rem);
-    --t-h3:clamp(1.2rem,1.05rem + .7vw,1.6rem);
-    --t-lead:clamp(1.08rem,1rem + .5vw,1.4rem);
+    --fd:"Poppins","Inter",-apple-system,Segoe UI,Roboto,sans-serif;
+    --t-hero:clamp(2.3rem,1.5rem + 3.4vw,4rem);
+    --t-h2:clamp(1.75rem,1.35rem + 1.8vw,2.7rem);
+    --t-h3:clamp(1.1rem,1.02rem + .5vw,1.35rem);
+    --t-lead:clamp(1.05rem,1rem + .35vw,1.25rem);
     --ease:cubic-bezier(.28,.11,.32,1);
   }
   *,*::before,*::after{box-sizing:border-box}
-  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;color-scheme:light}
   @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:1.02rem;
-    line-height:1.6;letter-spacing:-.008em;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-  h1,h2,h3,h4{margin:0;line-height:1.12;letter-spacing:-.02em;text-wrap:balance}
-  h1,h2{font-family:var(--fd);font-weight:700;letter-spacing:-.025em}
-  h1{font-size:var(--t-hero);line-height:1.04}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:1rem;
+    line-height:1.6;letter-spacing:-.006em;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  h1,h2,h3,h4{margin:0;font-family:var(--fd);font-weight:600;line-height:1.14;letter-spacing:-.025em;text-wrap:balance}
+  h1{font-size:var(--t-hero);line-height:1.06}
   h2{font-size:var(--t-h2)}
-  h3{font-size:var(--t-h3);font-weight:700}
+  h3{font-size:var(--t-h3)}
   p{margin:0}
   a{color:inherit;text-decoration:none}
   img{max-width:100%;display:block}
   ul{margin:0;padding:0;list-style:none}
 
-  .wrap{width:100%;max-width:var(--maxw);margin-inline:auto;padding-inline:var(--pad)}
-  .wrap.wide{max-width:var(--wide)}
-  section{padding:clamp(58px,8vw,110px) 0;position:relative}
-  .lead{font-size:var(--t-lead);color:var(--ink-2);line-height:1.5;max-width:62ch}
-  .eyebrow{font-size:.76rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
-    color:var(--gold);display:flex;align-items:center;gap:.6rem;margin-bottom:1.1rem}
-  .eyebrow::before{content:"";width:26px;height:2px;background:var(--gold);flex:none}
-  .head{max-width:70ch;margin-bottom:clamp(34px,4.5vw,58px)}
-  .head p{margin-top:1.1rem}
+  .wrap{width:100%;max-width:var(--wide);margin-inline:auto;padding-inline:var(--pad)}
+  section{padding:clamp(54px,7vw,96px) 0;position:relative}
+  .lead{font-size:var(--t-lead);color:var(--ink-2);line-height:1.5;max-width:58ch}
+  .eyebrow{font-family:var(--fd);font-size:.74rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--brand);display:flex;align-items:center;gap:.55rem;margin-bottom:.9rem}
+  .eyebrow::before{content:"";width:22px;height:2px;background:var(--brand);flex:none}
+  .head{max-width:64ch;margin-bottom:clamp(30px,4vw,50px)}
+  .head p{margin-top:.9rem}
 
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;font-family:inherit;
-    font-size:.98rem;font-weight:600;padding:.85em 1.6em;border-radius:6px;border:1px solid transparent;
-    cursor:pointer;transition:background .22s var(--ease),color .22s,border-color .22s,transform .22s var(--ease);white-space:nowrap}
-  .btn:focus-visible{outline:3px solid rgba(18,87,166,.45);outline-offset:2px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;font-family:var(--fd);
+    font-size:.95rem;font-weight:500;padding:.85em 1.6em;border-radius:8px;border:1px solid transparent;
+    cursor:pointer;transition:background .2s var(--ease),color .2s,border-color .2s,transform .2s;white-space:nowrap}
+  .btn:focus-visible{outline:3px solid rgba(11,114,184,.45);outline-offset:2px}
   .btn-fill{background:var(--brand);color:#fff}
   .btn-fill:hover{background:var(--brand-ink)}
-  .btn-line{border-color:var(--line-2);color:var(--ink)}
-  .btn-line:hover{border-color:var(--ink);background:var(--bg-2)}
-  .btn-ghost{border-color:rgba(255,255,255,.32);color:#fff}
-  .btn-ghost:hover{background:rgba(255,255,255,.1);border-color:#fff}
-  .btn-gold{background:var(--gold);color:#1c1403}
-  .btn-gold:hover{background:var(--gold-soft)}
-  .btn-wa{background:#25D366;color:#07331a}
+  .btn-dark{background:var(--navy);color:#fff}
+  .btn-dark:hover{background:var(--navy-2)}
+  .btn-ghost{border-color:rgba(255,255,255,.35);color:#fff}
+  .btn-ghost:hover{background:rgba(255,255,255,.12);border-color:#fff}
+  .btn-line{border-color:var(--line-2);color:var(--ink);background:#fff}
+  .btn-line:hover{border-color:var(--brand);color:var(--brand)}
+  .btn-wa{background:#25D366;color:#06351a}
   .btn-wa:hover{background:#1fbb59}
-  .btn[disabled]{opacity:.55;cursor:not-allowed}
-  .tlink{display:inline-flex;align-items:center;gap:.35rem;color:var(--brand);font-weight:600;font-size:.98rem}
-  .tlink:hover{text-decoration:underline}
-  .tlink svg{width:15px;height:15px;transition:transform .2s}
-  .tlink:hover svg{transform:translateX(3px)}
 
   /* ---------- NAV ---------- */
-  .logo{display:inline-flex;align-items:baseline;gap:.05rem;font-weight:800;font-size:1.3rem;
-    letter-spacing:-.045em;color:var(--navy)}
-  .logo b{font-weight:800}
-  .logo i{font-style:normal;color:var(--brand)}
-  .logo .dot{width:5px;height:5px;border-radius:50%;background:var(--gold);align-self:center;margin-left:.28rem}
-  .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.86);
+  .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.88);
     backdrop-filter:saturate(180%) blur(16px);-webkit-backdrop-filter:saturate(180%) blur(16px);
     border-bottom:1px solid var(--line)}
-  .nav-in{display:flex;align-items:center;justify-content:space-between;gap:1rem;height:64px;
+  .nav-in{display:flex;align-items:center;justify-content:space-between;gap:1rem;height:68px;
     max-width:var(--wide);margin-inline:auto;padding-inline:var(--pad)}
-  .nav-links{display:flex;gap:1.75rem}
+  .nav-logo img{height:26px;width:auto}
+  .nav-links{display:flex;gap:1.6rem}
   .nav-links a{font-size:.9rem;font-weight:500;color:var(--ink-2);transition:color .2s}
   .nav-links a:hover{color:var(--brand)}
-  .nav-right{display:flex;align-items:center;gap:.8rem}
-  .nav-right .btn{font-size:.85rem;padding:.6em 1.15em}
-  .nav-toggle{display:none;background:none;border:0;cursor:pointer;width:36px;height:36px;color:var(--navy)}
-  .nav-toggle svg{width:23px;height:23px}
-  @media (max-width:950px){
-    .nav-links{position:fixed;inset:64px 0 auto 0;flex-direction:column;gap:0;background:#fff;
-      border-bottom:1px solid var(--line);padding:.2rem var(--pad) 1.3rem;
-      transform:translateY(-125%);transition:transform .35s var(--ease);box-shadow:0 18px 40px rgba(10,28,46,.08)}
+  .nav-right{display:flex;align-items:center;gap:.7rem}
+  .nav-right .btn{font-size:.86rem;padding:.6em 1.15em}
+  .nav-toggle{display:none;background:none;border:0;cursor:pointer;width:38px;height:38px;color:var(--navy)}
+  .nav-toggle svg{width:24px;height:24px}
+  @media (max-width:1000px){
+    .nav-links{position:fixed;inset:68px 0 auto 0;flex-direction:column;gap:0;background:#fff;
+      border-bottom:1px solid var(--line);padding:.2rem var(--pad) 1.2rem;
+      transform:translateY(-125%);transition:transform .35s var(--ease);box-shadow:0 18px 40px rgba(8,36,60,.1)}
     .nav-links.open{transform:none}
-    .nav-links a{padding:.95rem 0;font-size:1.04rem;border-bottom:1px solid var(--line)}
+    .nav-links a{padding:.9rem 0;font-size:1.02rem;border-bottom:1px solid var(--line)}
     .nav-toggle{display:grid;place-items:center}
     .nav-right .desk{display:none}
   }
 
   /* ---------- HERO ---------- */
-  .hero{background:linear-gradient(165deg,#0a1c2e 0%,#0e2b47 55%,#123457 100%);color:#fff;
-    padding:clamp(76px,11vw,132px) 0 0;overflow:hidden;position:relative}
-  .hero::after{content:"";position:absolute;right:-14%;top:-22%;width:66%;aspect-ratio:1;
-    background:radial-gradient(circle,rgba(176,133,40,.22),transparent 62%);pointer-events:none}
-  .hero-in{position:relative;z-index:1;max-width:62ch}
-  .hero .eyebrow{color:var(--gold-soft)}
-  .hero .eyebrow::before{background:var(--gold-soft)}
+  .hero{position:relative;background:var(--navy);color:#fff;overflow:hidden;
+    padding:clamp(64px,9vw,110px) 0 clamp(48px,6vw,76px)}
+  .hero-bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .hero-bg video{width:100%;height:100%;object-fit:cover}
+  .hero::before{content:"";position:absolute;inset:0;z-index:1;
+    background:linear-gradient(105deg,rgba(8,36,60,.96) 0%,rgba(8,36,60,.88) 46%,rgba(8,36,60,.55) 100%)}
+  .hero .wrap{position:relative;z-index:2}
+  .hero-grid{display:grid;grid-template-columns:1.25fr .85fr;gap:clamp(2rem,5vw,4rem);align-items:center}
+  @media (max-width:940px){.hero-grid{grid-template-columns:1fr}}
   .hero h1{color:#fff}
-  .hero p{margin-top:1.5rem;font-size:var(--t-lead);color:#c3d2e2;line-height:1.55;max-width:56ch}
-  .hero-cta{display:flex;flex-wrap:wrap;gap:.85rem;margin-top:2.3rem}
-  .hero-note{margin-top:1.5rem;font-size:.9rem;color:#8ea6bf}
-  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.14);
-    margin-top:clamp(46px,6vw,76px);border-top:1px solid rgba(255,255,255,.14)}
-  .kpi{background:linear-gradient(165deg,#0a1c2e,#102b45);padding:1.5rem .4rem 1.7rem}
-  .kpi b{display:block;font-family:var(--fd);font-size:clamp(1.7rem,1.1rem + 1.7vw,2.5rem);color:#fff;line-height:1}
-  .kpi span{display:block;margin-top:.5rem;font-size:.82rem;color:#93aac1;line-height:1.4}
-  @media (max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .hero h1 em{font-style:normal;color:#6fc0f0}
+  .hero .sub{margin-top:1.2rem;font-size:var(--t-lead);color:#b9cddf;max-width:50ch}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.8rem}
+  .hero-note{margin-top:1.2rem;font-size:.86rem;color:#89a3bb;display:flex;flex-wrap:wrap;gap:.4rem 1.1rem}
+  .hero-note span{display:inline-flex;align-items:center;gap:.35rem}
+  .hero-note svg{width:14px;height:14px;color:#4fa8dd}
 
-  /* ---------- TRUST ---------- */
-  .trust{padding:2.4rem 0;border-bottom:1px solid var(--line);background:var(--bg-2)}
-  .trust p{font-size:.78rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);text-align:center}
-  .trust ul{display:flex;flex-wrap:wrap;justify-content:center;gap:.7rem 2.2rem;margin-top:1.1rem}
-  .trust li{font-size:.95rem;font-weight:600;color:#5c6b7c}
+  /* PUV: tres tarjetas */
+  .puv{display:grid;gap:.6rem}
+  .puv a{display:flex;gap:.9rem;align-items:flex-start;padding:1.05rem 1.15rem;border-radius:12px;
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+    transition:background .22s,border-color .22s,transform .22s var(--ease)}
+  .puv a:hover{background:rgba(255,255,255,.13);border-color:#4fa8dd;transform:translateX(4px)}
+  .puv .n{font-family:var(--fd);font-size:.78rem;font-weight:600;color:#6fc0f0;padding-top:.15rem;flex:none}
+  .puv b{display:block;font-family:var(--fd);font-weight:500;font-size:1rem;color:#fff;line-height:1.3}
+  .puv small{display:block;margin-top:.2rem;font-size:.85rem;color:#9db6cc;line-height:1.45}
 
-  /* ---------- CARDS ---------- */
-  .grid{display:grid;gap:1.15rem}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.16);
+    margin-top:clamp(38px,5vw,60px);border:1px solid rgba(255,255,255,.16);border-radius:12px;overflow:hidden}
+  .kpi{background:#0a2b47;padding:1.2rem 1rem 1.3rem}
+  .kpi b{display:block;font-family:var(--fd);font-size:clamp(1.5rem,1.1rem + 1.3vw,2.1rem);color:#fff;line-height:1}
+  .kpi span{display:block;margin-top:.4rem;font-size:.8rem;color:#93aec6;line-height:1.4}
+  @media (max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}}
+
+  /* ---------- CINTILLO DE CLIENTES ---------- */
+  .strip{padding:2rem 0 2.2rem;background:var(--bg-2);border-bottom:1px solid var(--line);overflow:hidden}
+  .strip p{text-align:center;font-size:.75rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-3);margin-bottom:1.3rem}
+  .marquee{display:flex;gap:0;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+  .marquee ul{display:flex;align-items:center;gap:2.8rem;padding-right:2.8rem;flex:none;
+    animation:slide 46s linear infinite}
+  .marquee:hover ul{animation-play-state:paused}
+  .marquee li{font-family:var(--fd);font-weight:500;font-size:1.05rem;color:#9dabbb;white-space:nowrap;
+    transition:color .25s}
+  .marquee li:hover{color:var(--brand)}
+  @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+  @media (prefers-reduced-motion:reduce){.marquee ul{animation:none}.marquee{overflow-x:auto}}
+
+  /* ---------- CAJAS DE COLOR ---------- */
+  .grid{display:grid;gap:1rem}
   .g2{grid-template-columns:repeat(2,1fr)}
   .g3{grid-template-columns:repeat(3,1fr)}
-  .g4{grid-template-columns:repeat(4,1fr)}
-  @media (max-width:900px){.g3,.g4{grid-template-columns:repeat(2,1fr)}}
-  @media (max-width:620px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  @media (max-width:940px){.g3{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:640px){.g2,.g3{grid-template-columns:1fr}}
 
-  .card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:1.6rem 1.5rem 1.7rem;
-    transition:border-color .25s,box-shadow .25s,transform .25s var(--ease)}
-  .card:hover{border-color:var(--line-2);box-shadow:0 14px 34px rgba(10,28,46,.07);transform:translateY(-3px)}
-  .card .ico{width:40px;height:40px;border-radius:9px;display:grid;place-items:center;margin-bottom:1.1rem;
-    background:rgba(18,87,166,.09);color:var(--brand)}
-  .card .ico svg{width:21px;height:21px}
-  .card h3{margin-bottom:.6rem}
-  .card p{color:var(--ink-2);font-size:.98rem}
-  .card ul.ticks{margin-top:1rem;display:grid;gap:.45rem}
-  .card ul.ticks li{position:relative;padding-left:1.25rem;font-size:.93rem;color:var(--ink-2)}
-  .card ul.ticks li::before{content:"";position:absolute;left:0;top:.55em;width:6px;height:6px;
-    border-radius:50%;background:var(--gold)}
+  .box{border-radius:var(--r);padding:1.5rem 1.4rem 1.6rem;border:1px solid transparent;
+    display:flex;flex-direction:column;gap:.6rem;
+    transition:transform .25s var(--ease),box-shadow .25s}
+  .box:hover{transform:translateY(-3px);box-shadow:0 16px 36px rgba(8,36,60,.09)}
+  .box .ico{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;margin-bottom:.5rem}
+  .box .ico svg{width:22px;height:22px}
+  .box p{color:var(--ink-2);font-size:.94rem}
+  .box .keeps{margin-top:auto;padding-top:.95rem;border-top:1px dashed;font-size:.87rem;line-height:1.5}
+  .box .keeps b{display:block;font-size:.7rem;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+    margin-bottom:.3rem}
 
-  /* problema / solución */
-  .issue{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
-  .issue .top{padding:1.35rem 1.5rem;border-bottom:1px solid var(--line);background:#fff}
-  .issue .top span{font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#b4404a}
-  .issue .top p{margin-top:.5rem;font-weight:600;color:var(--ink);font-size:1.02rem;line-height:1.4}
-  .issue .bot{padding:1.35rem 1.5rem 1.6rem}
-  .issue .bot span{font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#1a7a53}
-  .issue .bot p{margin-top:.5rem;color:var(--ink-2);font-size:.97rem}
+  .c-blue{background:var(--brand-tint);border-color:#cfe4f4}
+  .c-blue .ico{background:var(--brand);color:#fff}
+  .c-blue .keeps{border-color:#bcd9ef;color:var(--brand-ink)}
+  .c-blue .keeps b{color:var(--brand)}
+  .c-teal{background:var(--teal-tint);border-color:#c9e7e2}
+  .c-teal .ico{background:var(--teal);color:#fff}
+  .c-teal .keeps{border-color:#b6ded8;color:#0b6f66}
+  .c-teal .keeps b{color:var(--teal)}
+  .c-amber{background:var(--amber-tint);border-color:#f4e0c1}
+  .c-amber .ico{background:var(--amber);color:#fff}
+  .c-amber .keeps{border-color:#eed6b4;color:#95590c}
+  .c-amber .keeps b{color:var(--amber)}
+  .c-plum{background:var(--plum-tint);border-color:#dcd6f3}
+  .c-plum .ico{background:var(--plum);color:#fff}
+  .c-plum .keeps{border-color:#d0c8ee;color:#4a389c}
+  .c-plum .keeps b{color:var(--plum)}
+  .c-slate{background:var(--bg-2);border-color:var(--line)}
+  .c-slate .ico{background:var(--navy);color:#fff}
+  .c-slate .keeps{border-color:var(--line-2);color:var(--ink-2)}
+  .c-slate .keeps b{color:var(--navy)}
 
-  /* ---------- MODELO / FASES ---------- */
-  .phases{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);
+  /* PUV grande */
+  .pillar{position:relative;border-radius:var(--r-lg);padding:clamp(1.6rem,3vw,2.2rem);overflow:hidden;
+    display:flex;flex-direction:column;gap:.7rem;color:#fff;min-height:270px}
+  .pillar h3{color:#fff;font-size:clamp(1.25rem,1.1rem + .7vw,1.6rem)}
+  .pillar p{color:rgba(255,255,255,.82);font-size:.96rem}
+  .pillar .tag{font-family:var(--fd);font-size:.72rem;font-weight:600;letter-spacing:.13em;text-transform:uppercase;
+    color:rgba(255,255,255,.7)}
+  .pillar .art{position:absolute;right:-14%;bottom:-18%;width:62%;opacity:.28;pointer-events:none}
+  .pillar ul{margin-top:auto;display:grid;gap:.3rem;padding-top:1rem}
+  .pillar ul li{font-size:.87rem;color:rgba(255,255,255,.86);padding-left:1.1rem;position:relative}
+  .pillar ul li::before{content:"";position:absolute;left:0;top:.6em;width:5px;height:5px;border-radius:50%;
+    background:rgba(255,255,255,.7)}
+  .p1{background:linear-gradient(150deg,#0b72b8,#0a4f80)}
+  .p2{background:linear-gradient(150deg,#0f8f83,#0a5f57)}
+  .p3{background:linear-gradient(150deg,#3d4f8f,#26305c)}
+
+  /* ---------- MODALIDADES ---------- */
+  .modo{border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:#fff;
+    display:flex;flex-direction:column}
+  .modo .top{padding:1.4rem 1.4rem 1.3rem;color:#fff}
+  .modo .top span{font-family:var(--fd);font-size:.7rem;font-weight:600;letter-spacing:.13em;text-transform:uppercase;
+    opacity:.85}
+  .modo .top h3{color:#fff;margin-top:.4rem}
+  .modo .body{padding:1.3rem 1.4rem 1.5rem;display:flex;flex-direction:column;gap:.75rem;flex:1}
+  .modo .body p{font-size:.94rem;color:var(--ink-2)}
+  .modo ul{display:grid;gap:.4rem}
+  .modo ul li{font-size:.89rem;color:var(--ink-2);padding-left:1.4rem;position:relative}
+  .modo ul li::before{content:"✓";position:absolute;left:0;font-weight:700;font-size:.85rem}
+  .modo .price{margin-top:auto;padding-top:1rem;border-top:1px solid var(--line);font-size:.84rem;color:var(--ink-3)}
+  .m1 .top{background:linear-gradient(140deg,#0b72b8,#085a91)} .m1 ul li::before{color:var(--brand)}
+  .m2 .top{background:linear-gradient(140deg,#0f8f83,#0b6f66)} .m2 ul li::before{color:var(--teal)}
+  .m3 .top{background:linear-gradient(140deg,#c07615,#95590c)} .m3 ul li::before{color:var(--amber)}
+
+  /* ---------- MÉTODO ---------- */
+  .fases{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);
     border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
-  @media (max-width:980px){.phases{grid-template-columns:repeat(2,1fr)}}
-  @media (max-width:560px){.phases{grid-template-columns:1fr}}
-  .phase{background:#fff;padding:1.5rem 1.3rem 1.7rem}
-  .phase b.n{font-family:var(--fd);font-size:1.05rem;color:var(--gold);display:block;margin-bottom:.7rem}
-  .phase h3{font-size:1.06rem;margin-bottom:.55rem}
-  .phase p{font-size:.9rem;color:var(--ink-2)}
-  .phase ul{margin-top:.9rem;display:grid;gap:.35rem;padding-top:.9rem;border-top:1px dashed var(--line-2)}
-  .phase ul li{font-size:.84rem;color:var(--ink-3);position:relative;padding-left:.95rem}
-  .phase ul li::before{content:"›";position:absolute;left:0;color:var(--gold);font-weight:700}
+  @media (max-width:940px){.fases{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:560px){.fases{grid-template-columns:1fr}}
+  .fase{background:#fff;padding:1.35rem 1.2rem 1.5rem}
+  .fase b.n{font-family:var(--fd);font-size:.8rem;font-weight:600;color:#fff;background:var(--brand);
+    width:26px;height:26px;border-radius:7px;display:grid;place-items:center;margin-bottom:.75rem}
+  .fase h3{font-size:1rem;margin-bottom:.35rem}
+  .fase p{font-size:.86rem;color:var(--ink-2)}
+  .fase .ent{margin-top:.85rem;padding-top:.75rem;border-top:1px dashed var(--line-2);font-size:.8rem;color:var(--brand-ink)}
 
-  /* ---------- DARK SECTION ---------- */
-  .dark{background:var(--navy);color:#fff}
-  .dark h2{color:#fff}
-  .dark .lead{color:#a9bdd1}
-  .dark .eyebrow{color:var(--gold-soft)}
-  .dark .eyebrow::before{background:var(--gold-soft)}
-  .mcard{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.12);border-radius:var(--r);
-    padding:1.6rem 1.5rem 1.75rem;transition:background .25s,border-color .25s}
-  .mcard:hover{background:rgba(255,255,255,.08);border-color:rgba(216,178,92,.5)}
-  .mcard .tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-    color:var(--gold-soft);border:1px solid rgba(216,178,92,.4);border-radius:999px;padding:.28em .8em;margin-bottom:1rem}
-  .mcard h3{color:#fff;margin-bottom:.55rem}
-  .mcard p{color:#a9bdd1;font-size:.95rem}
-  .mcard ul{margin-top:1rem;display:grid;gap:.4rem}
-  .mcard ul li{font-size:.9rem;color:#c3d2e2;padding-left:1.2rem;position:relative}
-  .mcard ul li::before{content:"";position:absolute;left:0;top:.6em;width:5px;height:5px;border-radius:50%;background:var(--gold-soft)}
-  .mcard .fee{margin-top:1.2rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.12);
-    font-size:.83rem;color:#8ea6bf}
+  /* ---------- HERRAMIENTA ---------- */
+  .tool{background:linear-gradient(150deg,#08243c,#0d3454);color:#fff;border-radius:var(--r-lg);
+    padding:clamp(1.8rem,4vw,3rem);display:grid;grid-template-columns:1.2fr .8fr;gap:2rem;align-items:center}
+  @media (max-width:820px){.tool{grid-template-columns:1fr}}
+  .tool h2{color:#fff}
+  .tool p{color:#a9c2d7;margin-top:.8rem;max-width:48ch}
+  .tool .chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.3rem}
+  .tool .chips span{font-size:.82rem;color:#cfe0ee;background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:.35em .9em}
+  .tool-art{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:1.3rem}
+  .tool-art .bar{display:flex;align-items:center;gap:.7rem;margin-bottom:.75rem;font-size:.82rem;color:#bed4e6}
+  .tool-art .track{height:8px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden;flex:1}
+  .tool-art .fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#4fa8dd,#6fe3d2)}
 
-  /* ---------- ÁREAS ---------- */
-  .area{display:flex;gap:1.1rem;align-items:flex-start;padding:1.4rem 0;border-bottom:1px solid var(--line)}
-  .area:first-child{border-top:1px solid var(--line)}
-  .area .num{font-family:var(--fd);font-size:1rem;color:var(--gold);min-width:2.2rem;padding-top:.15rem}
-  .area .body{flex:1}
-  .area h3{font-size:1.15rem;margin-bottom:.35rem}
-  .area p{color:var(--ink-2);font-size:.96rem}
-  .area .count{font-size:.82rem;font-weight:700;color:var(--brand);white-space:nowrap;padding-top:.3rem}
-  @media (max-width:620px){.area .count{display:none}}
-
-  /* ---------- CATÁLOGO CTA ---------- */
-  .catbox{background:linear-gradient(150deg,#0e2b47,#123457);color:#fff;border-radius:var(--r-lg);
-    padding:clamp(2rem,4vw,3.2rem);display:flex;gap:2rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
-  .catbox h2{color:#fff;font-size:clamp(1.6rem,1.2rem + 1.6vw,2.3rem)}
-  .catbox p{color:#b3c6d9;margin-top:.8rem;max-width:52ch}
+  /* ---------- CATÁLOGO ---------- */
+  .catbox{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-lg);
+    padding:clamp(1.8rem,4vw,2.8rem);display:flex;gap:2rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .catbox p{color:var(--ink-2);margin-top:.7rem;max-width:50ch}
 
   /* ---------- SOCIOS ---------- */
-  .partner{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:1.8rem 1.6rem 1.9rem;
-    transition:border-color .25s,box-shadow .25s}
-  .partner:hover{border-color:var(--line-2);box-shadow:0 14px 34px rgba(10,28,46,.07)}
-  .partner .mono{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;
-    background:linear-gradient(150deg,#0e2b47,#1257a6);color:#fff;font-family:var(--fd);font-size:1.25rem;
-    letter-spacing:.02em;margin-bottom:1.15rem}
-  .partner h3{font-size:1.18rem}
-  .partner .role{color:var(--brand);font-weight:600;font-size:.88rem;margin-top:.3rem}
-  .partner p{margin-top:.85rem;color:var(--ink-2);font-size:.94rem}
-  .partner .links{margin-top:1.1rem;display:flex;gap:1rem;flex-wrap:wrap}
-  .partner .links a{font-size:.85rem;font-weight:600;color:var(--brand)}
+  .partner{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:1.6rem 1.5rem 1.7rem;
+    display:flex;flex-direction:column;gap:.5rem;transition:border-color .25s,box-shadow .25s}
+  .partner:hover{border-color:var(--line-2);box-shadow:0 14px 32px rgba(8,36,60,.08)}
+  .partner .mono{width:56px;height:56px;border-radius:14px;display:grid;place-items:center;
+    background:linear-gradient(145deg,#0b72b8,#08243c);color:#fff;font-family:var(--fd);font-weight:500;
+    font-size:1.1rem;margin-bottom:.6rem}
+  .partner .role{color:var(--brand);font-weight:600;font-size:.85rem}
+  .partner p{color:var(--ink-2);font-size:.92rem;margin-top:.4rem}
+  .partner .links{margin-top:auto;padding-top:1rem;display:flex;gap:1rem;flex-wrap:wrap}
+  .partner .links a{font-size:.84rem;font-weight:600;color:var(--brand)}
   .partner .links a:hover{text-decoration:underline}
-
-  .chips{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.6rem}
-  .chip{border:1px solid var(--line-2);border-radius:999px;padding:.5em 1.05em;font-size:.9rem;
+  .chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.4rem}
+  .chip{border:1px solid var(--line-2);border-radius:999px;padding:.45em 1em;font-size:.87rem;
     color:var(--ink-2);background:#fff}
-
-  /* ---------- SECTORES ---------- */
-  .sector{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:1.3rem 1.35rem 1.45rem}
-  .sector b{display:block;font-size:1rem;margin-bottom:.4rem}
-  .sector p{font-size:.9rem;color:var(--ink-2)}
 
   /* ---------- CONTACTO ---------- */
   .contact{background:var(--bg-2);border-top:1px solid var(--line)}
-  .cgrid{display:grid;grid-template-columns:1fr 1.15fr;gap:clamp(2rem,5vw,4rem);align-items:start}
+  .cgrid{display:grid;grid-template-columns:1fr 1.1fr;gap:clamp(2rem,5vw,3.5rem);align-items:start}
   @media (max-width:900px){.cgrid{grid-template-columns:1fr}}
-  .cinfo ul{margin-top:1.8rem;display:grid;gap:1.1rem}
-  .cinfo li{display:flex;gap:.85rem;align-items:flex-start}
-  .cinfo li svg{width:19px;height:19px;color:var(--brand);flex:none;margin-top:.22rem}
-  .cinfo li b{display:block;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
-  .cinfo li a,.cinfo li span{font-size:1.02rem;font-weight:500;color:var(--ink)}
+  .cinfo ul{margin-top:1.6rem;display:grid;gap:1rem}
+  .cinfo li{display:flex;gap:.8rem;align-items:flex-start}
+  .cinfo li svg{width:18px;height:18px;color:var(--brand);flex:none;margin-top:.25rem}
+  .cinfo li b{display:block;font-size:.74rem;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+  .cinfo li a,.cinfo li span{font-size:.99rem;font-weight:500;color:var(--ink)}
   .cinfo li a:hover{color:var(--brand)}
-  form.f{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:clamp(1.5rem,3vw,2.2rem);
-    display:grid;gap:1rem}
-  .fr{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  .social{display:flex;gap:.6rem;margin-top:1.6rem}
+  .social a{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:#fff;
+    border:1px solid var(--line-2);color:var(--ink-2);transition:all .2s}
+  .social a:hover{background:var(--brand);border-color:var(--brand);color:#fff;transform:translateY(-2px)}
+  .social svg{width:19px;height:19px}
+  form.f{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:clamp(1.4rem,3vw,2rem);
+    display:grid;gap:.9rem}
+  .fr{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
   @media (max-width:560px){.fr{grid-template-columns:1fr}}
-  .field{display:grid;gap:.4rem}
-  .field label{font-size:.82rem;font-weight:600;color:var(--ink-2)}
-  .field input,.field select,.field textarea{font-family:inherit;font-size:1rem;color:var(--ink);
-    padding:.75em .9em;border:1px solid var(--line-2);border-radius:8px;background:#fff;width:100%;
+  .field{display:grid;gap:.35rem}
+  .field label{font-size:.8rem;font-weight:600;color:var(--ink-2)}
+  .field input,.field select,.field textarea{font-family:inherit;font-size:.98rem;color:var(--ink);
+    padding:.72em .85em;border:1px solid var(--line-2);border-radius:9px;background:#fff;width:100%;
     transition:border-color .2s,box-shadow .2s}
-  .field textarea{min-height:110px;resize:vertical}
+  .field textarea{min-height:100px;resize:vertical}
   .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--brand);
-    box-shadow:0 0 0 3px rgba(18,87,166,.14)}
-  .form-msg{min-height:1.2em;font-weight:600;font-size:.93rem}
-  .form-msg.ok{color:#1a7a53}.form-msg.err{color:#c0392b}
-  .fine{font-size:.82rem;color:var(--ink-3)}
+    box-shadow:0 0 0 3px rgba(11,114,184,.14)}
+  .form-msg{min-height:1.2em;font-weight:600;font-size:.92rem}
+  .form-msg.ok{color:#0b6f66}.form-msg.err{color:#c0392b}
+  .fine{font-size:.8rem;color:var(--ink-3)}
   .fine a{color:var(--brand);text-decoration:underline}
 
-  /* ---------- FOOTER ---------- */
-  footer{background:var(--navy);color:#9fb4c8;padding:clamp(48px,6vw,72px) 0 2.2rem;font-size:.92rem}
-  .fgrid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:2.4rem}
-  @media (max-width:760px){.fgrid{grid-template-columns:1fr;gap:2rem}}
-  footer .logo{color:#fff}
-  footer .logo i{color:var(--gold-soft)}
-  footer p.about{margin-top:1rem;max-width:40ch;color:#8ea6bf;font-size:.92rem}
-  footer h4{color:#fff;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:1rem}
-  footer ul{display:grid;gap:.6rem}
-  footer a:hover{color:#fff}
-  .fbottom{margin-top:3rem;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.12);
-    display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:.85rem;color:#7d93a9}
+  /* ---------- WHATSAPP FLOTANTE ---------- */
+  .wa-float{position:fixed;right:clamp(14px,3vw,26px);bottom:clamp(14px,3vw,26px);z-index:200;
+    display:inline-flex;align-items:center;gap:.55rem;background:#25D366;color:#06351a;
+    font-family:var(--fd);font-weight:500;font-size:.92rem;padding:.75em 1.15em;border-radius:999px;
+    box-shadow:0 10px 30px rgba(37,211,102,.4);transition:transform .22s var(--ease),box-shadow .22s}
+  .wa-float:hover{transform:translateY(-3px);box-shadow:0 14px 36px rgba(37,211,102,.5)}
+  .wa-float svg{width:22px;height:22px;flex:none}
+  @media (max-width:560px){.wa-float span{display:none}.wa-float{padding:.85em;border-radius:50%}}
 
-  /* ---------- REVEAL ---------- */
-  .reveal{opacity:0;transform:translateY(18px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+  /* ---------- FOOTER ---------- */
+  footer{background:var(--navy);color:#93aec6;padding:clamp(44px,6vw,68px) 0 2rem;font-size:.9rem}
+  .fgrid{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:2.2rem}
+  @media (max-width:760px){.fgrid{grid-template-columns:1fr;gap:1.8rem}}
+  footer .flogo img{height:26px;width:auto}
+  footer p.about{margin-top:1rem;max-width:38ch;color:#89a3bb;font-size:.9rem}
+  footer h4{color:#fff;font-family:var(--fd);font-size:.76rem;letter-spacing:.12em;text-transform:uppercase;
+    margin-bottom:.9rem;font-weight:600}
+  footer ul{display:grid;gap:.55rem}
+  footer a:hover{color:#fff}
+  .fbottom{margin-top:2.6rem;padding-top:1.3rem;border-top:1px solid rgba(255,255,255,.13);
+    display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:.83rem;color:#7791a9}
+
+  .reveal{opacity:0;transform:translateY(16px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
   .reveal.in{opacity:1;transform:none}
   @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
-
   .skip{position:absolute;left:-9999px}
-  .skip:focus{left:1rem;top:1rem;z-index:200;background:#fff;padding:.7rem 1rem;border-radius:8px}
+  .skip:focus{left:1rem;top:1rem;z-index:300;background:#fff;padding:.7rem 1rem;border-radius:8px}
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Saltar al contenido</a>
 
-<!-- ================= NAV ================= -->
 <nav class="nav">
   <div class="nav-in">
-    <a href="#top" class="logo" aria-label="EdwCorp — inicio"><b>Edw</b><i>Corp</i><span class="dot"></span></a>
+    <a href="#top" class="nav-logo" aria-label="EdwCorp — inicio"><img src="assets/logo.svg" alt="EdwCorp" /></a>
     <div class="nav-links" id="navLinks">
-      <a href="#que-hacemos">Qué hacemos</a>
-      <a href="#modelo">Cómo trabajamos</a>
-      <a href="#colaboracion">Modalidades</a>
-      <a href="#areas">Especialidades</a>
+      <a href="#puv">Qué hacemos</a>
+      <a href="#servicios">Servicios</a>
+      <a href="#modalidades">Cómo trabajamos</a>
+      <a href="#metodo">Método</a>
+      <a href="diagnostico.html">Diagnóstico</a>
       <a href="catalogo.html">Catálogo</a>
       <a href="#socios">Socios</a>
-      <a href="#contacto">Contacto</a>
     </div>
     <div class="nav-right">
-      <a class="btn btn-fill desk" href="#contacto">Agendar diagnóstico</a>
+      <a class="btn btn-fill desk" href="#contacto">Solicitar propuesta</a>
       <button class="nav-toggle" id="navToggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="navLinks">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
@@ -327,332 +373,371 @@
 <main id="main">
 <span id="top"></span>
 
-<!-- ================= HERO ================= -->
+<!-- ===================== HERO ===================== -->
 <header class="hero">
-  <div class="wrap wide">
-    <div class="hero-in">
-      <p class="eyebrow">Consultoría · Formación · Diseño curricular</p>
-      <h1>Diseñamos el futuro de la formación empresarial y educativa.</h1>
-      <p>No vendemos cursos sueltos. Construimos <strong style="color:#fff">programas completos de capacitación, planes y programas de estudio y sistemas de aprendizaje</strong> a la medida de cada organización, con tecnología, inteligencia artificial y un estándar profesional de entregables.</p>
-      <div class="hero-cta">
-        <a class="btn btn-gold" href="#contacto">Agendar diagnóstico</a>
-        <a class="btn btn-ghost" href="catalogo.html">Ver catálogo de programas</a>
+  <!-- Fondo animado. Para usar video: pon tu archivo en assets/hero.mp4 y
+       descomenta el bloque <video>; el canvas se oculta solo. -->
+  <canvas class="hero-bg" id="heroCanvas" aria-hidden="true"></canvas>
+  <!--
+  <div class="hero-bg"><video autoplay muted loop playsinline poster="assets/hero-poster.jpg">
+    <source src="assets/hero.mp4" type="video/mp4" />
+  </video></div>
+  -->
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow" style="color:#6fc0f0">EdwCorp · Chihuahua, México</p>
+        <h1>Diseñamos la capacitación que tu empresa <em>sí</em> necesita.</h1>
+        <p class="sub">Programas a la medida, tecnología para la educación y el training de tu propio producto. Con entregables, no con promesas.</p>
+        <div class="hero-cta">
+          <a class="btn btn-fill" href="#contacto">Solicitar propuesta</a>
+          <a class="btn btn-ghost" href="diagnostico.html">Diagnóstico gratis · 2 min</a>
+        </div>
+        <p class="hero-note">
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>Constancias DS-3 con registro STPS</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>Enfoque por competencias</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>Apoyo de IA en cada programa</span>
+        </p>
       </div>
-      <p class="hero-note">Empresas · Instituciones educativas · Gobierno · Organizaciones sociales</p>
+
+      <div class="puv">
+        <a href="#p-programas">
+          <span class="n">01</span>
+          <span><b>Diseño de programas de capacitación</b>
+          <small>Para tu industria, tus puestos y tus objetivos.</small></span>
+        </a>
+        <a href="#p-tecnologia">
+          <span class="n">02</span>
+          <span><b>Diseño de tecnología para la educación</b>
+          <small>Plataformas y herramientas con las que se enseña.</small></span>
+        </a>
+        <a href="#p-training">
+          <span class="n">03</span>
+          <span><b>Training de tu tecnología</b>
+          <small>Que tu cliente use bien tu software o tu equipo.</small></span>
+        </a>
+      </div>
     </div>
+
     <div class="kpis">
-      <div class="kpi"><b>15+</b><span>años diseñando formación y proyectos</span></div>
-      <div class="kpi"><b>55</b><span>programas listos para implementar</span></div>
-      <div class="kpi"><b>6</b><span>áreas de especialización</span></div>
-      <div class="kpi"><b>2</b><span>continentes con proyectos ejecutados</span></div>
+      <div class="kpi"><b>15+</b><span>años formando equipos</span></div>
+      <div class="kpi"><b>55</b><span>programas listos</span></div>
+      <div class="kpi"><b>DS-3</b><span>constancias con registro STPS</span></div>
+      <div class="kpi"><b>2</b><span>continentes con proyectos</span></div>
     </div>
   </div>
 </header>
 
-<div class="trust">
-  <div class="wrap wide">
-    <p>Experiencia docente y de proyectos con instituciones como</p>
-    <ul>
-      <li>Universidad La Salle</li>
-      <li>Tecnológico de Monterrey</li>
-      <li>Universidad Tecnológica de Chihuahua</li>
-      <li>Bridge for Billions</li>
-      <li>NASA Space Apps</li>
+<!-- ===================== CLIENTES ===================== -->
+<div class="strip">
+  <div class="wrap"><p>Empresas e instituciones con las que hemos trabajado</p></div>
+  <div class="marquee" id="marquee">
+    <ul id="marqueeList">
+      <li>Newton Labs</li><li>Axys Global</li><li>Bioteksa</li><li>Safran</li><li>Textron</li>
+      <li>Bombardier</li><li>CENALTEC</li><li>Jabil Academy</li><li>Tec de Monterrey</li>
+      <li>Universidad La Salle</li><li>UTCH</li><li>Tecnológico de Chihuahua II</li>
+      <li>NASA Space Apps</li><li>Startup Chihuahua</li><li>IMPLAN</li><li>Tech Week</li>
+      <li>CANACO</li><li>Emprende Latam</li><li>COPARMEX</li>
     </ul>
   </div>
 </div>
 
-<!-- ================= RETO ================= -->
-<section id="reto">
-  <div class="wrap wide">
+<!-- ===================== PUV ===================== -->
+<section id="puv">
+  <div class="wrap">
     <div class="head reveal">
-      <p class="eyebrow">El reto</p>
-      <h2>La capacitación falla cuando no está diseñada como un sistema.</h2>
-      <p class="lead">La mayoría de las organizaciones compra cursos aislados y espera resultados de negocio. Nosotros empezamos por el problema, no por el temario.</p>
+      <p class="eyebrow">Propuesta de valor</p>
+      <h2>Tres cosas que hacemos mejor que nadie.</h2>
+      <p class="lead">No damos cursos sueltos: construimos la capacidad que le falta a tu organización y te la dejamos funcionando.</p>
     </div>
     <div class="grid g3">
-      <div class="issue reveal">
-        <div class="top"><span>Problema</span><p>Falta de alineación entre el entrenamiento y la estrategia del negocio.</p></div>
-        <div class="bot"><span>Nuestra respuesta</span><p>Diseño curricular estratégico y programas de formación integrados a la visión, misión y objetivos de la organización, con indicadores definidos desde el día uno.</p></div>
-      </div>
-      <div class="issue reveal">
-        <div class="top"><span>Problema</span><p>Baja participación y resultados limitados en programas tradicionales.</p></div>
-        <div class="bot"><span>Nuestra respuesta</span><p>Experiencias de aprendizaje dinámicas: microlearning, microconsultas, práctica guiada y recursos interactivos con IA para sostener el compromiso y garantizar la transferencia al puesto de trabajo.</p></div>
-      </div>
-      <div class="issue reveal">
-        <div class="top"><span>Problema</span><p>Desactualización tecnológica y resistencia al cambio.</p></div>
-        <div class="bot"><span>Nuestra respuesta</span><p>Capacitación en software, hardware, automatización y transformación digital, acompañada por especialistas y por una gestión del cambio formal.</p></div>
-      </div>
+      <article class="pillar p1 reveal" id="p-programas">
+        <svg class="art" viewBox="0 0 200 200" fill="none" stroke="#fff" stroke-width="3" aria-hidden="true">
+          <rect x="20" y="30" width="120" height="150" rx="8"/><path d="M45 65h70M45 95h70M45 125h45"/>
+          <circle cx="150" cy="140" r="38"/><path d="m134 140 12 12 22-24"/>
+        </svg>
+        <span class="tag">Para la industria</span>
+        <h3>Diseño de programas de capacitación</h3>
+        <p>Detectamos la brecha real, diseñamos el programa completo por competencias y lo impartimos con material propio.</p>
+        <ul>
+          <li>Diagnóstico de necesidades (DNC)</li>
+          <li>Rutas de formación por puesto</li>
+          <li>Material, evaluación y constancias</li>
+        </ul>
+      </article>
+
+      <article class="pillar p2 reveal" id="p-tecnologia">
+        <svg class="art" viewBox="0 0 200 200" fill="none" stroke="#fff" stroke-width="3" aria-hidden="true">
+          <rect x="25" y="45" width="150" height="100" rx="10"/><path d="M75 165h50M100 145v20"/>
+          <path d="M60 95h25l12-22 16 44 12-22h25"/>
+        </svg>
+        <span class="tag">Para instituciones</span>
+        <h3>Diseño de tecnología para la educación</h3>
+        <p>Diseñamos y ponemos en marcha la plataforma, la herramienta o la app con la que tu institución enseña y evalúa.</p>
+        <ul>
+          <li>Selección e implantación de LMS</li>
+          <li>Herramientas y tableros a la medida</li>
+          <li>Infraestructura para proyectos académicos</li>
+        </ul>
+      </article>
+
+      <article class="pillar p3 reveal" id="p-training">
+        <svg class="art" viewBox="0 0 200 200" fill="none" stroke="#fff" stroke-width="3" aria-hidden="true">
+          <rect x="30" y="55" width="140" height="90" rx="8"/><path d="M55 85h40M55 105h60"/>
+          <circle cx="140" cy="100" r="18"/><path d="M140 82v-14M140 132v-14M122 100h-14M172 100h-14"/>
+        </svg>
+        <span class="tag">Para empresas de tecnología</span>
+        <h3>Training de tu tecnología</h3>
+        <p>Convertimos tu software o tu equipo en un programa de entrenamiento que tus clientes y tu personal sí terminan.</p>
+        <ul>
+          <li>Currícula del producto y laboratorios</li>
+          <li>Manuales, videos y certificación de usuarios</li>
+          <li>Academy de marca lista para operar</li>
+        </ul>
+      </article>
     </div>
   </div>
 </section>
 
-<!-- ================= QUÉ HACEMOS ================= -->
-<section id="que-hacemos" style="background:var(--bg-2);border-block:1px solid var(--line)">
-  <div class="wrap wide">
+<!-- ===================== SERVICIOS ===================== -->
+<section id="servicios" style="background:var(--bg-2);border-block:1px solid var(--line)">
+  <div class="wrap">
     <div class="head reveal">
-      <p class="eyebrow">Qué hacemos</p>
-      <h2>Cuatro líneas de trabajo, un mismo estándar de entrega.</h2>
-      <p class="lead">Cada línea se contrata por separado o como un programa integral. Todas terminan en entregables concretos, documentados y transferibles a tu equipo.</p>
-    </div>
-    <div class="grid g2">
-      <article class="card reveal">
-        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18M3 12h18M3 17h12"/></svg></div>
-        <h3>Programas de capacitación corporativa</h3>
-        <p>Diseñamos el modelo completo de formación de la organización: rutas por puesto, niveles, competencias, evaluación y certificación interna. Más amplio que un curso: es la arquitectura de aprendizaje de la empresa.</p>
-        <ul class="ticks">
-          <li>Mapa de competencias y detección de necesidades (DNC)</li>
-          <li>Rutas de formación por rol, área y nivel de mando</li>
-          <li>Programa anual de capacitación y su presupuesto</li>
-          <li>Modelo de evaluación e impacto (Kirkpatrick / ROI)</li>
-        </ul>
-      </article>
-      <article class="card reveal">
-        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h9a3 3 0 0 1 3 3v11a2.5 2.5 0 0 0-2.5-2.5H4z"/><path d="M20 5h-2a3 3 0 0 0-3 3v11"/></svg></div>
-        <h3>Planes y programas de estudio</h3>
-        <p>Diseño curricular para instituciones educativas y áreas de formación: nuevas carreras, especialidades, diplomados y certificaciones, con la documentación que exigen los organismos reguladores.</p>
-        <ul class="ticks">
-          <li>Modelo educativo, perfil de egreso y mapa curricular</li>
-          <li>Programas de asignatura y cartas descriptivas</li>
-          <li>Expedientes para validación oficial (RVOE / acreditaciones)</li>
-          <li>Formación y habilitación docente</li>
-        </ul>
-      </article>
-      <article class="card reveal">
-        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
-        <h3>Material didáctico y recursos</h3>
-        <p>Producimos el contenido con el que se enseña: manuales, guías del instructor, cuadernos de trabajo, casos, evaluaciones, presentaciones y cursos digitales listos para tu plataforma.</p>
-        <ul class="ticks">
-          <li>Manuales del participante y del instructor</li>
-          <li>Cursos e-learning (SCORM) y microlearning</li>
-          <li>Casos, simuladores, rúbricas y bancos de reactivos</li>
-          <li>Identidad visual y editorial del programa</li>
-        </ul>
-      </article>
-      <article class="card reveal">
-        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></div>
-        <h3>Consultoría por entregables</h3>
-        <p>Consultoría con alcance, calendario y productos definidos por contrato. Sabes exactamente qué recibes, cuándo y con qué criterio se acepta. Sin horas abiertas ni facturación indefinida.</p>
-        <ul class="ticks">
-          <li>Diagnóstico organizacional y de capacidades</li>
-          <li>Diseño e implementación de PMO y gestión de proyectos</li>
-          <li>Transformación digital y adopción tecnológica</li>
-          <li>Evaluación de programas educativos y de capacitación</li>
-        </ul>
-      </article>
+      <p class="eyebrow">Servicios</p>
+      <h2>Qué contratas y qué te queda.</h2>
+      <p class="lead">Cada servicio termina en algo que puedes usar el lunes siguiente.</p>
     </div>
 
-    <div class="card reveal" style="margin-top:1.15rem;border-left:3px solid var(--gold)">
-      <h3>Tecnología, software y hardware — como capa transversal</h3>
-      <p style="margin-top:.6rem">También creamos programas de estudio STEM y de tecnología. Capacitamos sobre software y hardware de forma completa: herramientas de productividad y colaboración, análisis de datos e inteligencia artificial aplicada, IoT, robótica educativa, plataformas de gestión y la infraestructura que sostiene los proyectos académicos y formativos. Es una capacidad que atraviesa todas nuestras líneas, no un producto aparte.</p>
+    <div class="grid g3">
+      <article class="box c-blue reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+        <h3>Programa de capacitación a la medida</h3>
+        <p>Del diagnóstico a la constancia. Diseñado para tus puestos, tu industria y tus indicadores.</p>
+        <p class="keeps"><b>Te queda</b>Programa anual, materiales propios, instructores internos formados y constancias DS-3.</p>
+      </article>
+
+      <article class="box c-teal reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <h3>Training de producto y software</h3>
+        <p>Tu tecnología explicada para que se use bien: onboarding de clientes, personal técnico y fuerza de ventas.</p>
+        <p class="keeps"><b>Te queda</b>Currícula del producto, laboratorios, manuales, videos y examen de certificación.</p>
+      </article>
+
+      <article class="box c-plum reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="M3 14l9 5 9-5"/></svg></div>
+        <h3>Tecnología educativa</h3>
+        <p>Elegimos, configuramos y ponemos a operar la plataforma de aprendizaje. Nos vamos cuando ya funciona.</p>
+        <p class="keeps"><b>Te queda</b>LMS o herramienta en producción, con contenidos cargados y tu equipo capacitado.</p>
+      </article>
+
+      <article class="box c-amber reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 5h9a3 3 0 0 1 3 3v11a2.5 2.5 0 0 0-2.5-2.5H4z"/><path d="M20 5h-2a3 3 0 0 0-3 3v11"/></svg></div>
+        <h3>Nueva oferta académica</h3>
+        <p>¿Vas a abrir una universidad, una carrera o una especialidad? Diseñamos el modelo educativo y el expediente completo.</p>
+        <p class="keeps"><b>Te queda</b>Modelo educativo, mapa curricular, programas de asignatura y expediente para RVOE.</p>
+      </article>
+
+      <article class="box c-blue reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 21h18M6 21V9l6-5 6 5v12"/><path d="M10 21v-6h4v6"/></svg></div>
+        <h3>Centros y torres de innovación</h3>
+        <p>Diseñamos el modelo de servicios completo de tu centro: qué vende, a quién, con qué procesos y con qué equipo.</p>
+        <p class="keeps"><b>Te queda</b>Portafolio de servicios, tarifas, procesos, gobernanza y plan de puesta en marcha.</p>
+      </article>
+
+      <article class="box c-slate reveal">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+        <h3>Educación continua</h3>
+        <p>Diplomados y certificaciones que le generan ingresos a tu universidad y prestigio a tu marca.</p>
+        <p class="keeps"><b>Te queda</b>Catálogo de educación continua, contenidos y modelo de operación e ingresos.</p>
+      </article>
     </div>
   </div>
 </section>
 
-<!-- ================= MODELO / FASES ================= -->
-<section id="modelo">
-  <div class="wrap wide">
+<!-- ===================== MODALIDADES ===================== -->
+<section id="modalidades">
+  <div class="wrap">
     <div class="head reveal">
       <p class="eyebrow">Cómo trabajamos</p>
-      <h2>Un método de cinco fases, cada una con su entregable.</h2>
-      <p class="lead">Cada fase cierra con un producto que la organización recibe, revisa y aprueba. Puedes contratar el ciclo completo o detenerte en la fase que necesites.</p>
+      <h2>Tres formas de trabajar con nosotros.</h2>
+      <p class="lead">Se distinguen en una cosa: qué te queda al terminar.</p>
     </div>
-    <div class="phases reveal">
-      <div class="phase">
-        <b class="n">01</b>
-        <h3>Diagnóstico</h3>
-        <p>Entendemos el negocio, la brecha real de capacidades y qué resultado se espera.</p>
-        <ul><li>Informe de diagnóstico</li><li>Mapa de brechas</li><li>Indicadores objetivo</li></ul>
-      </div>
-      <div class="phase">
-        <b class="n">02</b>
-        <h3>Diseño</h3>
-        <p>Definimos la arquitectura del programa: competencias, rutas, modalidad y evaluación.</p>
-        <ul><li>Arquitectura curricular</li><li>Cartas descriptivas</li><li>Plan de implementación</li></ul>
-      </div>
-      <div class="phase">
-        <b class="n">03</b>
-        <h3>Desarrollo</h3>
-        <p>Producimos materiales, recursos digitales e instrumentos de evaluación.</p>
-        <ul><li>Manuales y guías</li><li>Recursos e-learning</li><li>Instrumentos de evaluación</li></ul>
-      </div>
-      <div class="phase">
-        <b class="n">04</b>
-        <h3>Implementación</h3>
-        <p>Impartimos, habilitamos a los instructores internos y acompañamos la puesta en marcha.</p>
-        <ul><li>Impartición y tutoría</li><li>Formación de formadores</li><li>Gestión del cambio</li></ul>
-      </div>
-      <div class="phase">
-        <b class="n">05</b>
-        <h3>Medición</h3>
-        <p>Medimos aprendizaje, transferencia al puesto y efecto en los indicadores del negocio.</p>
-        <ul><li>Tablero de resultados</li><li>Informe de impacto</li><li>Plan de mejora</li></ul>
-      </div>
+    <div class="grid g3">
+      <article class="modo m1 reveal">
+        <div class="top">
+          <span>Consultoría</span>
+          <h3>Implementada, no en papel</h3>
+        </div>
+        <div class="body">
+          <p>No entregamos un plan y nos vamos. Dejamos una herramienta funcionando dentro de tu empresa, en producción y con tu gente operándola.</p>
+          <ul>
+            <li>PMO, tablero o proceso ya operando</li>
+            <li>Tu equipo entrenado para sostenerlo</li>
+            <li>Documentación y transferencia incluidas</li>
+            <li>Cierre por criterios de aceptación</li>
+          </ul>
+          <p class="price">Por proyecto, con pagos por hito.</p>
+        </div>
+      </article>
+
+      <article class="modo m2 reveal">
+        <div class="top">
+          <span>Capacitación</span>
+          <h3>Formal y con IA</h3>
+        </div>
+        <div class="body">
+          <p>Capacitación con validez: enfoque por competencias, instrumentos de evaluación y constancias DS-3. El capacitador principal está registrado ante la STPS.</p>
+          <ul>
+            <li>Alineada al estándar de competencia</li>
+            <li>Constancias DS-3 con registro STPS</li>
+            <li>Materiales y práctica asistidos con IA</li>
+            <li>Medición de transferencia al puesto</li>
+          </ul>
+          <p class="price">Por grupo o por programa anual.</p>
+        </div>
+      </article>
+
+      <article class="modo m3 reveal">
+        <div class="top">
+          <span>MicroCoach</span>
+          <h3>Decisiones del día a día por WhatsApp</h3>
+        </div>
+        <div class="body">
+          <p>Nos escribes tu problema real del día y regresamos una solución aplicable: una plantilla, un análisis, un guion, un formato. Rápido y por entregable.</p>
+          <ul>
+            <li>Respuesta el mismo día hábil</li>
+            <li>Entregable listo para usar, no consejos</li>
+            <li>Sin contrato largo ni mínimo de horas</li>
+            <li>Historial de lo entregado</li>
+          </ul>
+          <p class="price">Precio bajo por entregable o paquete mensual.</p>
+        </div>
+      </article>
     </div>
   </div>
 </section>
 
-<!-- ================= MODALIDADES / MODELO DE NEGOCIO ================= -->
-<section id="colaboracion" class="dark">
-  <div class="wrap wide">
+<!-- ===================== MÉTODO ===================== -->
+<section id="metodo" style="background:var(--bg-2);border-block:1px solid var(--line)">
+  <div class="wrap">
     <div class="head reveal">
-      <p class="eyebrow">Modalidades de colaboración</p>
-      <h2>Cuatro formas de contratarnos.</h2>
-      <p class="lead">Elegimos juntos la modalidad según el alcance y la madurez de tu organización. Todas se cotizan por entregable, no por hora abierta.</p>
+      <p class="eyebrow">Método</p>
+      <h2>Cinco fases, cinco entregables.</h2>
+      <p class="lead">Puedes contratar el ciclo completo o detenerte en la fase que necesites.</p>
     </div>
-    <div class="grid g4">
-      <article class="mcard reveal">
-        <span class="tag">Proyecto</span>
-        <h3>Proyecto por entregables</h3>
-        <p>Alcance cerrado, calendario y productos definidos. La forma habitual de iniciar.</p>
-        <ul><li>Propuesta con entregables y criterios de aceptación</li><li>Pagos por hito</li><li>Cesión documentada de materiales</li></ul>
-        <p class="fee">Ideal para: un diagnóstico, un plan de estudios, un programa nuevo.</p>
-      </article>
-      <article class="mcard reveal">
-        <span class="tag">Recurrente</span>
-        <h3>Programa institucional anual</h3>
-        <p>Acompañamos todo el año la formación de la organización con un plan y un presupuesto anual.</p>
-        <ul><li>Programa anual y calendario</li><li>Bolsa de horas de consultoría</li><li>Reporte trimestral de impacto</li></ul>
-        <p class="fee">Ideal para: RR. HH., universidades y grupos con operación continua.</p>
-      </article>
-      <article class="mcard reveal">
-        <span class="tag">Licenciamiento</span>
-        <h3>Licencia de programas y materiales</h3>
-        <p>Usas nuestros programas y materiales con tu marca y tus instructores, bajo licencia.</p>
-        <ul><li>Licencia por sede, ciclo o número de participantes</li><li>Certificación de tus instructores</li><li>Actualizaciones incluidas</li></ul>
-        <p class="fee">Ideal para: cadenas, franquicias y grupos educativos multi-campus.</p>
-      </article>
-      <article class="mcard reveal">
-        <span class="tag">In-company</span>
-        <h3>Talleres y capacitación</h3>
-        <p>Impartición directa de programas del catálogo, presencial o en línea, adaptados a tu contexto.</p>
-        <ul><li>Grupos de 10 a 30 participantes</li><li>Constancias y evaluación incluidas</li><li>Adaptación de casos a tu industria</li></ul>
-        <p class="fee">Ideal para: necesidades puntuales y pruebas de colaboración.</p>
-      </article>
-    </div>
-    <p class="reveal" style="margin-top:2rem;color:#8ea6bf;font-size:.92rem;max-width:70ch">
-      Trabajamos con propuesta formal, contrato y facturación. Cotizamos por proyecto según alcance, número de participantes y sedes; solicita una propuesta y la recibes con entregables y calendario detallados.
-    </p>
-  </div>
-</section>
-
-<!-- ================= ÁREAS ================= -->
-<section id="areas">
-  <div class="wrap wide">
-    <div class="head reveal">
-      <p class="eyebrow">Especialidades</p>
-      <h2>Dónde somos fuertes.</h2>
-      <p class="lead">Seis áreas de especialización con 55 programas ya desarrollados, listos para adaptarse a tu organización.</p>
-    </div>
-    <div class="reveal">
-      <div class="area"><span class="num">01</span><div class="body"><h3>Dirección y administración de proyectos</h3><p>Cronograma, costos, riesgos, calidad, reportes, gobernanza, PMO y metodologías ágiles e híbridas.</p></div><span class="count">16 programas</span></div>
-      <div class="area"><span class="num">02</span><div class="body"><h3>Gestión de equipos y liderazgo</h3><p>Desarrollo de talento, habilidades directivas, equipos remotos y de alto rendimiento, comunicación, conflicto y cambio organizacional.</p></div><span class="count">14 programas</span></div>
-      <div class="area"><span class="num">03</span><div class="body"><h3>Negocios y emprendimiento</h3><p>Startups, plan de negocios, reingeniería, desarrollo organizacional, planeación estratégica y gestión de crisis.</p></div><span class="count">9 programas</span></div>
-      <div class="area"><span class="num">04</span><div class="body"><h3>Mercadotecnia y ventas</h3><p>Plan integral de mercadotecnia, gestión de ventas, pitch, identidad corporativa, negociación y servicio al cliente.</p></div><span class="count">6 programas</span></div>
-      <div class="area"><span class="num">05</span><div class="body"><h3>Innovación y transformación digital</h3><p>Transformación digital para PyMEs, IA aplicada, análisis de datos, IoT, herramientas de colaboración y protección de datos.</p></div><span class="count">10 programas</span></div>
-      <div class="area"><span class="num">06</span><div class="body"><h3>Tecnología, software y STEM</h3><p>Programas de estudio STEM, capacitación en software y hardware, robótica educativa e infraestructura para proyectos académicos.</p></div><span class="count">A medida</span></div>
+    <div class="fases reveal">
+      <div class="fase"><b class="n">1</b><h3>Diagnóstico</h3><p>Qué falta y cuánto cuesta que falte.</p><p class="ent">→ Informe y brechas</p></div>
+      <div class="fase"><b class="n">2</b><h3>Diseño</h3><p>Competencias, rutas, modalidad y evaluación.</p><p class="ent">→ Arquitectura del programa</p></div>
+      <div class="fase"><b class="n">3</b><h3>Desarrollo</h3><p>Materiales, recursos digitales e instrumentos.</p><p class="ent">→ Manuales y evaluaciones</p></div>
+      <div class="fase"><b class="n">4</b><h3>Implementación</h3><p>Impartimos y formamos a tus instructores.</p><p class="ent">→ Grupos y constancias</p></div>
+      <div class="fase"><b class="n">5</b><h3>Medición</h3><p>Qué cambió en el puesto y en el indicador.</p><p class="ent">→ Tablero de impacto</p></div>
     </div>
   </div>
 </section>
 
-<!-- ================= CATÁLOGO ================= -->
+<!-- ===================== HERRAMIENTA ===================== -->
+<section>
+  <div class="wrap">
+    <div class="tool reveal">
+      <div>
+        <p class="eyebrow" style="color:#6fc0f0">Herramienta gratuita</p>
+        <h2>Diagnóstico de madurez en capacitación</h2>
+        <p>Diez preguntas, dos minutos. Te decimos en qué nivel está tu organización y cuál es el siguiente paso concreto.</p>
+        <div class="chips">
+          <span>Sin registro</span><span>Resultado inmediato</span><span>Recomendación por nivel</span>
+        </div>
+        <div class="hero-cta" style="margin-top:1.6rem">
+          <a class="btn btn-fill" href="diagnostico.html">Hacer el diagnóstico</a>
+        </div>
+      </div>
+      <div class="tool-art" aria-hidden="true">
+        <div class="bar"><span>Detección de necesidades</span><span class="track"><span class="fill" style="width:78%"></span></span></div>
+        <div class="bar"><span>Diseño instruccional</span><span class="track"><span class="fill" style="width:52%"></span></span></div>
+        <div class="bar"><span>Tecnología</span><span class="track"><span class="fill" style="width:64%"></span></span></div>
+        <div class="bar"><span>Medición de impacto</span><span class="track"><span class="fill" style="width:31%"></span></span></div>
+        <div class="bar" style="margin-bottom:0"><span>Formalidad y cumplimiento</span><span class="track"><span class="fill" style="width:88%"></span></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CATÁLOGO ===================== -->
 <section style="padding-top:0">
-  <div class="wrap wide">
+  <div class="wrap">
     <div class="catbox reveal">
       <div>
-        <h2>Catálogo de programas y talleres</h2>
-        <p>55 programas con objetivo, público y duración definidos. Se imparten tal cual, se combinan en rutas de formación o se adaptan por completo a tu organización.</p>
+        <h2 style="font-size:clamp(1.4rem,1.2rem + 1.1vw,2rem)">55 programas listos para impartir</h2>
+        <p>Proyectos y PMO, liderazgo, negocios, ventas, innovación y tecnología. Todos de 10 o 16 horas, presenciales o en línea.</p>
       </div>
-      <a class="btn btn-gold" href="catalogo.html">Explorar el catálogo</a>
+      <a class="btn btn-dark" href="catalogo.html">Ver el catálogo</a>
     </div>
   </div>
 </section>
 
-<!-- ================= SOCIOS ================= -->
+<!-- ===================== SOCIOS ===================== -->
 <section id="socios" style="background:var(--bg-2);border-block:1px solid var(--line)">
-  <div class="wrap wide">
+  <div class="wrap">
     <div class="head reveal">
       <p class="eyebrow">Quiénes somos</p>
       <h2>Socios.</h2>
-      <p class="lead">Una firma dirigida por especialistas que han operado del lado del negocio, del aula y de la tecnología.</p>
+      <p class="lead">Gente que ha operado del lado del negocio, del aula y de la tecnología.</p>
     </div>
     <div class="grid g3">
       <article class="partner reveal">
         <div class="mono">OH</div>
         <h3>Omar Eduardo Hernández</h3>
-        <p class="role">Socio director · Proyectos, negocios y capacitación</p>
-        <p>Máster y especialista en dirección de proyectos tecnológicos; licenciado en comunicación organizacional y técnico en informática. 15 años de experiencia y certificaciones en gestión de proyectos, desarrollo de negocios, educación superior, emprendimiento STEAM y desarrollo organizacional. Ha participado en proyectos de implementación tecnológica en América y Europa y ha sido instructor y docente desde 2013 en universidades e instituciones públicas y privadas.</p>
+        <p class="role">Socio director · Proyectos y capacitación</p>
+        <p>Máster en dirección de proyectos tecnológicos y licenciado en comunicación organizacional. Dirigió la PMO de Newton Labs una década y entrenó software industrial en Módena, Italia. Docente universitario desde 2013 y capacitador con registro STPS.</p>
         <div class="links">
-          <a href="https://www.edwardhh.com/" target="_blank" rel="noopener">Sitio personal</a>
+          <a href="https://www.edwardhh.com/" target="_blank" rel="noopener">Sitio</a>
           <a href="https://www.linkedin.com/in/omareduardohh/" target="_blank" rel="noopener">LinkedIn</a>
         </div>
       </article>
       <article class="partner reveal">
         <div class="mono">CV</div>
         <h3>Carlos Villalpando</h3>
-        <p class="role">Socio · Consultoría empresarial y desarrollo de negocio</p>
-        <p>Acompaña a empresas e instituciones en el diseño de su estrategia de crecimiento y en la vinculación entre la formación y los resultados del negocio. Lidera los proyectos de consultoría organizacional y la relación con clientes corporativos.</p>
+        <p class="role">Socio · Dirección de empresas y negocio</p>
+        <p>Director ejecutivo de Bioteksa desde 2019 y fundador de Soluciones uVicate. Antes dirigió el desarrollo de negocio de biobot.farm. Especialista en administración de empresas, gestión de proyectos y liderazgo, formado en la Universidad La Salle.</p>
+        <div class="links">
+          <a href="https://www.linkedin.com/in/carlos-villalpando-77647a13" target="_blank" rel="noopener">LinkedIn</a>
+        </div>
       </article>
       <article class="partner reveal">
         <div class="mono">ID</div>
         <h3>Isela Domínguez</h3>
-        <p class="role">Socia · Desarrollo de talento y diseño instruccional</p>
-        <p>Responsable del diseño de programas de formación, planes de estudio y materiales didácticos. Coordina la habilitación docente y el aseguramiento de la calidad pedagógica de cada programa que entregamos.</p>
+        <p class="role">Socia · Talento y diseño instruccional</p>
+        <p>Responsable del diseño de programas, planes de estudio y materiales didácticos. Coordina la habilitación docente y la calidad pedagógica de cada entrega.</p>
       </article>
     </div>
 
-    <div class="head reveal" style="margin-top:clamp(48px,6vw,80px);margin-bottom:0">
+    <div class="head reveal" style="margin-top:clamp(42px,5vw,68px);margin-bottom:0">
       <p class="eyebrow">Equipo especializado</p>
-      <h2 style="font-size:clamp(1.5rem,1.2rem + 1.3vw,2.1rem)">Un equipo multidisciplinario por proyecto.</h2>
-      <p class="lead" style="margin-top:1rem">Cada proyecto se integra con los perfiles que realmente necesita. No asignamos un consultor genérico: armamos el equipo alrededor del problema.</p>
+      <h2 style="font-size:clamp(1.35rem,1.15rem + 1vw,1.9rem)">Armamos el equipo alrededor del problema.</h2>
       <div class="chips">
         <span class="chip">Psicología industrial</span>
         <span class="chip">Comunicación organizacional</span>
-        <span class="chip">Educación y pedagogía avanzada</span>
-        <span class="chip">Diseño instruccional</span>
-        <span class="chip">Tecnología e inteligencia artificial</span>
+        <span class="chip">Pedagogía y diseño instruccional</span>
+        <span class="chip">Inteligencia artificial</span>
         <span class="chip">Gestión de proyectos y PMO</span>
-        <span class="chip">Producción de contenido y multimedia</span>
+        <span class="chip">Producción audiovisual</span>
         <span class="chip">Expertos por industria</span>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ================= SECTORES ================= -->
-<section id="sectores">
-  <div class="wrap wide">
-    <div class="head reveal">
-      <p class="eyebrow">Sectores</p>
-      <h2>Con quién trabajamos.</h2>
-    </div>
-    <div class="grid g3 reveal">
-      <div class="sector"><b>Empresas y corporativos</b><p>Áreas de RR. HH., capacitación, operaciones y PMO que necesitan un modelo formal de formación.</p></div>
-      <div class="sector"><b>Instituciones educativas</b><p>Universidades, preparatorias y centros de formación que abren o renuevan su oferta académica.</p></div>
-      <div class="sector"><b>Salud</b><p>Programas de formación continua, procedimientos y certificación de personal clínico y administrativo.</p></div>
-      <div class="sector"><b>Manufactura e industria</b><p>Capacitación técnica, seguridad, mejora continua y desarrollo de mandos medios.</p></div>
-      <div class="sector"><b>Tecnología y servicios</b><p>Capacitación en software y hardware, adopción de herramientas y desarrollo de equipos.</p></div>
-      <div class="sector"><b>Gobierno y sector social</b><p>Programas de profesionalización, gestión de proyectos y transferencia de capacidades.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ================= CONTACTO ================= -->
+<!-- ===================== CONTACTO ===================== -->
 <section id="contacto" class="contact">
-  <div class="wrap wide">
+  <div class="wrap">
     <div class="cgrid">
       <div class="cinfo reveal">
         <p class="eyebrow">Contacto</p>
-        <h2>Empecemos por un diagnóstico.</h2>
-        <p class="lead" style="margin-top:1.1rem">Cuéntanos qué necesita tu organización. Respondemos con una propuesta que incluye entregables, calendario e inversión.</p>
+        <h2>Empecemos por el diagnóstico.</h2>
+        <p class="lead" style="margin-top:1rem">Cuéntanos qué necesitas. Respondemos con entregables, calendario e inversión.</p>
         <ul>
           <li>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
-            <div><b>Correo</b><a href="mailto:CEO@edwcorp.org">CEO@edwcorp.org</a></div>
-          </li>
-          <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
-            <div><b>Proyectos</b><a href="mailto:proyectos@edwcorp.org">proyectos@edwcorp.org</a></div>
+            <div><b>Correo</b><a href="mailto:proyectos@edwcorp.org">proyectos@edwcorp.org</a></div>
           </li>
           <li>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16.9v2a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 1.1 3.2 2 2 0 0 1 3.1 1h2a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L6.6 8.6a16 16 0 0 0 6 6l1-1.1a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
@@ -660,16 +745,26 @@
           </li>
           <li>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>
-            <div><b>Base</b><span>Chihuahua, México · Proyectos en México, América y Europa</span></div>
+            <div><b>Oficina</b><span>Av. H. Colegio Militar 4709, Nombre de Dios, 31150 Chihuahua, Chih.</span></div>
           </li>
         </ul>
-        <a class="btn btn-wa" style="margin-top:1.8rem" href="https://wa.me/526146887271?text=Hola%20EdwCorp%2C%20quiero%20informaci%C3%B3n%20sobre%20sus%20programas." target="_blank" rel="noopener">Escribir por WhatsApp</a>
+        <div class="social">
+          <a href="https://www.instagram.com/edw.corp" target="_blank" rel="noopener" aria-label="Instagram">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/></svg>
+          </a>
+          <a href="https://www.facebook.com/share/192VfG4Wbu/" target="_blank" rel="noopener" aria-label="Facebook">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 22v-8h2.7l.4-3.1h-3.1V8.9c0-.9.25-1.5 1.55-1.5h1.65V4.6c-.3 0-1.3-.13-2.45-.13-2.42 0-4.08 1.48-4.08 4.2v2.23H7.5V14h2.67v8z"/></svg>
+          </a>
+          <a href="https://www.linkedin.com/company/110419431/" target="_blank" rel="noopener" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.94 5.5a1.94 1.94 0 1 1-3.88 0 1.94 1.94 0 0 1 3.88 0M3.4 20.5h3.2V9.1H3.4zM9.1 9.1v11.4h3.2v-6c0-1.6.9-2.4 2-2.4s1.9.8 1.9 2.4v6h3.2v-6.6c0-3.1-1.7-4.6-3.9-4.6-1.8 0-2.7 1-3.2 1.7V9.1z"/></svg>
+          </a>
+        </div>
       </div>
 
       <form class="f reveal" id="cForm" novalidate>
         <div class="fr">
           <div class="field">
-            <label for="nombre">Nombre completo *</label>
+            <label for="nombre">Nombre *</label>
             <input id="nombre" name="nombre" type="text" autocomplete="name" required />
           </div>
           <div class="field">
@@ -679,7 +774,7 @@
         </div>
         <div class="fr">
           <div class="field">
-            <label for="correo">Correo corporativo *</label>
+            <label for="correo">Correo *</label>
             <input id="correo" name="correo" type="email" autocomplete="email" required />
           </div>
           <div class="field">
@@ -691,55 +786,62 @@
           <label for="necesidad">¿Qué necesitas? *</label>
           <select id="necesidad" name="necesidad" required>
             <option value="">Selecciona una opción</option>
-            <option>Programa de capacitación corporativa</option>
-            <option>Plan o programa de estudios (diseño curricular)</option>
-            <option>Material didáctico y recursos</option>
-            <option>Consultoría por entregables</option>
-            <option>Taller o capacitación in-company</option>
-            <option>Programa STEM / tecnología / software</option>
+            <option>Programa de capacitación a la medida</option>
+            <option>Training de mi producto o software</option>
+            <option>Tecnología educativa (LMS o herramienta)</option>
+            <option>Nueva oferta académica / universidad</option>
+            <option>Centro o torre de innovación</option>
+            <option>Educación continua</option>
+            <option>Consultoría implementada</option>
+            <option>MicroCoach por WhatsApp</option>
             <option>Otro</option>
           </select>
         </div>
         <div class="field">
-          <label for="mensaje">Cuéntanos el contexto *</label>
-          <textarea id="mensaje" name="mensaje" placeholder="Objetivo, número de participantes, fechas tentativas…" required></textarea>
+          <label for="mensaje">Contexto *</label>
+          <textarea id="mensaje" name="mensaje" placeholder="Objetivo, número de participantes, fechas…" required></textarea>
         </div>
-        <button class="btn btn-fill" type="submit" id="cBtn" style="width:100%">Solicitar propuesta</button>
+        <button class="btn btn-fill" type="submit" id="cBtn" style="width:100%">Enviar solicitud</button>
         <div class="form-msg" id="cMsg" role="status"></div>
-        <p class="fine">Al enviar aceptas nuestro <a href="privacidad.html">aviso de privacidad</a>. Usamos tus datos únicamente para responder tu solicitud.</p>
+        <p class="fine">Al enviar aceptas el <a href="privacidad.html">aviso de privacidad</a>.</p>
       </form>
     </div>
   </div>
 </section>
 </main>
 
-<!-- ================= FOOTER ================= -->
+<a class="wa-float" href="https://wa.me/526146887271?text=Hola%20EdwCorp%2C%20quiero%20informaci%C3%B3n%20sobre%20sus%20servicios." target="_blank" rel="noopener" aria-label="Escribir por WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2m5.8 14.16c-.24.68-1.42 1.3-1.95 1.35-.5.05-1.13.07-1.83-.11-.42-.11-.96-.29-1.65-.59-2.9-1.25-4.8-4.17-4.94-4.36-.15-.19-1.19-1.58-1.19-3.02s.76-2.14 1.03-2.44c.27-.29.58-.37.78-.37s.39 0 .56.01c.18.01.42-.07.66.5.24.58.83 2.02.9 2.17.07.15.12.32.02.51-.1.19-.15.31-.29.48-.15.17-.31.38-.44.51-.15.15-.3.31-.13.6.17.29.76 1.25 1.63 2.03 1.12 1 2.06 1.31 2.35 1.45.29.15.46.12.63-.07.17-.19.73-.85.92-1.14.19-.29.39-.24.66-.15.27.1 1.7.8 1.99.95.29.15.48.22.55.34.07.12.07.7-.17 1.38"/></svg>
+  <span>WhatsApp</span>
+</a>
+
 <footer>
-  <div class="wrap wide">
+  <div class="wrap">
     <div class="fgrid">
       <div>
-        <a href="#top" class="logo"><b>Edw</b><i>Corp</i><span class="dot"></span></a>
-        <p class="about">Diseñamos proyectos de educación y formación apoyados en tecnología, inteligencia artificial y valores humanos, para empresas e instituciones educativas.</p>
-        <p class="about" style="margin-top:1rem;font-size:.85rem">Vanguardia · Tecnología · Excelencia · Servicio</p>
+        <a href="#top" class="flogo"><img src="assets/logo-blanco.svg" alt="EdwCorp" /></a>
+        <p class="about">Diseñamos programas de capacitación, tecnología para la educación y el training de tu propia tecnología.</p>
+        <p class="about" style="margin-top:.8rem;font-size:.84rem">Av. H. Colegio Militar 4709, Nombre de Dios,<br>31150 Chihuahua, Chih.</p>
       </div>
       <div>
         <h4>Servicios</h4>
         <ul>
-          <li><a href="#que-hacemos">Programas de capacitación</a></li>
-          <li><a href="#que-hacemos">Planes y programas de estudio</a></li>
-          <li><a href="#que-hacemos">Material didáctico</a></li>
-          <li><a href="#que-hacemos">Consultoría por entregables</a></li>
-          <li><a href="catalogo.html">Catálogo de programas</a></li>
+          <li><a href="#servicios">Programas de capacitación</a></li>
+          <li><a href="#servicios">Training de producto</a></li>
+          <li><a href="#servicios">Tecnología educativa</a></li>
+          <li><a href="#servicios">Nueva oferta académica</a></li>
+          <li><a href="#modalidades">MicroCoach</a></li>
         </ul>
       </div>
       <div>
-        <h4>Contacto</h4>
+        <h4>EdwCorp</h4>
         <ul>
-          <li><a href="mailto:CEO@edwcorp.org">CEO@edwcorp.org</a></li>
+          <li><a href="catalogo.html">Catálogo</a></li>
+          <li><a href="diagnostico.html">Diagnóstico gratis</a></li>
           <li><a href="mailto:proyectos@edwcorp.org">proyectos@edwcorp.org</a></li>
-          <li><a href="https://wa.me/526146887271" target="_blank" rel="noopener">+52 614 688 7271</a></li>
-          <li><a href="privacidad.html">Aviso de privacidad</a></li>
-          <li><a href="terminos.html">Términos de servicio</a></li>
+          <li><a href="https://www.instagram.com/edw.corp" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.linkedin.com/company/110419431/" target="_blank" rel="noopener">LinkedIn</a></li>
+          <li><a href="privacidad.html">Aviso de privacidad</a> · <a href="terminos.html">Términos</a></li>
         </ul>
       </div>
     </div>
@@ -751,18 +853,14 @@
 </footer>
 
 <script>
-  /* ---- Endpoint del formulario (Google Apps Script).
-     Mientras esté vacío, el formulario abre el correo como respaldo.
-     Instrucciones en README.md. ---- */
+  /* Endpoint del formulario (Google Apps Script). Vacío = abre el correo como respaldo. */
   var FORM_ENDPOINT = "";
-  var MAIL_TO = "CEO@edwcorp.org";
+  var MAIL_TO = "proyectos@edwcorp.org";
 
-  /* Año */
   document.getElementById("year").textContent = new Date().getFullYear();
 
-  /* Menú móvil */
-  var toggle = document.getElementById("navToggle"),
-      links  = document.getElementById("navLinks");
+  /* ---- Menú móvil ---- */
+  var toggle = document.getElementById("navToggle"), links = document.getElementById("navLinks");
   toggle.addEventListener("click", function(){
     var open = links.classList.toggle("open");
     toggle.setAttribute("aria-expanded", open ? "true" : "false");
@@ -771,57 +869,97 @@
     if (e.target.tagName === "A"){ links.classList.remove("open"); toggle.setAttribute("aria-expanded","false"); }
   });
 
-  /* Reveal al hacer scroll */
-  var io = new IntersectionObserver(function(entries){
-    entries.forEach(function(en){ if (en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); } });
-  }, { rootMargin: "0px 0px -8% 0px", threshold: .08 });
+  /* ---- Reveal ---- */
+  var io = new IntersectionObserver(function(en){
+    en.forEach(function(x){ if (x.isIntersecting){ x.target.classList.add("in"); io.unobserve(x.target); } });
+  }, { rootMargin:"0px 0px -6% 0px", threshold:.06 });
   document.querySelectorAll(".reveal").forEach(function(el){ io.observe(el); });
 
-  /* Formulario */
-  var form = document.getElementById("cForm"),
-      btn  = document.getElementById("cBtn"),
-      msg  = document.getElementById("cMsg");
+  /* ---- Cintillo: duplica la lista para que el ciclo no tenga huecos ---- */
+  (function(){
+    var lista = document.getElementById("marqueeList");
+    if (!lista) return;
+    var copia = lista.cloneNode(true);
+    copia.removeAttribute("id");
+    copia.setAttribute("aria-hidden","true");
+    document.getElementById("marquee").appendChild(copia);
+  })();
 
+  /* ---- Fondo animado del hero ---- */
+  (function(){
+    var lienzo = document.getElementById("heroCanvas");
+    if (!lienzo || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var ctx = lienzo.getContext("2d"), puntos = [], anchura = 0, altura = 0, dpr = Math.min(devicePixelRatio||1, 2);
+
+    function medir(){
+      var caja = lienzo.getBoundingClientRect();
+      anchura = caja.width; altura = caja.height;
+      lienzo.width = anchura*dpr; lienzo.height = altura*dpr;
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      var cuantos = Math.round(Math.min(48, Math.max(18, anchura/26)));
+      puntos = [];
+      for (var i=0;i<cuantos;i++){
+        puntos.push({ x:Math.random()*anchura, y:Math.random()*altura,
+                      vx:(Math.random()-.5)*.22, vy:(Math.random()-.5)*.22, r:Math.random()*1.8+.9 });
+      }
+    }
+
+    function pintar(){
+      ctx.clearRect(0,0,anchura,altura);
+      for (var i=0;i<puntos.length;i++){
+        var p = puntos[i];
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > anchura) p.vx *= -1;
+        if (p.y < 0 || p.y > altura)  p.vy *= -1;
+        for (var j=i+1;j<puntos.length;j++){
+          var q = puntos[j], dx = p.x-q.x, dy = p.y-q.y, d = Math.sqrt(dx*dx+dy*dy);
+          if (d < 150){
+            ctx.strokeStyle = "rgba(79,168,221," + (0.16*(1-d/150)).toFixed(3) + ")";
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
+          }
+        }
+        ctx.fillStyle = "rgba(111,192,240,.55)";
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.283); ctx.fill();
+      }
+      requestAnimationFrame(pintar);
+    }
+
+    medir();
+    addEventListener("resize", medir);
+    requestAnimationFrame(pintar);
+  })();
+
+  /* ---- Formulario ---- */
+  var form = document.getElementById("cForm"), btn = document.getElementById("cBtn"), msg = document.getElementById("cMsg");
   function show(kind, text){ msg.className = "form-msg " + kind; msg.textContent = text; }
 
   form.addEventListener("submit", function(e){
     e.preventDefault();
-    var data = {
-      nombre:       form.nombre.value.trim(),
-      organizacion: form.organizacion.value.trim(),
-      correo:       form.correo.value.trim(),
-      telefono:     form.telefono.value.trim(),
-      necesidad:    form.necesidad.value,
-      mensaje:      form.mensaje.value.trim(),
-      origen:       "edwcorp.org"
+    var d = {
+      nombre: form.nombre.value.trim(), organizacion: form.organizacion.value.trim(),
+      correo: form.correo.value.trim(), telefono: form.telefono.value.trim(),
+      necesidad: form.necesidad.value, mensaje: form.mensaje.value.trim(), origen: "edwcorp.org"
     };
-
-    if (!data.nombre || !data.organizacion || !data.necesidad || !data.mensaje){
-      return show("err", "Completa los campos obligatorios.");
-    }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(data.correo)){
-      return show("err", "Revisa tu correo electrónico.");
-    }
+    if (!d.nombre || !d.organizacion || !d.necesidad || !d.mensaje) return show("err","Completa los campos obligatorios.");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(d.correo)) return show("err","Revisa tu correo electrónico.");
 
     if (!FORM_ENDPOINT){
-      var asunto = encodeURIComponent("Solicitud de propuesta — " + data.organizacion);
-      var cuerpo = encodeURIComponent(
-        "Nombre: " + data.nombre + "\nOrganización: " + data.organizacion +
-        "\nCorreo: " + data.correo + "\nTeléfono: " + data.telefono +
-        "\nNecesidad: " + data.necesidad + "\n\n" + data.mensaje);
+      var asunto = encodeURIComponent("Solicitud — " + d.organizacion);
+      var cuerpo = encodeURIComponent("Nombre: "+d.nombre+"\nOrganización: "+d.organizacion+"\nCorreo: "+d.correo+
+        "\nTeléfono: "+d.telefono+"\nNecesidad: "+d.necesidad+"\n\n"+d.mensaje);
       window.location.href = "mailto:" + MAIL_TO + "?subject=" + asunto + "&body=" + cuerpo;
-      return show("ok", "Abrimos tu correo para enviar la solicitud.");
+      return show("ok","Abrimos tu correo para enviar la solicitud.");
     }
 
-    btn.disabled = true; show("", "Enviando…");
-    var body = new URLSearchParams(data);
-    fetch(FORM_ENDPOINT, { method:"POST", body:body })
+    btn.disabled = true; show("","Enviando…");
+    fetch(FORM_ENDPOINT, { method:"POST", body:new URLSearchParams(d) })
       .then(function(r){ return r.json(); })
       .then(function(res){
-        if (res && res.ok){ form.reset(); show("ok", "Recibido. Te contactamos en menos de 48 horas hábiles."); }
-        else { show("err", (res && res.error) || "No pudimos enviar la solicitud. Escríbenos a " + MAIL_TO); }
+        if (res && res.ok){ form.reset(); show("ok","Recibido. Te contactamos en menos de 48 horas hábiles."); }
+        else { show("err",(res && res.error) || "No pudimos enviar. Escríbenos a " + MAIL_TO); }
       })
-      .catch(function(){ show("err", "Sin conexión. Escríbenos a " + MAIL_TO); })
+      .catch(function(){ show("err","Sin conexión. Escríbenos a " + MAIL_TO); })
       .finally(function(){ btn.disabled = false; });
   });
 </script>

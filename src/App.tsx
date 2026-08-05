@@ -877,6 +877,51 @@ function parseSocialLink(raw: string): { network: 'instagram' | 'tiktok' | 'face
 }
 const SOCIAL_NAME: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', linkedin: 'LinkedIn', website: 'Sitio web' };
 
+// Dibujo de la barra del navegador con UN botón resaltado, para que se vea
+// exactamente dónde hay que tocar. Es la misma ayuda visual que usan las guías
+// de Apple y de Google: un dibujo simple, no un video (a los videos la gente
+// les intenta picar los botones).
+function BarraNavegador({ posicion, resaltado }: { posicion: 'abajo' | 'arriba'; resaltado: 'puntos' | 'compartir' }) {
+  const Item = ({ children, on }: { children: React.ReactNode; on?: boolean }) => (
+    <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${on ? 'bg-iogga-primary text-white ring-4 ring-iogga-primary/25' : 'text-zinc-500'}`}>
+      {children}
+    </span>
+  );
+  const puntos = <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>;
+  const compartir = <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3" /><path d="M8 7l4-4 4 4" /><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" /></svg>;
+  const flecha = <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>;
+  const barra = (
+    <div className="flex items-center justify-between px-2 py-1.5 rounded-2xl bg-white/5 border border-white/10">
+      <Item>{flecha}</Item>
+      <Item on={resaltado === 'compartir'}>{compartir}</Item>
+      <Item on={resaltado === 'puntos'}>{puntos}</Item>
+    </div>
+  );
+  return (
+    <div className="w-44 mx-auto rounded-[22px] border-2 border-white/15 bg-white/[0.03] p-2 flex flex-col gap-2" aria-hidden="true">
+      {posicion === 'arriba' && barra}
+      <div className="h-16 rounded-xl bg-white/5 flex items-center justify-center">
+        <span className="text-[11px] font-black text-zinc-500" style={{ fontFamily: '"Quicksand", sans-serif' }}>iogga</span>
+      </div>
+      {posicion === 'abajo' && barra}
+    </div>
+  );
+}
+
+// ---- Atajo a TU perfil en cada red ----
+// Ninguna app deja que otra le apriete "copiar link" desde fuera. Lo que SÍ se
+// puede es abrirla justo donde está tu usuario, para no tener que buscarlo:
+//   Facebook y LinkedIn tienen una dirección especial que lleva a TU perfil
+//   ("/me"), sin saber tu usuario. Instagram lo lleva a la pantalla donde tu
+//   usuario es el primer campo. TikTok abre tu perfil si ya iniciaste sesión.
+// Después solo hay que tocar Compartir → Copiar, volver y "Pegar mi link".
+const SOCIAL_ME: { key: 'instagram' | 'tiktok' | 'facebook' | 'linkedin'; name: string; url: string; paso: string }[] = [
+  { key: 'instagram', name: 'Instagram', url: 'https://www.instagram.com/accounts/edit/', paso: 'Copia tu "Nombre de usuario"' },
+  { key: 'tiktok', name: 'TikTok', url: 'https://www.tiktok.com/profile', paso: 'Compartir perfil → Copiar link' },
+  { key: 'facebook', name: 'Facebook', url: 'https://www.facebook.com/me', paso: 'Copia el link de arriba' },
+  { key: 'linkedin', name: 'LinkedIn', url: 'https://www.linkedin.com/in/me/', paso: 'Copia el link de arriba' },
+];
+
 // Ofertas típicas para sugerir al negocio (como LinkedIn sugiere puestos):
 // escribe la suya o toca una. Cubre descuentos, 2x1, días y regalos.
 const OFFER_IDEAS = [
@@ -1861,9 +1906,15 @@ export default function App() {
   useEffect(() => {
     if (!currentUser || pendingRating) return;
     // De los planes a los que me uní, ¿alguno ya cerró y aún no califico al anfitrión?
+    // También cuenta si el anfitrión me quitó del plan: ahí se pregunta EN EL
+    // MOMENTO, para que aceptar y luego desinvitar tenga consecuencia y no se
+    // vuelva costumbre.
     const toRate = plans.find(p =>
-      acceptedPlanIds.includes(p.id) && p.uid && p.uid !== currentUser.uid &&
-      (p.closed || isExpiredPlan(p)) && !ratedPlanIds.includes(p.id)
+      p.uid && p.uid !== currentUser.uid && !ratedPlanIds.includes(p.id) &&
+      (
+        (acceptedPlanIds.includes(p.id) && (p.closed || isExpiredPlan(p))) ||
+        ((p.cancelledUids || []).includes(currentUser.uid))
+      )
     );
     if (toRate) setPendingRating(toRate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -7505,7 +7556,26 @@ export default function App() {
                     >
                       <PlusCircle size={12} /> Pegar mi link copiado
                     </button>
-                    <p className="text-[11px] text-zinc-600 ml-4 leading-snug">En tu app: Perfil → <span className="text-zinc-400 font-bold">Compartir perfil</span> → Copiar link → vuelve y toca "Pegar". iogga detecta la red y la llena sola.</p>
+                    {/* Atajo: cada red se abre JUSTO donde está tu usuario, para no
+                        tener que buscarlo. Copias, vuelves y tocas "Pegar". */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {SOCIAL_ME.map(r => (
+                        <a
+                          key={r.key}
+                          href={r.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-3 rounded-2xl bg-white/5 border border-white/10 active:scale-95 transition-all text-left"
+                        >
+                          <span className="flex items-center gap-2 text-xs font-black text-white">
+                            {r.key === 'instagram' ? <InstagramMark size={14} /> : r.key === 'tiktok' ? <TikTokMark size={14} /> : r.key === 'facebook' ? <FacebookMark size={14} /> : <Linkedin size={14} />}
+                            Abrir {r.name}
+                          </span>
+                          <span className="block text-[11px] text-zinc-500 leading-snug mt-0.5">{r.paso}</span>
+                        </a>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-zinc-600 ml-1 leading-snug">Abre tu red, copia tu link o tu usuario, vuelve y toca <span className="text-zinc-400 font-bold">"Pegar mi link copiado"</span>. iogga detecta la red y llena la caja sola.</p>
                     {[{k:'website',ph:'Sitio web (https://…)'},{k:'facebook',ph:'Facebook'},{k:'tiktok',ph:'TikTok'},{k:'linkedin',ph:'LinkedIn'}].map(({k,ph}) => (
                       <input key={k} type="text" value={(editLinks as any)[k]} onChange={e => setEditLinks({...editLinks, [k]: e.target.value})} placeholder={ph} className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-white font-medium outline-none focus:ring-2 focus:ring-iogga-primary transition-all text-sm" />
                     ))}
@@ -7783,7 +7853,26 @@ export default function App() {
                   >
                     <PlusCircle size={12} /> Pegar mi link copiado
                   </button>
-                  <p className="text-[11px] text-zinc-600 leading-snug">En la app de tu red: Perfil → <span className="text-zinc-400 font-bold">Compartir perfil</span> → Copiar link → vuelve y toca "Pegar". iogga detecta la red y la llena sola.</p>
+                  {/* Mismo atajo que en el perfil personal: cada red se abre justo
+                      donde está tu usuario. Reciclado, no reinventado. */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {SOCIAL_ME.map(r => (
+                      <a
+                        key={r.key}
+                        href={r.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-3 rounded-2xl bg-white/5 border border-white/10 active:scale-95 transition-all text-left"
+                      >
+                        <span className="flex items-center gap-2 text-xs font-black text-white">
+                          {r.key === 'instagram' ? <InstagramMark size={14} /> : r.key === 'tiktok' ? <TikTokMark size={14} /> : r.key === 'facebook' ? <FacebookMark size={14} /> : <Linkedin size={14} />}
+                          Abrir {r.name}
+                        </span>
+                        <span className="block text-[11px] text-zinc-500 leading-snug mt-0.5">{r.paso}</span>
+                      </a>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-zinc-600 leading-snug">Abre tu red, copia tu link o tu usuario, vuelve y toca <span className="text-zinc-400 font-bold">"Pegar mi link copiado"</span>. iogga detecta la red y llena la caja sola.</p>
                   {[
                     { k: 'website', ph: 'Sitio web (https://…)' },
                     { k: 'facebook', ph: 'Facebook (usuario o link)' },
@@ -8039,11 +8128,31 @@ export default function App() {
                               );
                             }
                             return (
+                              <>
+                              {/* Quitar a alguien que ya aceptaste no es gratis: se
+                                  le avisa y se le pide su calificación. Se dice
+                                  ANTES de tocar el botón, no después. */}
+                              {quitados.length > 0 && (
+                                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 mb-2">
+                                  <p className="text-[11px] font-bold text-amber-300 leading-snug">
+                                    Vas a quitar a {quitados.length} {quitados.length === 1 ? 'persona' : 'personas'} que ya habías aceptado. Se le avisa y se le pide que te califique.
+                                  </p>
+                                </div>
+                              )}
                               <button
                                 onClick={() => {
                                   // Avisar solo a los NUEVOS (a los que ya estaban no se les repite)
                                   nuevos.forEach(uid => sendNotification({ type:'accepted', to: uid, fromName: plan.userName, title: `${plan.userName.split(' ')[0]} te está esperando`, message: `Decidió hacer su plan contigo. Ya puedes ver la ubicación exacta y su WhatsApp para coordinar. ${buildInviteMessage(plan, true)}`, planId: plan.id }));
-                                  const updated = { ...plan, confirmedUids: confirmSel };
+                                  // A quien se QUITA se le dice claro, y se le pide su
+                                  // calificación en el momento: aceptar y luego echar
+                                  // para atrás tiene consecuencia, como el sistema de
+                                  // cancelaciones de Airbnb y Uber.
+                                  quitados.forEach(uid => sendNotification({ type:'system', to: uid, fromName: plan.userName, title: `${plan.userName.split(' ')[0]} canceló tu lugar`, message: `Ya no cuenta contigo para "${plan.activity}". Puedes buscar otro plan en iogga.`, planId: plan.id }));
+                                  const updated = {
+                                    ...plan,
+                                    confirmedUids: confirmSel,
+                                    cancelledUids: [...new Set([...(plan.cancelledUids || []), ...quitados])],
+                                  };
                                   void saveDocIn('plans', plan.id, updated);
                                   setPlans(prev => prev.map(p => p.id === plan.id ? updated : p));
                                   setSelectedPlanForDetails(null);
@@ -8054,8 +8163,13 @@ export default function App() {
                                 className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
                               >
                                 <CheckCircle2 size={16} />
-                                {nuevos.length > 0 ? `Aceptar a ${nuevos.length}` : 'Guardar cambios'}
+                                {nuevos.length > 0 && quitados.length > 0
+                                  ? `Aceptar a ${nuevos.length} y quitar a ${quitados.length}`
+                                  : nuevos.length > 0
+                                    ? `Aceptar a ${nuevos.length}`
+                                    : `Quitar a ${quitados.length}`}
                               </button>
+                              </>
                             );
                           })()}
                         </>
@@ -10032,12 +10146,33 @@ export default function App() {
               <div className="space-y-1">
                 <h3 className="font-black text-2xl text-white">Instala iogga en tu pantalla</h3>
                 <p className="text-sm text-zinc-400 leading-relaxed max-w-[300px] mx-auto">
-                  Gratis · no ocupa espacio · sin tiendas de apps. Queda con su ícono, como cualquier app.
+                  Queda con su ícono, como cualquier app. Sin tiendas de apps.
                 </p>
               </div>
 
-              {installEvent ? (
-                // Android/Chrome: instalación real en un toque
+              {/* Las dos dudas que frenan a la gente, respondidas antes de que
+                  pregunten: cuánto espacio ocupa y si es segura. */}
+              <div className="rounded-3xl bg-white/5 border border-white/10 divide-y divide-white/5 text-left">
+                <div className="flex items-start gap-3 p-4">
+                  <div className="w-9 h-9 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0"><Smartphone size={16} /></div>
+                  <div>
+                    <p className="text-sm font-black text-white">No ocupa espacio</p>
+                    <p className="text-[11px] text-zinc-400 leading-snug">No se descarga nada: solo queda el ícono. Ocupa menos que una foto.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-4">
+                  <div className="w-9 h-9 rounded-2xl bg-iogga-primary/15 text-iogga-primary flex items-center justify-center shrink-0"><Shield size={16} /></div>
+                  <div>
+                    <p className="text-sm font-black text-white">Es segura</p>
+                    <p className="text-[11px] text-zinc-400 leading-snug">No entra a tus fotos, contactos, mensajes ni archivos. Solo puede hacer lo que tú le autorices desde el navegador, y se quita en un toque.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Android: instalación automática en un toque. Se muestra arriba y
+                  las instrucciones se quedan abajo, por si el botón no aparece
+                  en ese navegador. */}
+              {installEvent && (
                 <button
                   onClick={async () => {
                     installEvent.prompt();
@@ -10049,7 +10184,8 @@ export default function App() {
                 >
                   <Download size={20} /> Instalar ahora
                 </button>
-              ) : isIOS ? (
+              )}
+              {isIOS ? (
                 // iPhone (Safari): Apple no permite instalar solo; animación en bucle
                 // (como un videíto) + guía de 3 pasos claros
                 // 3 pasos EXACTOS, con el icono real de cada botón junto al texto.
@@ -10057,6 +10193,10 @@ export default function App() {
                 // a los botones del dibujo. Es la guía estática que usan las webs
                 // de Apple y de Google para explicar "Agregar a inicio".
                 <div className="space-y-3 text-left">
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest text-center">Así se ve en tu iPhone</p>
+                    <BarraNavegador posicion="abajo" resaltado="puntos" />
+                  </div>
                   {[
                     {
                       n: 1,
@@ -10098,6 +10238,10 @@ export default function App() {
               ) : (
                 // Android u otros: instrucciones según el navegador detectado
                 <div className="space-y-3 text-left">
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest text-center">Así se ve en tu Android</p>
+                    <BarraNavegador posicion="arriba" resaltado="puntos" />
+                  </div>
                   <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
                     <span className="w-9 h-9 rounded-full bg-iogga-primary text-white text-base font-black flex items-center justify-center shrink-0">1</span>
                     <p className="text-sm text-zinc-200 leading-snug">

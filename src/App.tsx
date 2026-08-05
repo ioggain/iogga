@@ -60,6 +60,9 @@ import {
   Image as ImageIcon,
   Sun,
   Moon,
+  Linkedin,
+  Inbox,
+  CalendarDays,
   Volume2,
   VolumeX
 } from 'lucide-react';
@@ -101,6 +104,7 @@ import {
   incrementPromoSelected,
   acceptPlanAs,
   saveBusinessProfile,
+  removeBusinessProfile,
   saveFeedback,
   watchMyRedemptions,
   watchUserRedemptions,
@@ -316,7 +320,8 @@ const IOGGA_WELCOME = 'iogga es la app para salir del móvil y vivir lo espontá
 // Para publicar una red social, basta con escribir aquí el usuario (sin @).
 // Si se deja vacío, esa red simplemente no aparece (así nunca hay enlaces rotos).
 const IOGGA_INFO = {
-  website: 'iogga.com',
+  website: 'www.iogga.com',
+  linkedin: 'company/110438341',
   instagram: 'ioggain',
   tiktok: 'ioggain',
   facebook: 'ioggain',
@@ -2232,6 +2237,40 @@ export default function App() {
     setShowEditProfile(false);
   };
 
+  // ---- INVITAR AMIGOS A IOGGA ----
+  // Es la puerta por donde entra la gente nueva, así que sigue el camino de
+  // Spotify y Duolingo: una sola pantalla con la imagen ya hecha, el botón de
+  // estado primero (llega a todos tus contactos de un golpe) y abajo el de
+  // WhatsApp directo (llega a los que de verdad te importan).
+  const [showInviteApp, setShowInviteApp] = useState(false);
+  const [inviteAppImg, setInviteAppImg] = useState<string | null>(null);
+  const inviteAppLink = `${typeof window !== 'undefined' ? window.location.origin : 'https://iogga.com'}/?de=${currentUser?.uid || ''}`;
+  const inviteAppText = `Estoy en iogga: la app para salir del móvil y vivir lo espontáneo. Escribes tu plan —"un café", "vamos al cine"— y quien quiera se suma. Sin chats interminables.\n\n${inviteAppLink}`;
+  useEffect(() => {
+    if (!showInviteApp) return;
+    setInviteAppImg(null);
+    // Se reusa el MISMO generador de imágenes de estado de los planes.
+    void buildStatusImage(IOGGA_WELCOME).then(setInviteAppImg).catch(() => setInviteAppImg(null));
+  }, [showInviteApp]);
+
+  // Quitar el perfil de negocio y quedarse solo como persona. Acción delicada:
+  // se confirma antes (modelo "desactivar cuenta profesional" de Instagram).
+  const [askRemoveBiz, setAskRemoveBiz] = useState(false);
+  const doRemoveBusiness = async () => {
+    if (!currentUser) return;
+    const ok = await removeBusinessProfile(currentUser.uid);
+    setAskRemoveBiz(false);
+    if (!ok) { triggerBeta('No se pudo quitar', 'Revisa tu conexión e inténtalo otra vez.'); return; }
+    setBusinessProfile({ name: '', bio: '', logo: '', cover: '', location: '', phone: '', email: '', website: '', instagram: '', facebook: '', tiktok: '', linkedin: '', photos: [] });
+    setHasBusiness(false);
+    setMode('person');
+    setShowEditBusinessProfile(false);
+    setShowSettingsMenu(false);
+    setActiveTab('home');
+    try { localStorage.removeItem('iogga_cache_biz'); } catch {}
+    triggerBeta('Perfil de negocio quitado', 'Tu cuenta sigue igual como persona. Tus ofertas dejaron de aparecer. Puedes volver a crear tu negocio cuando quieras.');
+  };
+
   // Lo mismo para el perfil del NEGOCIO: se guarda cómo estaba al abrir, para
   // poder devolverlo tal cual si eliges "No guardar", y se pregunta al salir.
   const bizBaseline = useRef<string>('');
@@ -3617,6 +3656,9 @@ export default function App() {
       isPublic: plan.isPublic,
       image: plan.image
     });
+    // Los que YA invitaste siguen marcados: editar no los borra ni los vuelve a
+    // invitar. Solo se avisa a los que agregues de más (modelo evento de Facebook).
+    setSelectedFriendIds(plan.invitedUids || []);
     setEditingPlanId(plan.id);
     setCurrentPlanStep(0);
     setShowCreatePlan(true);
@@ -4433,19 +4475,31 @@ export default function App() {
                   </div>
 
                   {mode === 'person' ? (
-                    <div className="flex p-1 bg-white/5 rounded-2xl border border-white/5">
-                      <button
-                        onClick={() => setSearchFilter('plans')}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${searchFilter === 'plans' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500'}`}
-                      >
-                        <Users size={12} /> Planes
-                      </button>
-                      <button
-                        onClick={() => setSearchFilter('promos')}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${searchFilter === 'promos' ? 'bg-iogga-accent/15 text-iogga-accent shadow-sm border border-iogga-accent/30' : 'text-zinc-500'}`}
-                      >
-                        <Store size={12} /> Ofertas
-                      </button>
+                    /* Pestañas grandes con subrayado y con el NÚMERO de cada una,
+                       como "Para ti | Siguiendo" de X y las pestañas de Airbnb.
+                       Antes era un interruptor chiquito y nadie veía que había
+                       ofertas; el número es lo que hace voltear (regla de los
+                       globitos de no leídos). */
+                    <div className="flex border-b border-white/10">
+                      {([
+                        { k: 'plans' as const, t: 'Planes', icon: <Users size={16} />, n: plans.filter(p => (searchSubFilter === 'public' ? p.isPublic : !p.isPublic) && matchesCategory(p) && isLivePlan(p) && planMatchesQuery(p)).length, color: 'text-iogga-primary', bar: 'bg-iogga-primary' },
+                        { k: 'promos' as const, t: 'Ofertas', icon: <Store size={16} />, n: promos.filter(pr => !pr.deleted && !promoExpired(pr) && promoMatchesQuery(pr)).length, color: 'text-iogga-accent', bar: 'bg-iogga-accent' },
+                      ]).map(o => (
+                        <button
+                          key={o.k}
+                          onClick={() => { setSearchFilter(o.k); sfx('abrir'); }}
+                          className={`flex-1 relative pb-3 pt-1 flex items-center justify-center gap-2 transition-all ${searchFilter === o.k ? o.color : 'text-zinc-500'}`}
+                        >
+                          {o.icon}
+                          <span className="text-base font-black">{o.t}</span>
+                          {o.n > 0 && (
+                            <span className={`text-[11px] font-black px-1.5 py-0.5 rounded-full ${searchFilter === o.k ? 'bg-white/10' : 'bg-white/5 text-zinc-500'}`}>{o.n}</span>
+                          )}
+                          {searchFilter === o.k && (
+                            <motion.div layoutId="exploreTab" className={`absolute -bottom-px left-0 right-0 h-0.5 rounded-full ${o.bar}`} />
+                          )}
+                        </button>
+                      ))}
                     </div>
                   ) : (
                     <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -4695,7 +4749,7 @@ export default function App() {
                               className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ${expired ? 'grayscale opacity-60' : ''}`}
                               referrerPolicy="no-referrer"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent"></div>
+                            <div className="absolute inset-0 iogga-scrim bg-gradient-to-t from-black/95 via-black/25 to-transparent"></div>
                             <div className="absolute top-4 left-4 flex items-center gap-2">
                               {expired ? (
                                 // Ya pasó la hora: gris/inactivo, aunque se haya cerrado (concretado),
@@ -5986,7 +6040,7 @@ export default function App() {
                       return (
                         <div className="pt-3 space-y-2">
                           <div className="flex items-center gap-2 px-1">
-                            <LayoutGrid size={14} className="text-iogga-primary" />
+                            <CalendarDays size={14} className="text-iogga-primary" />
                             <h3 className="text-xs font-black text-white uppercase tracking-widest">Mis planes</h3>
                             <span className="text-[11px] font-black text-zinc-500">({activos.length})</span>
                           </div>
@@ -6228,13 +6282,17 @@ export default function App() {
                 onClick={() => goTab('home')}
                 icon={
                   <div className="relative">
-                    <Home size={24} />
+                    {/* Bandeja de entrada, no casita: aquí LLEGAN las invitaciones.
+                        Es el icono de Gmail, Outlook, LinkedIn y Mercado Libre
+                        para "algo llegó para ti", y con el globito del número
+                        encima se entiende sin leer. */}
+                    <Inbox size={24} />
                     {(() => { const n = plans.filter(p => isInviteForMe(p) && isLivePlan(p) && !acceptedPlanIds.includes(p.id) && !ignoredPlanIds.includes(p.id)).length; return n > 0 ? (
                       <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 bg-red-500 rounded-full border border-zinc-950 flex items-center justify-center text-[11px] font-black text-white">{n}</span>
                     ) : null; })()}
                   </div>
                 }
-                label="Inicio"
+                label="Buzón"
                 color="text-iogga-primary"
               />
               <NavButton
@@ -6258,7 +6316,10 @@ export default function App() {
                 id="nav-active"
                 active={activeTab === 'active'}
                 onClick={() => goTab('active')}
-                icon={<LayoutGrid size={24} />}
+                /* Un plan es una cita con día y hora: el calendario es el icono
+                   universal de "mis compromisos" (Google Calendar, Apple,
+                   Airbnb en Viajes, Eventbrite). */
+                icon={<CalendarDays size={24} />}
                 label="Planes"
                 color="text-iogga-primary"
               />
@@ -7677,6 +7738,16 @@ export default function App() {
                   ))}
                 </div>
 
+                {/* Quitar el negocio: acción destructiva, discreta y al final
+                    (mismo lugar que "Eliminar mi cuenta" en Configuración). */}
+                {hasBusiness && (
+                  <button
+                    onClick={() => setAskRemoveBiz(true)}
+                    className="w-full py-3 text-zinc-500 text-[11px] font-bold uppercase tracking-widest active:scale-95 transition-transform"
+                  >
+                    Quitar mi perfil de negocio
+                  </button>
+                )}
               </div>
             </Modal>
           )}
@@ -7990,7 +8061,7 @@ export default function App() {
                 <div className="relative rounded-[32px] overflow-hidden border border-white/10 shadow-2xl bg-zinc-900">
                   {selectedPromo.isSeed && <SeedTag />}
                   <img src={selectedPromo.image} className="w-full h-56 object-cover" referrerPolicy="no-referrer" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
+                  <div className="absolute inset-0 iogga-scrim bg-gradient-to-t from-black/95 via-black/45 to-transparent" />
                   
                   <div className="absolute bottom-0 left-0 right-0 p-6 space-y-3">
                     <div className="flex items-center gap-2">
@@ -8027,8 +8098,6 @@ export default function App() {
                             <Star size={12} fill="currentColor" />
                             <span className="text-xs font-bold">{(selectedPromo.businessStats?.rating ?? 4.8).toFixed(1)}</span>
                           </div>
-                          <span className="text-zinc-500 text-xs">•</span>
-                          <span className="text-zinc-400 text-xs font-medium">{selectedPromo.businessStats?.followers || '1.2k'} seguidores</span>
                         </div>
                       </div>
                     </div>
@@ -8126,6 +8195,23 @@ export default function App() {
                   <ArrowRight size={16} />
                 </button>
 
+                {/* INVITAR: es la puerta por la que entra la gente nueva, así que
+                    va arriba y con peso propio, como "Invita a un amigo" de
+                    Spotify y Uber. Un solo toque desde el menú de siempre. */}
+                <button
+                  onClick={() => { setShowSettingsMenu(false); setShowInviteApp(true); }}
+                  className="w-full p-5 rounded-3xl bg-iogga-primary/12 border border-iogga-primary/30 flex items-center justify-between active:scale-[0.98] transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-iogga-primary text-white flex items-center justify-center shrink-0"><UserPlus size={20} /></div>
+                    <div className="text-left">
+                      <p className="font-black text-sm text-white">Invita a tus amigos</p>
+                      <p className="text-[11px] text-zinc-400">iogga sirve cuando están tus personas</p>
+                    </div>
+                  </div>
+                  <ArrowRight size={16} className="text-iogga-primary shrink-0" />
+                </button>
+
                 {/* APARIENCIA: lo primero del menú, un toque y cambia toda la app.
                     Interruptor de dos opciones con sol y luna, igual que iOS,
                     WhatsApp e Instagram. Se ve de un vistazo cuál está puesto. */}
@@ -8174,7 +8260,7 @@ export default function App() {
                         }}
                       />
                     )}
-                    <SettingsItem icon={<Download size={16} />} label="Instalar la app en tu celular" onClick={() => { setShowSettingsMenu(false); setShowInstall(true); }} />
+                    <SettingsItem icon={<Download size={16} />} label="Instalar la app" onClick={() => { setShowSettingsMenu(false); setShowInstall(true); }} />
                     <SettingsItem icon={<Bell size={16} />} label="Notificaciones" />
                     <SettingsItem icon={<Smartphone size={16} />} label="Dispositivos" />
                   </div>
@@ -8221,7 +8307,7 @@ export default function App() {
                     {isAdmin && (
                       <SettingsItem
                         icon={<BarChart3 size={16} />}
-                        label="Panel de administrador"
+                        label="Administrador"
                         onClick={() => { setShowSettingsMenu(false); openAdmin(); }}
                       />
                     )}
@@ -8356,6 +8442,7 @@ export default function App() {
                       IOGGA_INFO.instagram && { key: 'ig', label: 'Instagram', href: `https://instagram.com/${IOGGA_INFO.instagram}`, icon: <InstagramMark size={20} /> },
                       IOGGA_INFO.tiktok && { key: 'tt', label: 'TikTok', href: `https://tiktok.com/@${IOGGA_INFO.tiktok}`, icon: <TikTokMark size={20} /> },
                       IOGGA_INFO.facebook && { key: 'fb', label: 'Facebook', href: `https://facebook.com/${IOGGA_INFO.facebook}`, icon: <FacebookMark size={20} /> },
+                      IOGGA_INFO.linkedin && { key: 'in', label: 'LinkedIn', href: `https://www.linkedin.com/${IOGGA_INFO.linkedin}`, icon: <Linkedin size={20} /> },
                       IOGGA_INFO.website && { key: 'web', label: 'Sitio web', href: `https://${IOGGA_INFO.website}`, icon: <Globe size={20} /> },
                     ].filter(Boolean).map((s: any) => (
                       <a
@@ -8371,7 +8458,7 @@ export default function App() {
                     ))}
                   </div>
                   <div className="space-y-1">
-                    <p className="text-center text-[11px] text-zinc-600 font-medium">iogga v{APP_VERSION} • Hecho con amor en Chihuahua{updateReady ? ' • hay una versión nueva' : ''}</p>
+                    <p className="text-center text-[11px] text-zinc-600 font-medium">iogga v{APP_VERSION} · Chihuahua, México{updateReady ? ' · hay una versión nueva' : ''}</p>
                     {/* Marca y derechos: al pie, discreto, como el "Acerca de" de WhatsApp */}
                     <p className="text-center text-[11px] text-zinc-700 leading-snug px-4">{IOGGA_LEGAL}</p>
                   </div>
@@ -9271,6 +9358,7 @@ export default function App() {
                   {
                     k: 'google',
                     label: 'Buscar en Google',
+                    hint: '1. Copia',
                     icon: <GoogleMark size={24} />,
                     cls: 'bg-white/5 border-white/10 text-zinc-200',
                     run: async () => {
@@ -9281,16 +9369,19 @@ export default function App() {
                   {
                     k: 'pegar',
                     label: 'Pegar copiada',
+                    hint: '2. Pega',
                     icon: <ClipboardPaste size={24} />,
                     cls: 'bg-white/5 border-white/10 text-zinc-200',
                     run: async () => {
+                      // Se pega y ya: sin aviso de por medio. Solo se habla si
+                      // NO había nada copiado, que es cuando hace falta ayuda.
                       const sheet = photoSheet;
                       const img = await readImageFromClipboard();
-                      if (img) { sheet.onPick(img); setPhotoSheet(null); }
+                      if (img) { sheet.onPick(img); setPhotoSheet(null); sfx('logro'); }
                       else triggerBeta('No hay imagen copiada', 'Primero busca en Google, mantén presionada la imagen y toca "Copiar imagen".');
                     },
                   },
-                ].map(o => (
+                ].map((o: any) => (
                   <button
                     key={o.k}
                     type="button"
@@ -9299,8 +9390,19 @@ export default function App() {
                   >
                     {o.icon}
                     <span className="text-xs font-bold leading-tight text-center">{o.label}</span>
+                    {/* El ciclo en dos pasos numerados: buscas en Google (copias)
+                        y vuelves aquí a pegar. Numerar el orden es lo que hacen
+                        los tutoriales de Apple y de Google: nadie se pierde. */}
+                    {o.hint && <span className="text-[11px] font-black text-iogga-primary leading-none">{o.hint}</span>}
                   </button>
                 ))}
+              </div>
+              <div className="flex items-center justify-center gap-2 text-zinc-500">
+                <span className="text-[11px] font-bold">Busca en Google</span>
+                <ArrowRight size={12} />
+                <span className="text-[11px] font-bold">mantén presionada la foto</span>
+                <ArrowRight size={12} />
+                <span className="text-[11px] font-bold">Copiar imagen</span>
               </div>
               <button
                 onClick={() => setPhotoSheet(null)}
@@ -9338,6 +9440,108 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setAskSaveProfile(false)}
+                  className="w-full py-3 text-zinc-500 font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* INVITAR AMIGOS A IOGGA — una sola pantalla, dos caminos conocidos:
+            el estado (llega a todos tus contactos de un golpe, modelo Spotify
+            Wrapped) y WhatsApp directo (llega a quien de verdad te importa). */}
+        {showInviteApp && (
+          <Modal
+            onClose={() => setShowInviteApp(false)}
+            title="Invita a tus amigos"
+            footer={
+              <button
+                onClick={() => openExternal(`https://wa.me/?text=${encodeURIComponent(inviteAppText)}`)}
+                className="w-full py-4 bg-green-500 text-white rounded-[24px] font-black text-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <MessageSquare size={18} /> Mandar por WhatsApp
+              </button>
+            }
+          >
+            <div className="space-y-5">
+              <p className="text-sm text-zinc-300 leading-snug">
+                iogga sirve cuando están tus personas. Comparte esta imagen y el que quiera se une.
+              </p>
+
+              {/* 1. El estado: una imagen ya hecha, lista para subir */}
+              <div className="rounded-[28px] border border-fuchsia-500/25 bg-fuchsia-500/5 overflow-hidden">
+                <div className="px-4 py-3 bg-fuchsia-500/15 flex items-center gap-2">
+                  <Camera size={16} className="text-fuchsia-400" />
+                  <p className="text-sm font-black text-white">1. Súbela a tu estado</p>
+                </div>
+                <div className="p-4 space-y-3">
+                  {inviteAppImg ? (
+                    <img src={inviteAppImg} className="w-40 mx-auto rounded-2xl border border-white/10 shadow-2xl" alt="Invitación a iogga" />
+                  ) : (
+                    <div className="w-40 h-72 mx-auto rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-500 text-xs">Preparando…</div>
+                  )}
+                  <p className="text-[11px] text-zinc-400 text-center leading-snug">Estado de WhatsApp o historia de Instagram. Lleva el link de iogga.</p>
+                  <button
+                    onClick={() => { if (inviteAppImg) void shareStatusImage(inviteAppImg, inviteAppLink); }}
+                    disabled={!inviteAppImg}
+                    className="w-full py-4 bg-fuchsia-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-40"
+                  >
+                    <Camera size={16} /> Compartir en mi estado
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. El link, por si prefieren pegarlo donde sea */}
+              <div className="rounded-[28px] border border-white/10 bg-white/5 overflow-hidden">
+                <div className="px-4 py-3 bg-white/5 flex items-center gap-2">
+                  <Globe size={16} className="text-zinc-400" />
+                  <p className="text-sm font-black text-white">2. O manda el link</p>
+                </div>
+                <div className="p-4 space-y-3">
+                  <p className="text-xs text-zinc-400 break-all bg-black/20 rounded-xl px-3 py-2.5 font-mono">{inviteAppLink}</p>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(inviteAppText);
+                        triggerBeta('Link copiado', 'Pégalo donde quieras: WhatsApp, Instagram, un grupo, tu biografía.');
+                      } catch {
+                        triggerBeta('Copia el link', 'Mantén presionado el texto de arriba y toca "Copiar".');
+                      }
+                    }}
+                    className="w-full py-3.5 bg-white/5 border border-white/10 text-zinc-200 rounded-[20px] font-bold text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <ClipboardPaste size={14} /> Copiar el link
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Modal>
+        )}
+
+        {/* Quitar el perfil de negocio: confirmación clara de qué se va y qué se queda */}
+        {askRemoveBiz && (
+          <div className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setAskRemoveBiz(false)} />
+            <div className="relative w-full sm:max-w-sm bg-zinc-950 border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4">
+              <div className="text-center space-y-1.5">
+                <h3 className="text-lg font-black text-white">¿Quitar tu perfil de negocio?</h3>
+                <p className="text-xs text-zinc-400 leading-snug">Tus ofertas dejarán de aparecer y volverás a usar iogga solo como persona.</p>
+              </div>
+              <div className="rounded-2xl bg-white/5 border border-white/10 divide-y divide-white/5 text-left">
+                <p className="px-4 py-2.5 text-xs text-zinc-300">Tu cuenta, tus planes y tus amigos <span className="font-black text-white">no se tocan</span>.</p>
+                <p className="px-4 py-2.5 text-xs text-zinc-300">Puedes volver a crear tu negocio cuando quieras.</p>
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={() => { void doRemoveBusiness(); }}
+                  className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-sm active:scale-95 transition-transform"
+                >
+                  Quitar perfil de negocio
+                </button>
+                <button
+                  onClick={() => setAskRemoveBiz(false)}
                   className="w-full py-3 text-zinc-500 font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform"
                 >
                   Cancelar
@@ -9663,7 +9867,7 @@ export default function App() {
               {invitationPlan.image && (
                 <div className="h-44 w-full relative">
                   <img src={invitationPlan.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
+                  <div className="absolute inset-0 iogga-scrim bg-gradient-to-t from-black/95 to-transparent" />
                 </div>
               )}
               <div className="p-6 pb-10 space-y-5 -mt-6 relative">
@@ -11854,11 +12058,13 @@ function SettingsItem({ icon, label, onClick, tone }: { icon: React.ReactNode, l
       onClick={onClick}
       className={`w-full p-4 flex items-center justify-between transition-colors border-b border-white/5 last:border-0 group ${bg}`}
     >
-      <div className="flex items-center gap-3">
-        <div className={`transition-colors ${iconCls}`}>{icon}</div>
-        <span className={`text-sm font-bold ${textCls}`}>{label}</span>
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className={`shrink-0 transition-colors ${iconCls}`}>{icon}</div>
+        {/* Siempre alineado a la izquierda: cuando un texto se partía en dos
+            líneas quedaba centrado y esa fila se veía distinta a las demás. */}
+        <span className={`text-sm font-bold text-left ${textCls}`}>{label}</span>
       </div>
-      <ChevronRight size={16} className={chevCls} />
+      <ChevronRight size={16} className={`shrink-0 ml-3 ${chevCls}`} />
     </button>
   );
 }

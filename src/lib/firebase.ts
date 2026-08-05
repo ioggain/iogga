@@ -755,6 +755,24 @@ export async function saveBusinessProfile(uid: string, business: BusinessProfile
   await setDoc(doc(db, 'users', uid), { business: sanitize(business), updatedAt: serverTimestamp() }, { merge: true });
 }
 
+// Quitar el perfil de negocio y quedarse SOLO como persona. La cuenta, los
+// planes y los amigos no se tocan: es una cara de la cuenta que se apaga, no
+// una baja. Las ofertas publicadas se marcan como borradas para que dejen de
+// aparecer (modelo "desactivar cuenta profesional" de Instagram).
+export async function removeBusinessProfile(uid: string): Promise<boolean> {
+  if (!db) return true;
+  try {
+    await setDoc(doc(db, 'users', uid), { business: null, mpConnected: false, mpAccount: null, updatedAt: serverTimestamp() }, { merge: true });
+    const mine = await getDocs(query(collection(db, 'promos'), where('uid', '==', uid), limit(200)));
+    for (const d of mine.docs) {
+      await updateDoc(doc(db, 'promos', d.id), { deleted: true }).catch(() => {});
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Guardar sugerencias/ideas del usuario (se ven luego en el panel de administración).
 // extra: datos de contexto para que el EQUIPO pueda responder y diagnosticar
 // (WhatsApp y ubicación del perfil, dispositivo, versión de la app, modo).

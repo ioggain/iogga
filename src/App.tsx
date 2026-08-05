@@ -787,36 +787,67 @@ async function fetchZoneHint(address: string): Promise<string | null> {
   }
 }
 
+// ---- Buscador de direcciones ----
+// Chihuahua es el centro de búsqueda: lo que escribes se busca PRIMERO aquí,
+// así "Zubirán 1002" encuentra la de Chihuahua y no una de otro estado.
+const CHIHUAHUA = { lat: 28.6353, lon: -106.0889 };
+
 // Sugerencias de dirección MIENTRAS escribes (misma experiencia que el buscador
-// de Google Maps): tocas una y se llena el campo. Usa OpenStreetMap (gratuito).
+// de Google Maps): tocas una y se llena el campo.
+// Usa Photon (buscador libre sobre OpenStreetMap), que sí entiende direcciones
+// a medias y con número —"Zubirán 1002"—, cosa que el buscador anterior no
+// hacía. Si Photon no responde, se cae al buscador anterior. Los dos son
+// gratuitos y no piden llaves.
 function AddressSuggest({ query, onPick, accent = 'primary' }: { query: string; onPick: (text: string) => void; accent?: 'primary' | 'accent' }) {
-  const [items, setItems] = React.useState<{ id: string; main: string; detail: string }[]>([]);
+  const [items, setItems] = React.useState<{ id: string; main: string; detail: string; full: string }[]>([]);
   const pickedRef = React.useRef('');
   React.useEffect(() => {
     const q = (query || '').trim();
-    if (q.length < 4 || q === pickedRef.current) { setItems([]); return; }
+    if (q.length < 3 || q === pickedRef.current) { setItems([]); return; }
     const t = setTimeout(async () => {
+      // 1) Photon, centrado en Chihuahua
       try {
-        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=4&countrycodes=mx&accept-language=es&q=${encodeURIComponent(q)}`);
+        const r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${CHIHUAHUA.lat}&lon=${CHIHUAHUA.lon}&limit=6&lang=es`);
+        const d = await r.json();
+        const feats = Array.isArray(d?.features) ? d.features : [];
+        const mapped = feats
+          .filter((f: any) => (f.properties?.countrycode || 'MX') === 'MX')
+          .map((f: any, i: number) => {
+            const p = f.properties || {};
+            const calle = [p.street || p.name, p.housenumber].filter(Boolean).join(' ');
+            const zona = [p.district, p.city || p.county, p.state].filter(Boolean).join(', ');
+            const full = [calle || p.name, zona].filter(Boolean).join(', ');
+            return { id: `ph-${p.osm_id || i}`, main: calle || p.name || full, detail: zona, full };
+          })
+          .filter((x: any) => x.full);
+        if (mapped.length > 0) { setItems(mapped); return; }
+      } catch { /* pasa al respaldo */ }
+      // 2) Respaldo: el buscador anterior, agregándole "Chihuahua" para acertar
+      try {
+        const conCiudad = /chihuahua/i.test(q) ? q : `${q}, Chihuahua, México`;
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=mx&accept-language=es&q=${encodeURIComponent(conCiudad)}`);
         const list = await r.json();
         if (!Array.isArray(list)) { setItems([]); return; }
         setItems(list.map((x: any) => {
-          const parts = String(x.display_name || '').split(',').map((s: string) => s.trim());
-          return { id: String(x.place_id), main: parts.slice(0, 2).join(', '), detail: parts.slice(2, 5).join(', ') };
+          const full = String(x.display_name || '');
+          const parts = full.split(',').map((s: string) => s.trim());
+          return { id: String(x.place_id), main: parts.slice(0, 2).join(', '), detail: parts.slice(2, 5).join(', '), full };
         }));
       } catch { setItems([]); }
-    }, 450); // espera a que termine de teclear (no saturar el servicio)
+    }, 400); // espera a que termine de teclear (no saturar el servicio)
     return () => clearTimeout(t);
   }, [query]);
   if (items.length === 0) return null;
   return (
     <div className="rounded-2xl bg-zinc-900 border border-white/10 divide-y divide-white/5 overflow-hidden">
       {items.map(it => (
-        <button key={it.id} type="button" onClick={() => { pickedRef.current = it.main; setItems([]); onPick(it.main); }} className="w-full px-4 py-3 flex items-start gap-2.5 text-left active:bg-white/5">
+        <button key={it.id} type="button" onClick={() => { pickedRef.current = it.full; setItems([]); onPick(it.full); }} className="w-full px-4 py-3 flex items-start gap-2.5 text-left active:bg-white/5">
           <MapPin size={14} className={`shrink-0 mt-0.5 ${accent === 'accent' ? 'text-iogga-accent' : 'text-iogga-primary'}`} />
-          <span className="min-w-0">
-            <span className="block text-sm font-bold text-white truncate">{it.main}</span>
-            {it.detail && <span className="block text-[11px] text-zinc-500 truncate">{it.detail}</span>}
+          {/* La dirección se ve COMPLETA (se acomoda en varias líneas, no se
+              corta): así se puede comprobar de un vistazo que sí es la buena. */}
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-white leading-snug">{it.main}</span>
+            {it.detail && <span className="block text-[11px] text-zinc-500 leading-snug">{it.detail}</span>}
           </span>
         </button>
       ))}
@@ -6846,77 +6877,109 @@ export default function App() {
                         <label className="text-lg font-bold text-white block">¿Dónde nos vemos?</label>
                         <VoicePair step={4} onDicta={t => setNewPlan(p => ({ ...p, location: t }))} />
                       </div>
-                      <div className="flex items-center gap-1.5 px-1">
-                        <Lock size={12} className="text-iogga-primary" />
-                        <p className="text-[11px] text-zinc-400">Punto exacto <span className="text-white font-bold">privado</span>: solo lo verá quien aceptes.</p>
-                      </div>
-                      <div className="relative">
-                        <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-                        <input
-                          type="text"
-                          placeholder="Punto exacto. Ej. Starbucks Plaza Galerías"
-                          className="w-full h-16 pl-12 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-base font-medium"
-                          value={newPlan.location || ''}
-                          onChange={e => setNewPlan({...newPlan, location: e.target.value})}
-                          autoFocus
-                        />
-                        <FieldVoice step={4} onDicta={t => setNewPlan(p => ({ ...p, location: t }))} />
-                      </div>
-                      {/* Direcciones sugeridas al escribir (como en Google Maps) */}
-                      <AddressSuggest query={newPlan.location || ''} onPick={t => { setNewPlan(p => ({ ...p, location: t })); fillHintFromPicked(t); }} />
-                      <div className="flex gap-2">
-                        <a
-                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(newPlan.location || '')}`}
-                          target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-iogga-primary/15 text-iogga-primary text-xs font-black active:scale-95 transition-all"
-                        >
-                          <MapPin size={14} /> Buscar en Maps
-                        </a>
-                        <button
-                          type="button"
-                          disabled={gettingLocation}
-                          onClick={() => useCurrentLocation(t => setNewPlan(p => ({ ...p, location: t })))}
-                          className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-xs font-black active:scale-95 transition-all disabled:opacity-50"
-                        >
-                          <Navigation size={14} className={gettingLocation ? 'animate-pulse' : ''} /> {gettingLocation ? 'Ubicando…' : 'Ubicación actual'}
-                        </button>
-                      </div>
-                      {/* Pista PÚBLICA: la zona que sí verán todos en la invitación y el estado */}
-                      <div className="space-y-1.5 pt-1">
-                        <div className="flex items-center gap-1.5 px-1">
-                          <Globe size={12} className="text-zinc-400" />
-                          <p className="text-[11px] text-zinc-400">Pista pública (la ve todos): la <span className="text-white font-bold">zona</span>, sin dar el punto exacto.</p>
+                      {/* UN SOLO BLOQUE con las dos caras de la ubicación: el punto
+                          exacto (privado, candado) y la zona (pública, mundito).
+                          Van juntas y enmarcadas porque son un mismo dato con dos
+                          niveles de privacidad — el modelo de Facebook para marcar
+                          qué se ve y qué no, con el icono al lado del contenido. */}
+                      <div className="rounded-[28px] border border-white/10 bg-white/[0.03] overflow-hidden">
+                        {/* 1. PRIVADA — el punto exacto */}
+                        <div className="p-4 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Lock size={14} className="text-iogga-primary shrink-0" />
+                            <p className="text-sm font-black text-white flex-1">Ubicación exacta</p>
+                            <span className="text-[11px] font-black text-iogga-primary bg-iogga-primary/15 px-2 py-0.5 rounded-full uppercase tracking-widest">Privada</span>
+                          </div>
+                          <p className="text-[11px] text-zinc-500 leading-snug">Solo la verá quien aceptes en tu plan.</p>
+                          <div className="relative">
+                            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                            <input
+                              type="text"
+                              placeholder="Ej. Zubirán 1002, o Starbucks Galerías"
+                              className="w-full h-14 pl-11 pr-20 rounded-[20px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                              value={newPlan.location || ''}
+                              onChange={e => setNewPlan({...newPlan, location: e.target.value})}
+                              autoFocus
+                            />
+                            <FieldVoice step={4} onDicta={t => setNewPlan(p => ({ ...p, location: t }))} />
+                          </div>
+                          {/* Direcciones sugeridas al escribir (como en Google Maps) */}
+                          <AddressSuggest query={newPlan.location || ''} onPick={t => { setNewPlan(p => ({ ...p, location: t })); fillHintFromPicked(t); }} />
+                          <div className="flex gap-2">
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(newPlan.location || '')}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-iogga-primary/15 text-iogga-primary text-xs font-black active:scale-95 transition-all"
+                            >
+                              <MapPin size={14} /> Buscar en Maps
+                            </a>
+                            <button
+                              type="button"
+                              disabled={gettingLocation}
+                              onClick={() => useCurrentLocation(t => setNewPlan(p => ({ ...p, location: t })))}
+                              className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-xs font-black active:scale-95 transition-all disabled:opacity-50"
+                            >
+                              <Navigation size={14} className={gettingLocation ? 'animate-pulse' : ''} /> {gettingLocation ? 'Ubicando…' : 'Mi ubicación'}
+                            </button>
+                          </div>
                         </div>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            placeholder="Ej. por el Centro / zona Norte"
-                            className="w-full h-14 pl-6 pr-24 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
-                            value={newPlan.locationHint || ''}
-                            onChange={e => { hintTouched.current = true; setNewPlan({ ...newPlan, locationHint: e.target.value }); }}
-                          />
-                          <FieldVoice step={4} onDicta={t => setNewPlan(p => ({ ...p, locationHint: t }))} />
+
+                        {/* 2. PÚBLICA — la zona */}
+                        <div className="p-4 space-y-3 border-t border-white/10 bg-white/[0.02]">
+                          <div className="flex items-center gap-2">
+                            <Globe size={14} className="text-zinc-300 shrink-0" />
+                            <p className="text-sm font-black text-white flex-1">Zona</p>
+                            <span className="text-[11px] font-black text-zinc-300 bg-white/10 px-2 py-0.5 rounded-full uppercase tracking-widest">La ven todos</span>
+                          </div>
+                          <p className="text-[11px] text-zinc-500 leading-snug">Aparece en tu invitación para que sepan por dónde es, sin dar el punto exacto.</p>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="Ej. por el Centro / zona Norte"
+                              className="w-full h-14 pl-4 pr-20 rounded-[20px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                              value={newPlan.locationHint || ''}
+                              onChange={e => { hintTouched.current = true; setNewPlan({ ...newPlan, locationHint: e.target.value }); }}
+                            />
+                            <FieldVoice step={4} onDicta={t => setNewPlan(p => ({ ...p, locationHint: t }))} />
+                          </div>
                         </div>
                       </div>
+                      {/* Ubicaciones extra: cada una en su propio bloque, con el
+                          mismo candado, para que se lea igual que la principal. */}
                       {(newPlan.locations || []).map((loc, i) => (
-                        <div key={i} className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder={`Ubicación ${i + 2}`}
-                            className="flex-1 h-14 px-6 rounded-[24px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
-                            value={loc}
-                            onChange={e => {
+                        <div key={i} className="rounded-[28px] border border-white/10 bg-white/[0.03] p-4 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Lock size={14} className="text-iogga-primary shrink-0" />
+                            <p className="text-sm font-black text-white flex-1">Otra ubicación exacta</p>
+                            <button
+                              onClick={() => setNewPlan({...newPlan, locations: (newPlan.locations || []).filter((_, j) => j !== i)})}
+                              className="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-zinc-500 flex items-center justify-center active:scale-90"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                          <div className="relative">
+                            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                            <input
+                              type="text"
+                              placeholder="Ej. Zubirán 1002"
+                              className="w-full h-14 pl-11 pr-4 rounded-[20px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:ring-2 focus:ring-iogga-primary outline-none text-sm font-medium"
+                              value={loc}
+                              onChange={e => {
+                                const locs = [...(newPlan.locations || [])];
+                                locs[i] = e.target.value;
+                                setNewPlan({...newPlan, locations: locs});
+                              }}
+                            />
+                          </div>
+                          <AddressSuggest
+                            query={loc}
+                            onPick={t => {
                               const locs = [...(newPlan.locations || [])];
-                              locs[i] = e.target.value;
+                              locs[i] = t;
                               setNewPlan({...newPlan, locations: locs});
                             }}
                           />
-                          <button
-                            onClick={() => setNewPlan({...newPlan, locations: (newPlan.locations || []).filter((_, j) => j !== i)})}
-                            className="w-14 h-14 rounded-[20px] bg-white/5 border border-white/10 text-zinc-500 flex items-center justify-center active:scale-90"
-                          >
-                            <X size={16} />
-                          </button>
                         </div>
                       ))}
                       <button
@@ -7953,26 +8016,48 @@ export default function App() {
                               );
                             })}
                           </div>
-                          <button
-                            onClick={() => {
-                              const plan = selectedPlanForDetails;
-                              // Avisar solo a los NUEVOS aceptados (no a los que ya lo estaban)
-                              const already = plan.confirmedUids || [];
-                              confirmSel.filter(uid => !already.includes(uid)).forEach(uid => sendNotification({ type:'accepted', to: uid, fromName: plan.userName, title: `${plan.userName.split(' ')[0]} te está esperando`, message: `Decidió hacer su plan contigo. Ya puedes ver la ubicación exacta y su WhatsApp para coordinar. ${buildInviteMessage(plan, true)}`, planId: plan.id }));
-                              // Guardar la selección para que quede con palomita al volver
-                              const updated = { ...plan, confirmedUids: confirmSel };
-                              void saveDocIn('plans', plan.id, updated);
-                              setPlans(prev => prev.map(p => p.id === plan.id ? updated : p));
-                              setSelectedPlanForDetails(updated);
-                              setSelectedPlanForDetails(null);
-                              // Ofrecer cerrar o dejar abierto
-                              setPendingClose(updated);
-                            }}
-                            disabled={confirmSel.length === 0}
-                            className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-                          >
-                            <CheckCircle2 size={16} /> Aceptar seleccionados {confirmSel.length > 0 ? `(${confirmSel.length})` : ''}
-                          </button>
+                          {(() => {
+                            // El botón solo invita a actuar cuando HAY algo que
+                            // hacer. Si ya aceptaste a todos y no cambiaste nada,
+                            // muestra el estado ("Ya aceptaste a 3"), no un botón
+                            // que parece pendiente. Es el "Asistiré ✓" de Facebook:
+                            // cuando ya está hecho, se ve hecho.
+                            const plan = selectedPlanForDetails;
+                            const already = plan.confirmedUids || [];
+                            const nuevos = confirmSel.filter(uid => !already.includes(uid));
+                            const quitados = already.filter(uid => !confirmSel.includes(uid));
+                            const sinCambios = nuevos.length === 0 && quitados.length === 0;
+                            if (sinCambios) {
+                              return already.length > 0 ? (
+                                <div className="w-full py-4 rounded-[20px] bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2">
+                                  <CheckCircle2 size={16} /> Ya aceptaste a {already.length}
+                                </div>
+                              ) : (
+                                <p className="w-full py-4 rounded-[20px] bg-white/5 border border-white/10 text-zinc-500 font-bold text-xs text-center">
+                                  Selecciona a quién aceptas
+                                </p>
+                              );
+                            }
+                            return (
+                              <button
+                                onClick={() => {
+                                  // Avisar solo a los NUEVOS (a los que ya estaban no se les repite)
+                                  nuevos.forEach(uid => sendNotification({ type:'accepted', to: uid, fromName: plan.userName, title: `${plan.userName.split(' ')[0]} te está esperando`, message: `Decidió hacer su plan contigo. Ya puedes ver la ubicación exacta y su WhatsApp para coordinar. ${buildInviteMessage(plan, true)}`, planId: plan.id }));
+                                  const updated = { ...plan, confirmedUids: confirmSel };
+                                  void saveDocIn('plans', plan.id, updated);
+                                  setPlans(prev => prev.map(p => p.id === plan.id ? updated : p));
+                                  setSelectedPlanForDetails(null);
+                                  sfx('logro');
+                                  // Ofrecer cerrar el plan o dejarlo abierto
+                                  setPendingClose(updated);
+                                }}
+                                className="w-full py-4 bg-iogga-primary text-white rounded-[20px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2"
+                              >
+                                <CheckCircle2 size={16} />
+                                {nuevos.length > 0 ? `Aceptar a ${nuevos.length}` : 'Guardar cambios'}
+                              </button>
+                            );
+                          })()}
                         </>
                       )}
                     </div>

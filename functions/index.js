@@ -378,3 +378,93 @@ exports.sendPush = onDocumentCreated({ document: 'notifications/{id}', region: '
     console.error('sendPush', e);
   }
 });
+
+// 4) RECORDATORIO 1 HORA ANTES del plan, a quienes el anfitrión ya aceptó.
+//    Corre cada 15 minutos y busca los planes que empiezan dentro de la
+//    siguiente hora. Cada plan se marca al avisar, así nadie recibe el
+//    recordatorio dos veces. La notificación se escribe en Firestore y el
+//    disparador de arriba (sendPush) la manda al teléfono aunque la app esté
+//    cerrada, igual que el recordatorio de Google Calendar o de Airbnb.
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+
+// Momento en que ARRANCA un plan, en milisegundos. Se calcula igual que en la
+// app: día del plan + hora de inicio (o el inicio del día si es "todo el día").
+function planStartMs(p) {
+  try {
+    const day = p.date || (p.timestamp ? new Date(p.timestamp).toISOString().slice(0, 10) : null);
+    if (!day) return null;
+    if (p.allDay) return new Date(`${day}T09:00:00-07:00`).getTime(); // Chihuahua
+    const hm = /^\d{1,2}:\d{2}$/.test(String(p.startTime || '')) ? p.startTime : '09:00';
+    return new Date(`${day}T${hm}:00-07:00`).getTime();
+  } catch {
+    return null;
+  }
+}
+
+exports.planReminders = onSchedule(
+  { schedule: 'every 15 minutes', timeZone: 'America/Chihuahua', region: 'us-central1' },
+  async () => {
+    const db = admin.firestore();
+    const now = Date.now();
+    const HORA = 60 * 60 * 1000;
+    try {
+      // Solo los planes recientes: los de hace más de 2 días ya no interesan.
+      const snap = await db.collection('plans')
+        .where('timestamp', '>=', now - 30 * 24 * HORA)
+        .orderBy('timestamp', 'desc')
+        .limit(400)
+        .get();
+
+      for (const doc of snap.docs) {
+        const p = doc.data() || {};
+        if (p.deleted || p.reminderSentMs) continue;
+        const confirmados = Array.isArray(p.confirmedUids) ? p.confirmedUids : [];
+        if (confirmados.length === 0) continue;
+
+        const start = planStartMs(p);
+        if (!start) continue;
+        // Ventana: arranca dentro de la próxima hora y todavía no empieza.
+        const faltan = start - now;
+        if (faltan <= 0 || faltan > HORA) continue;
+
+        const minutos = Math.max(1, Math.round(faltan / 60000));
+        const cuando = minutos >= 55 ? 'en una hora' : `en ${minutos} minutos`;
+        const lugar = p.location ? ` Nos vemos en ${p.location}.` : '';
+
+        // Aviso a cada persona aceptada...
+        for (const uid of confirmados) {
+          await db.collection('notifications').add({
+            type: 'system',
+            to: String(uid),
+            fromName: p.userName || 'iogga',
+            title: `Tu plan es ${cuando}`,
+            message: `"${p.activity || 'Tu plan'}" con ${p.userName || 'tu anfitrión'} empieza ${cuando}.${lugar}`,
+            planId: doc.id,
+            read: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdAtMs: Date.now(),
+          }).catch(() => {});
+        }
+        // ...y al anfitrión, para que sepa que ya viene.
+        if (p.uid) {
+          await db.collection('notifications').add({
+            type: 'system',
+            to: String(p.uid),
+            fromName: 'iogga',
+            title: `Tu plan es ${cuando}`,
+            message: `"${p.activity || 'Tu plan'}" empieza ${cuando} con ${confirmados.length} ${confirmados.length === 1 ? 'persona' : 'personas'}.${lugar}`,
+            planId: doc.id,
+            read: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdAtMs: Date.now(),
+          }).catch(() => {});
+        }
+
+        // Marcarlo para que el recordatorio salga UNA sola vez.
+        await doc.ref.set({ reminderSentMs: Date.now() }, { merge: true }).catch(() => {});
+      }
+    } catch (e) {
+      console.error('planReminders', e);
+    }
+  }
+);

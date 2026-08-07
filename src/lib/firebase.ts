@@ -1094,12 +1094,10 @@ export interface Redemption {
 }
 
 // Convierte "$120", "$1,250.50 MXN", "120 pesos" -> 120 / 1250.5
-export function parsePrice(price: string | undefined): number {
-  if (!price) return 0;
-  const clean = price.replace(/[^0-9.]/g, '');
-  const n = parseFloat(clean);
-  return Number.isFinite(n) ? n : 0;
-}
+// La lectura vive en lib/reglas.ts (con pruebas): aquí solo se reexporta para
+// que toda la app lea los precios de UNA sola forma.
+export { parsePrice } from './reglas';
+import { parsePrice } from './reglas';
 
 const REDEMPTION_TTL_MS = 24 * 60 * 60 * 1000; // los códigos duran 24 horas
 

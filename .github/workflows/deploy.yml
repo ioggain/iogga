@@ -19,7 +19,17 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+
+      # PUERTA DE CALIDAD ANTES DE PUBLICAR.
+      # Si los tipos, las pruebas o la construcción fallan, el despliegue se
+      # DETIENE aquí y la gente sigue con la versión anterior, que funciona.
+      # Publicar algo roto es peor que no publicar.
+      - name: Revisar tipos
+        run: npm run typecheck
+      - name: Pruebas de las reglas de negocio
+        run: npm test
       - run: npm run build
+
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
@@ -29,6 +39,7 @@ jobs:
       # Publicar también las REGLAS de Firestore (seguridad de solicitudes/bloqueo).
       # Si la cuenta de servicio no tiene permiso, no rompe el deploy del sitio.
       - name: Publicar reglas de Firestore
+        id: reglas
         continue-on-error: true
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
@@ -40,6 +51,7 @@ jobs:
       #  2) Secreto MP_ACCESS_TOKEN agregado en GitHub (Settings -> Secrets -> Actions)
       # Si falta algo, este paso se salta o falla sin romper el deploy del sitio.
       - name: Desplegar funciones de pago
+        id: funciones
         continue-on-error: true
         run: |
           if [ -z "${{ secrets.MP_ACCESS_TOKEN }}" ]; then
@@ -51,3 +63,21 @@ jobs:
           npx firebase-tools deploy --only functions --project iogga-b932b --non-interactive --force
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+
+      # AVISO VISIBLE: estos dos pasos no rompen el sitio si fallan (la app ya
+      # quedó publicada), pero SÍ tienen que verse. Antes fallaban en silencio y
+      # el despliegue salía verde con las reglas o los pagos sin actualizar.
+      - name: Resumen del despliegue
+        if: always()
+        run: |
+          echo "## Despliegue de iogga" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- App publicada: OK" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Reglas de seguridad: ${{ steps.reglas.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Backend de pagos: ${{ steps.funciones.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.reglas.outcome }}" != "success" ]; then
+            echo "::warning::Las reglas de seguridad NO se actualizaron. La app está publicada, pero revisa este paso."
+          fi
+          if [ "${{ steps.funciones.outcome }}" != "success" ]; then
+            echo "::warning::El backend de pagos NO se actualizó. La app está publicada, pero los pagos siguen con la versión anterior."
+          fi

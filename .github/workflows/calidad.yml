@@ -1,0 +1,86 @@
+# PUERTA DE CALIDAD DE IOGGA
+#
+# Corre en CADA subida de código y en cada propuesta de cambio, en TODAS las
+# ramas. Si algo de aquí falla, el resultado sale en rojo: es la señal de que
+# ese código NO debe llegar a la gente.
+#
+# Es a propósito que este archivo NO tenga "continue-on-error" en ningún paso.
+# Una revisión que perdona todo no revisa nada.
+name: Calidad
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  app:
+    name: App (tipos, pruebas y construcción)
+    runs-on: ubuntu-latest
+    # Solo corre si la rama trae la app (hay más proyectos en este repositorio).
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ¿Esta rama trae la app?
+        id: hay_app
+        run: |
+          if [ -f package.json ] && [ -d src ]; then
+            echo "si=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "si=false" >> "$GITHUB_OUTPUT"
+            echo "Esta rama no contiene la app; no hay nada que revisar."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.hay_app.outputs.si == 'true'
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        if: steps.hay_app.outputs.si == 'true'
+        run: npm ci
+
+      # 1. TIPOS: encuentra errores de programación antes de que existan.
+      - name: Revisar tipos
+        if: steps.hay_app.outputs.si == 'true'
+        run: npm run typecheck
+
+      # 2. PRUEBAS: las reglas que ya se rompieron una vez (comisión, caducidad
+      #    de planes, lectura de precios, tamaño de las fotos) no se vuelven a
+      #    romper en silencio.
+      - name: Pruebas de las reglas de negocio
+        if: steps.hay_app.outputs.si == 'true'
+        run: npm test
+
+      # 3. CONSTRUCCIÓN: si la app no compila, no hay nada que publicar.
+      - name: Construir la app
+        if: steps.hay_app.outputs.si == 'true'
+        run: npm run build
+
+      # 4. BACKEND DE PAGOS: que el código del servidor al menos cargue.
+      - name: Revisar el backend de pagos
+        if: steps.hay_app.outputs.si == 'true'
+        run: |
+          cd functions
+          npm ci --no-audit --no-fund
+          node --check index.js
+          echo "El backend de pagos carga sin errores de sintaxis."
+
+  secretos:
+    name: Buscar contraseñas olvidadas en el código
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Las claves privadas NUNCA deben vivir en el código. Esto lo revisa sola
+      # en cada subida, para no depender de que alguien se acuerde.
+      - name: Revisar
+        run: |
+          patrones='APP_USR-[0-9a-f-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|sk_live_[0-9a-zA-Z]{20,}|AIza[0-9A-Za-z_-]{35}'
+          # Se excluyen las claves PÚBLICAS por diseño (Firebase web y la de push).
+          if grep -rInE "$patrones" --include='*.ts' --include='*.tsx' --include='*.js' \
+               --exclude-dir=node_modules --exclude-dir=dist . \
+             | grep -v 'AIzaSyBbloSdceYuypqjrakX7c3pKJXu2aVr3Qc' ; then
+            echo "::error::Se encontró algo que parece una clave privada. No se puede publicar."
+            exit 1
+          fi
+          echo "Sin claves privadas en el código."

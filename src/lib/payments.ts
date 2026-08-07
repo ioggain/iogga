@@ -1,21 +1,16 @@
 // Pagos de iogga con Mercado Pago (Checkout Pro).
-// El Public Key es público por diseño. El Access Token vive SOLO en el backend
-// (secreto de Firebase Functions) — nunca aquí.
-export const MP_PUBLIC_KEY = 'APP_USR-3d540450-e4f5-41b2-b972-107a25654fb1'; // credencial de PRUEBA
+// Aquí NO vive ninguna credencial: el cobro lo arma el backend, que es quien
+// guarda el Access Token como secreto de Firebase. (Había una llave suelta sin
+// usar; la quitó la revisión automática de claves.)
 
 // Encendido: si el backend aún no responde, el QR sale sin pago (pokayoke,
 // nadie se traba). En cuanto las Functions estén vivas, el cobro aparece solo.
 export const PAYMENTS_ENABLED = true;
 
-// Comisión de iogga sobre cada venta, en porcentaje. DEBE coincidir con
-// IOGGA_FEE_PCT del backend (functions/index.js), que es quien la cobra de
-// verdad. Aquí vive solo para MOSTRARLA; nunca se escribió a mano en pantalla.
-export const IOGGA_FEE_PCT = 10;
-
-// Lo que le queda al negocio de una venta (lo que ve en sus movimientos).
-export function netForBusiness(amount: number): number {
-  return Math.round((amount - (amount * IOGGA_FEE_PCT) / 100) * 100) / 100;
-}
+// La comisión y el reparto viven en lib/reglas.ts, que está cubierto por
+// pruebas automáticas. Aquí solo se reexportan para no tener dos copias del
+// mismo número (fue exactamente lo que causó el error de contabilidad).
+export { IOGGA_FEE_PCT, netForBusiness, ioggaFee } from './reglas';
 
 const FN_BASE = 'https://us-central1-iogga-b932b.cloudfunctions.net';
 

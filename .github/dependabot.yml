@@ -1,0 +1,38 @@
+# Actualizaciones de seguridad automáticas.
+# GitHub revisa cada semana si alguna de las piezas que usa iogga tiene una
+# falla de seguridad conocida, y abre él solo la propuesta de actualización.
+# Así no depende de que alguien se acuerde de revisar.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencias, seguridad]
+    commit-message:
+      prefix: "deps"
+    groups:
+      # Todo lo menor junto en una sola propuesta, para no llenar de ruido.
+      menores:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /functions
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels: [dependencias, seguridad, backend]
+    commit-message:
+      prefix: "deps(functions)"
+    groups:
+      menores:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels: [dependencias]

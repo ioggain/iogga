@@ -1,13 +1,23 @@
-# Publicación automática de IOGGA en Firebase Hosting.
-# Cada vez que se sube código a estas ramas, la app se construye y se publica.
-# Requiere el secreto FIREBASE_SERVICE_ACCOUNT en GitHub (Settings -> Secrets).
+# Publicación automática de la app de iogga en Firebase Hosting (iogga.com).
+#
+# Repositorio: ioggain/iogga-app  ·  Rama que se publica: main
+#
+# Antes de publicar, el código pasa por la puerta de calidad (tipos, pruebas y
+# construcción). Si algo falla, NO se publica: la gente se queda con la versión
+# anterior, que sí funciona.
+#
+# Secretos necesarios (Settings -> Secrets and variables -> Actions):
+#   FIREBASE_SERVICE_ACCOUNT  - para publicar el sitio y las reglas
+#   MP_ACCESS_TOKEN           - para el backend de pagos
 name: Publicar IOGGA
 
 on:
   push:
     branches:
       - main
-      - claude/ai-studio-app-features-rlth7p
+  # Permite relanzar la publicación a mano desde la pestaña Actions,
+  # sin tener que subir un cambio vacío.
+  workflow_dispatch:
 
 jobs:
   deploy:

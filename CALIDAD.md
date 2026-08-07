@@ -116,11 +116,23 @@ Reglas que lo evitan:
 
 ## 5. Cómo se publica
 
-1. Se trabaja en la rama de la app.
+**Repositorio de la app: `ioggain/iogga-app`. Rama que se publica: `main`.**
+
+1. Se trabaja en `main` de `iogga-app` (o en una rama que se integre ahí).
 2. Al subir, corren las revisiones de la sección 1.
 3. Si todo pasa, se publica sola en `iogga.com`.
 4. Se sube la versión en `src/lib/version.ts` y el número de `public/sw.js`
    en **cada** cambio, para que a la gente se le ofrezca actualizar.
+
+Los secretos viven **por repositorio** y no viajan con el código: al mudar la
+app hubo que volver a cargarlos en `iogga-app`
+(`FIREBASE_SERVICE_ACCOUNT` y `MP_ACCESS_TOKEN`).
+
+### Antes de concluir algo sobre git, traer el estado real
+Una copia local desactualizada hace ver como "perdido" algo que sí existe en el
+servidor. **Siempre `git fetch --all` antes de sacar conclusiones.** Esta regla
+está aquí porque ya pasó: una verificación contra datos viejos hizo creer que se
+había perdido el sitio web, cuando estaba intacto.
 
 ### Antes de tocar código: leer `CLAUDE.md`
 Ahí están las restricciones de producto (no inventar, copiar de apps conocidas,
@@ -134,9 +146,9 @@ Esto **todavía no está** y conviene tenerlo antes de crecer:
 
 - [ ] **Proteger la rama principal** en GitHub, para que nada entre sin pasar
       las revisiones. Se activa en Settings → Branches → Add rule.
-- [ ] **Separar los proyectos en repositorios distintos.** Hoy la app, el sitio
-      de iogga y el sitio de EdwCorp viven en el mismo repositorio, en ramas
-      distintas. Eso ya provocó una confusión.
+- [x] ~~**Separar los proyectos en repositorios distintos.**~~ Hecho:
+      `ioggain/iogga-app` (la app), `ioggain/iogga` (el sitio) y
+      `ioggain/edwcorp` (EdwCorp). Ya no se pisan entre sí.
 - [ ] **Pruebas de pantalla** (que un botón haga lo que dice). Hoy solo se
       prueban las reglas de negocio.
 - [ ] **Llaves de producción de Mercado Pago** y mover el secreto del

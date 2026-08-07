@@ -28,7 +28,16 @@ del móvil y entrar en la vida". Sin chats: solo acción. El fundador no es téc
 
 ## Reglas técnicas
 
-- Rama de trabajo y push: SOLO `claude/ai-studio-app-features-rlth7p` (auto-deploya a iogga.com).
+- **Repositorio de la app: `ioggain/iogga-app`. Rama: `main`** (auto-deploya a iogga.com).
+  Cada proyecto tiene el suyo y NO se mezclan: `ioggain/iogga` es el sitio web
+  (www.iogga.com) y `ioggain/edwcorp` es EdwCorp. Trabajar en el que no es
+  provoca que un proyecto pise al otro.
+- Antes de dar por hecho el estado de git, correr `git fetch --all`: una copia
+  local vieja hace concluir cosas falsas sobre lo que existe o se perdió.
+- Antes de subir: `npm run verify` (tipos + pruebas + construcción). La misma
+  puerta corre sola en GitHub y detiene la publicación si algo falla. Ver CALIDAD.md.
+- Si se cambia una regla de negocio (comisión, caducidad, precios, tamaños),
+  va en `src/lib/reglas.ts` y CON su prueba en `src/lib/__tests__/`.
 - Al cambiar código de la app: subir `APP_VERSION` en `src/lib/version.ts` y el
   `CACHE` en `public/sw.js` (iogga-vN) juntos, para que el aviso "Actualización
   disponible" funcione.

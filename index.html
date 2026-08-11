@@ -430,6 +430,7 @@
       <a href="#negocios">Negocios</a>
       <a href="#spark">Spark Matcher</a>
       <a href="#fundadores">Fundadores</a>
+      <a href="encuesta/">Encuesta</a>
       <a href="inversion.html">Inversión</a>
       <a href="#descargar">Descargar</a>
     </nav>
@@ -499,23 +500,28 @@
     <!-- Datos reales de la encuesta de validación -->
     <div class="valid reveal" style="margin-top:clamp(32px,5vw,56px)">
       <div class="valid-hero">
-        <div class="pct">74<sup>%</sup></div>
+        <div class="pct"><span id="vPct">74</span><sup>%</sup></div>
         <p class="cap">descargaría una app que le arme el plan</p>
-        <p class="n">Encuesta propia · 178 respuestas</p>
+        <p class="n">Encuesta propia · <span id="vTotal">178</span> respuestas</p>
+        <p style="margin-top:.9rem">
+          <a href="encuesta/" class="tlink" style="font-size:.92rem">Ver resultados en vivo
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+          </a>
+        </p>
       </div>
       <div class="bars">
         <h3>Así se organiza la gente hoy</h3>
         <p class="sub">Y por eso los planes se pierden entre mensajes.</p>
 
-        <div class="bar lead" style="--w:92%">
+        <div class="bar lead" style="--w:92%" data-canal="0">
           <span class="lbl">Grupos de WhatsApp</span><span class="val">92%</span>
           <span class="track"><span class="fill"></span></span>
         </div>
-        <div class="bar" style="--w:22%">
+        <div class="bar" style="--w:22%" data-canal="1">
           <span class="lbl">Llamada</span><span class="val">22%</span>
           <span class="track"><span class="fill"></span></span>
         </div>
-        <div class="bar" style="--w:17%">
+        <div class="bar" style="--w:17%" data-canal="2">
           <span class="lbl">Instagram</span><span class="val">17%</span>
           <span class="track"><span class="fill"></span></span>
         </div>
@@ -906,6 +912,7 @@
         <a href="privacidad.html">Aviso de Privacidad</a>
         <a href="#privacidad">Cómo cuidamos tus datos</a>
         <a href="inversion.html">Inversión</a>
+        <a href="encuesta/">Encuesta en vivo</a>
       </div>
       <div class="foot-col">
         <h4>Contacto</h4>
@@ -1016,6 +1023,28 @@
       .finally(function(){ submit.disabled = false; });
   });
 
+  /* Datos de la encuesta en vivo — misma fuente que /encuesta/.
+     Si no está configurado, se quedan los números del último corte. */
+  var ENCUESTA_ENDPOINT = "";
+  if (ENCUESTA_ENDPOINT){
+    fetch(ENCUESTA_ENDPOINT, { cache:"no-store" })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if (!j.ok || !j.total) return;
+        var p = document.getElementById("vPct"), t = document.getElementById("vTotal");
+        if (p && j.pctSi) p.textContent = j.pctSi;
+        if (t) t.textContent = j.total.toLocaleString("es-MX");
+        (j.canales || []).slice(0,3).forEach(function(c, i){
+          var fila = document.querySelector('.bar[data-canal="' + i + '"]');
+          if (!fila) return;
+          var pct = Math.round(100 * c.v / j.total);
+          fila.style.setProperty("--w", pct + "%");
+          fila.querySelector(".lbl").textContent = c.k;
+          fila.querySelector(".val").textContent = pct + "%";
+        });
+      })
+      .catch(function(){});
+  }
 })();
 </script>
 </body>

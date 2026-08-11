@@ -668,7 +668,7 @@
       </details>
       <details class="qa">
         <summary>¿Y si el proyecto no funciona?</summary>
-        <div class="ans">Pierdes el capital invertido, como en cualquier inversión de etapa temprana. Lo decimos sin adornos. Lo que reduce el riesgo respecto a una idea en papel: la marca ya está registrada, el software tiene derechos de autor registrados en México, la prueba de concepto está funcionando y hay <b>178 encuestas de validación</b> con 74% de intención de descarga. El capital financia ejecución, no descubrimiento.</div>
+        <div class="ans">Pierdes el capital invertido, como en cualquier inversión de etapa temprana. Lo decimos sin adornos. Lo que reduce el riesgo respecto a una idea en papel: la marca ya está registrada, el software tiene derechos de autor registrados en México, la prueba de concepto está funcionando y hay <b><span id="fTotal">178</span> encuestas de validación</b> con <span id="fPct">74</span>% de intención de descarga — <a href="encuesta/" style="color:var(--primary-ink);text-decoration:underline">verificables en vivo</a>. El capital financia ejecución, no descubrimiento.</div>
       </details>
       <details class="qa">
         <summary>¿En qué se gasta exactamente el dinero?</summary>
@@ -717,6 +717,7 @@
     <span>© <span id="year"></span> iogga®. Todos los derechos reservados.</span>
     <nav>
       <a href="index.html">Inicio</a>
+      <a href="encuesta/">Encuesta en vivo</a>
       <a href="privacidad.html">Aviso de Privacidad</a>
       <a href="terminos.html">Términos y Condiciones</a>
       <a href="mailto:admin@iogga.com">Contacto</a>
@@ -736,6 +737,19 @@
     }, { threshold:.08, rootMargin:"0px 0px -5% 0px" });
     rev.forEach(function(el){ io.observe(el); });
   } else { rev.forEach(function(el){ el.classList.add("in"); }); }
+  /* Encuesta en vivo — misma fuente que /encuesta/ */
+  var ENCUESTA_ENDPOINT = "";
+  if (ENCUESTA_ENDPOINT){
+    fetch(ENCUESTA_ENDPOINT, { cache:"no-store" })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if (!j.ok || !j.total) return;
+        var t = document.getElementById("fTotal"), p = document.getElementById("fPct");
+        if (t) t.textContent = j.total.toLocaleString("es-MX");
+        if (p && j.pctSi) p.textContent = j.pctSi;
+      })
+      .catch(function(){});
+  }
 })();
 </script>
 </body>

@@ -8,8 +8,8 @@
  */
 
 // ————— Configuración —————
-var CLAVE   = 'PwCV2-vwfds-CfPdW-0Q4zP';
-var HOJA_ID = '18reM1EwWa5IYikIF6OkHpZiuRuh6yTCPorAP_Gv8240';
+var CLAVE   = 'Erizodemar1326*';
+var HOJA_ID = 'https://docs.google.com/spreadsheets/d/1AUGYoagTpZuMntXQPH2fs3fDVUUEV2xBhBDkgVp19KY/edit?usp=sharing';
 
 var ENCABEZADOS = ['Fecha', 'Nombre', 'Correo', 'Teléfono', 'Tipo', 'Origen'];
 

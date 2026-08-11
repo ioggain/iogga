@@ -738,7 +738,7 @@
     rev.forEach(function(el){ io.observe(el); });
   } else { rev.forEach(function(el){ el.classList.add("in"); }); }
   /* Encuesta en vivo — misma fuente que /encuesta/ */
-  var ENCUESTA_ENDPOINT = "";
+  var ENCUESTA_ENDPOINT = "https://script.google.com/macros/s/AKfycbzfk9OspS9w2Xxo4SsXdqogZj6qcN-t-iModRpXnBfj4K4E9nI51wlXbV0QNve52gOv/exec";
   if (ENCUESTA_ENDPOINT){
     fetch(ENCUESTA_ENDPOINT, { cache:"no-store" })
       .then(function(r){ return r.json(); })

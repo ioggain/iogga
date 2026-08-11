@@ -23,10 +23,12 @@ pensado para publicarse gratis en GitHub Pages y apuntar a **www.edwcorp.org**.
 | `privacidad.html` | Aviso de privacidad (LFPDPPP). |
 | `terminos.html` | Términos de servicio. |
 | `legal.css` | Estilos compartidos por las dos páginas legales. |
+| `config.js` | **La URL del Apps Script.** Único archivo que conecta el sitio con la base de datos. |
 | `analytics.js` | Google Analytics y los eventos del sitio. Se activa pegando el ID en la primera línea. |
 | `apps-script/Codigo.gs` | Script de Google que recibe el formulario y lo guarda en una hoja. |
 | `MODELO-DE-NEGOCIO.md` | Documento interno: líneas de ingreso, precios, sostenibilidad. |
-| `PUBLICAR.md` | **Guía paso a paso para poner el sitio en el dominio.** |
+| `CONECTAR.md` | **Guía para conectar el correo, la base de datos y la analítica.** |
+| `PUBLICAR.md` | Guía de publicación en el dominio (ya realizada). |
 | `CNAME`, `robots.txt`, `sitemap.xml`, `.nojekyll` | Configuración de publicación y buscadores. |
 
 Cada página es un solo archivo con su CSS adentro: para cambiar un texto, se abre el archivo,
@@ -80,30 +82,16 @@ guarda y activa **Enforce HTTPS**. El DNS puede tardar de minutos a 24 horas en 
 
 ---
 
-## 📬 Conectar el formulario de contacto
+## 📬 Conectar el formulario y la base de datos
 
-Mientras no se configure, el formulario abre el correo del visitante con los datos ya escritos
-(funciona, pero es menos cómodo). Para que las solicitudes lleguen a una hoja de cálculo y por correo:
+**Sigue [`CONECTAR.md`](CONECTAR.md)** — tiene el paso a paso con enlaces directos.
 
-1. Crea una **Hoja de Google** nueva y copia su ID (lo que va entre `/d/` y `/edit` en la URL).
-2. Entra a [script.google.com](https://script.google.com) → **Nuevo proyecto**.
-3. Borra lo que traiga y pega el contenido de `apps-script/Codigo.gs`.
-4. Arriba del archivo, cambia:
-   - `HOJA_ID` → el ID de tu hoja.
-   - `AVISO_A` → el correo donde quieres recibir el aviso.
-   - `CLAVE` → una contraseña cualquiera, para consultar las solicitudes.
-5. Selecciona la función **`probar`** y dale ▶ **Ejecutar**. Acepta los permisos.
-   Si en el registro aparece «✅ TODO BIEN», ya quedó (borra la fila de prueba de la hoja).
-6. **Implementar → Nueva implementación → Aplicación web**
-   - *Ejecutar como*: **Yo**
-   - *Quién tiene acceso*: **Cualquier persona**
-7. Copia la URL que termina en `/exec`.
-8. En `index.html`, busca esta línea (cerca del final) y pega la URL:
-   ```js
-   var FORM_ENDPOINT = "";
-   ```
+En resumen: se pega `apps-script/Codigo.gs` en [Apps Script](https://script.google.com), se
+publica como aplicación web y se copia la URL `/exec` en `config.js`. Con eso quedan conectados
+el formulario **y** el diagnóstico a la vez.
 
-Las solicitudes llegan a **admin@edwcorp.org** (configurado en `AVISO_A` del script).
+La hoja de cálculo **se crea sola** la primera vez que se ejecuta la función `probar`, con dos
+pestañas: `Solicitudes` y `Diagnósticos`. Los avisos llegan a **admin@edwcorp.org**.
 
 ---
 

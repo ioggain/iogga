@@ -369,6 +369,7 @@
   .skip{position:absolute;left:-9999px}
   .skip:focus{left:1rem;top:1rem;z-index:300;background:#fff;padding:.7rem 1rem;border-radius:8px}
 </style>
+<script src="config.js"></script>
 <script src="analytics.js" defer></script>
 </head>
 <body>
@@ -925,9 +926,9 @@
 </footer>
 
 <script>
-  /* Endpoint del formulario (Google Apps Script). Vacío = abre el correo como respaldo. */
-  var FORM_ENDPOINT = "";
-  var MAIL_TO = "admin@edwcorp.org";
+  /* La URL del Apps Script y el correo viven en config.js. */
+  var FORM_ENDPOINT = (typeof EDW_ENDPOINT !== "undefined") ? EDW_ENDPOINT : "";
+  var MAIL_TO       = (typeof EDW_CORREO   !== "undefined") ? EDW_CORREO   : "admin@edwcorp.org";
 
   document.getElementById("year").textContent = new Date().getFullYear();
 
@@ -1037,7 +1038,8 @@
     var d = {
       nombre: form.nombre.value.trim(), organizacion: form.organizacion.value.trim(),
       correo: form.correo.value.trim(), telefono: form.telefono.value.trim(),
-      necesidad: form.necesidad.value, mensaje: form.mensaje.value.trim(), origen: "edwcorp.org"
+      necesidad: form.necesidad.value, mensaje: form.mensaje.value.trim(),
+      tipo: "solicitud", origen: "edwcorp.org"
     };
     if (!d.nombre || !d.organizacion || !d.necesidad || !d.mensaje) return show("err","Completa los campos obligatorios.");
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(d.correo)) return show("err","Revisa tu correo electrónico.");

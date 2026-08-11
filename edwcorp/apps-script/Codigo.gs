@@ -1,56 +1,89 @@
 /**
- * EdwCorp — Solicitudes de propuesta
- * Recibe el formulario de www.edwcorp.org, lo guarda en una Hoja de Google
- * y envía un aviso por correo para no perder ninguna solicitud.
+ * EdwCorp — Base de datos del sitio
+ * =================================
+ * Recibe lo que la gente manda desde www.edwcorp.org, lo guarda en una
+ * Hoja de Google y avisa por correo.
  *
- * Cómo publicarlo:
- *   1. Crea una Hoja de Google nueva y copia su ID (lo que va entre /d/ y /edit en la URL).
- *   2. script.google.com → Nuevo proyecto → pega este archivo.
- *   3. Cambia HOJA_ID y AVISO_A abajo.
- *   4. Ejecuta la función "probar" una vez y acepta los permisos.
- *   5. Implementar → Nueva implementación → Aplicación web
- *        Ejecutar como: Yo   ·   Quién tiene acceso: Cualquier persona
- *   6. Copia la URL que termina en /exec y pégala en index.html:
- *        var FORM_ENDPOINT = "https://script.google.com/macros/s/.../exec";
+ * Guarda dos cosas:
+ *   · Solicitudes  → el formulario de contacto
+ *   · Diagnósticos → quien completa el diagnóstico de madurez
+ *
+ * NO HAY QUE CONFIGURAR NADA. La hoja de cálculo se crea sola la primera
+ * vez que ejecutas la función "probar". El enlace aparece en el registro.
  */
 
-// ————— Configuración —————
-var HOJA_ID = 'PEGA_AQUI_EL_ID_DE_TU_HOJA';
-var AVISO_A = 'admin@edwcorp.org';   // a dónde llega el aviso de cada solicitud
-var CLAVE   = 'CAMBIA-ESTA-CLAVE'; // para consultar las solicitudes por GET
-
-var ENCABEZADOS = ['Fecha', 'Nombre', 'Organización', 'Correo', 'Teléfono', 'Necesidad', 'Mensaje', 'Origen'];
+// ————— Lo único que puedes querer cambiar —————
+var AVISO_A = 'admin@edwcorp.org';   // a dónde llegan los avisos
+var CLAVE   = 'edw-8JtWe-rMZLS-RkFUa';  // para consultar los datos desde fuera
 
 
-/** Abre la primera hoja del archivo y crea los encabezados si faltan. */
-function abrirHoja_() {
-  var hoja = SpreadsheetApp.openById(HOJA_ID).getSheets()[0];
-  if (hoja.getLastRow() === 0) {
-    hoja.appendRow(ENCABEZADOS);
-    hoja.getRange(1, 1, 1, ENCABEZADOS.length).setFontWeight('bold');
-    hoja.setFrozenRows(1);
-    hoja.setColumnWidth(1, 150);
-    hoja.setColumnWidth(2, 180);
-    hoja.setColumnWidth(3, 180);
-    hoja.setColumnWidth(4, 220);
-    hoja.setColumnWidth(7, 380);
-  }
-  return hoja;
+// ============================================================
+//  De aquí para abajo no hace falta tocar nada.
+// ============================================================
+
+var COL_SOLICITUDES  = ['Fecha', 'Nombre', 'Organización', 'Correo', 'Teléfono', 'Necesidad', 'Mensaje', 'Origen'];
+var COL_DIAGNOSTICOS = ['Fecha', 'Puntaje', 'Nivel', 'Área más floja', 'Correo', 'Nombre', 'Organización', 'Origen'];
+
+
+/** Devuelve el ID de la hoja. La crea la primera vez. */
+function idHoja_() {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('HOJA_ID');
+  if (id) return id;
+
+  var ss = SpreadsheetApp.create('EdwCorp — Base de datos del sitio');
+  ss.getSheets()[0].setName('Solicitudes');
+  ss.insertSheet('Diagnósticos');
+  props.setProperty('HOJA_ID', ss.getId());
+  return ss.getId();
 }
 
 
-/** Guarda una solicitud nueva. La llama el formulario del sitio. */
+/** Abre una pestaña por nombre y le pone encabezados si está vacía. */
+function hoja_(nombre, columnas) {
+  var ss = SpreadsheetApp.openById(idHoja_());
+  var h = ss.getSheetByName(nombre) || ss.insertSheet(nombre);
+  if (h.getLastRow() === 0) {
+    h.appendRow(columnas);
+    h.getRange(1, 1, 1, columnas.length).setFontWeight('bold').setBackground('#eaf3fa');
+    h.setFrozenRows(1);
+    h.setColumnWidth(1, 150);
+    h.setColumnWidth(2, 180);
+    h.setColumnWidth(3, 180);
+    h.setColumnWidth(4, 220);
+  }
+  return h;
+}
+
+
+/** Recibe lo que manda el sitio. */
 function doPost(e) {
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
     var p = (e && e.parameter) || {};
+    var tipo = p.tipo || 'solicitud';
+
+    if (tipo === 'diagnostico') {
+      hoja_('Diagnósticos', COL_DIAGNOSTICOS).appendRow([
+        new Date(),
+        p.puntaje      || '',
+        p.nivel        || '',
+        p.area_debil   || '',
+        p.correo       || '',
+        p.nombre       || '',
+        p.organizacion || '',
+        p.origen       || ''
+      ]);
+      if (p.correo) avisarDiagnostico_(p);
+      return json_({ ok: true });
+    }
 
     if (!p.nombre || !p.correo) {
       return json_({ ok: false, error: 'faltan datos' });
     }
 
-    abrirHoja_().appendRow([
+    hoja_('Solicitudes', COL_SOLICITUDES).appendRow([
       new Date(),
       p.nombre       || '',
       p.organizacion || '',
@@ -60,9 +93,9 @@ function doPost(e) {
       p.mensaje      || '',
       p.origen       || ''
     ]);
-
-    avisar_(p);
+    avisarSolicitud_(p);
     return json_({ ok: true });
+
   } catch (err) {
     return json_({ ok: false, error: String(err) });
   } finally {
@@ -71,24 +104,23 @@ function doPost(e) {
 }
 
 
-/** Manda un correo con la solicitud. Si algo falla, no rompe el guardado. */
-function avisar_(p) {
+/** Aviso de una solicitud del formulario. */
+function avisarSolicitud_(p) {
   try {
     if (!AVISO_A) return;
-    var cuerpo =
-      'Nueva solicitud de propuesta desde el sitio.\n\n' +
-      'Nombre: '       + (p.nombre || '') + '\n' +
-      'Organización: ' + (p.organizacion || '') + '\n' +
-      'Correo: '       + (p.correo || '') + '\n' +
-      'Teléfono: '     + (p.telefono || '') + '\n' +
-      'Necesidad: '    + (p.necesidad || '') + '\n\n' +
-      'Mensaje:\n'     + (p.mensaje || '');
-
     MailApp.sendEmail({
       to: AVISO_A,
       subject: 'EdwCorp — Solicitud de ' + (p.organizacion || p.nombre || 'contacto'),
-      body: cuerpo,
-      replyTo: p.correo || AVISO_A
+      replyTo: p.correo || AVISO_A,
+      body:
+        'Nueva solicitud desde el sitio.\n\n' +
+        'Nombre: '       + (p.nombre || '') + '\n' +
+        'Organización: ' + (p.organizacion || '') + '\n' +
+        'Correo: '       + (p.correo || '') + '\n' +
+        'Teléfono: '     + (p.telefono || '') + '\n' +
+        'Necesidad: '    + (p.necesidad || '') + '\n\n' +
+        'Mensaje:\n'     + (p.mensaje || '') + '\n\n' +
+        '— Puedes responder directamente a este correo.'
     });
   } catch (err) {
     Logger.log('No se pudo enviar el aviso: ' + err);
@@ -96,73 +128,112 @@ function avisar_(p) {
 }
 
 
-/** Devuelve todas las solicitudes. Requiere la clave. */
+/** Aviso de un diagnóstico en el que sí dejaron correo. */
+function avisarDiagnostico_(p) {
+  try {
+    if (!AVISO_A) return;
+    MailApp.sendEmail({
+      to: AVISO_A,
+      subject: 'EdwCorp — Diagnóstico completado (' + (p.puntaje || '?') + '/30)',
+      replyTo: p.correo || AVISO_A,
+      body:
+        'Alguien terminó el diagnóstico y dejó su correo.\n\n' +
+        'Correo: '         + (p.correo || '') + '\n' +
+        'Nombre: '         + (p.nombre || '') + '\n' +
+        'Organización: '   + (p.organizacion || '') + '\n' +
+        'Puntaje: '        + (p.puntaje || '') + '/30\n' +
+        'Nivel: '          + (p.nivel || '') + '\n' +
+        'Área más floja: ' + (p.area_debil || '') + '\n\n' +
+        '— Puedes responder directamente a este correo.'
+    });
+  } catch (err) {
+    Logger.log('No se pudo enviar el aviso: ' + err);
+  }
+}
+
+
+/** Devuelve los datos en JSON. Requiere la clave. */
 function doGet(e) {
   try {
     var p = (e && e.parameter) || {};
-    if (p.key !== CLAVE) {
-      return json_({ ok: false, error: 'clave incorrecta' });
-    }
+    if (p.key !== CLAVE) return json_({ ok: false, error: 'clave incorrecta' });
 
-    var hoja = abrirHoja_();
-    if (hoja.getLastRow() < 2) {
-      return json_({ ok: true, solicitudes: [] });
-    }
-
-    var filas = hoja.getRange(2, 1, hoja.getLastRow() - 1, ENCABEZADOS.length).getValues();
-    var solicitudes = filas
-      .filter(function (f) { return f[1] || f[3]; })
-      .map(function (f) {
-        return {
-          fecha:        f[0] instanceof Date ? f[0].toISOString() : String(f[0] || ''),
-          nombre:       String(f[1] || ''),
-          organizacion: String(f[2] || ''),
-          correo:       String(f[3] || ''),
-          telefono:     String(f[4] || ''),
-          necesidad:    String(f[5] || ''),
-          mensaje:      String(f[6] || ''),
-          origen:       String(f[7] || '')
-        };
-      });
-
-    return json_({ ok: true, solicitudes: solicitudes });
+    return json_({
+      ok: true,
+      solicitudes:  leer_('Solicitudes',  COL_SOLICITUDES),
+      diagnosticos: leer_('Diagnósticos', COL_DIAGNOSTICOS)
+    });
   } catch (err) {
     return json_({ ok: false, error: String(err) });
   }
 }
 
 
+/** Lee una pestaña y la devuelve como lista de objetos. */
+function leer_(nombre, columnas) {
+  var h = hoja_(nombre, columnas);
+  if (h.getLastRow() < 2) return [];
+  return h.getRange(2, 1, h.getLastRow() - 1, columnas.length).getValues().map(function (f) {
+    var o = {};
+    columnas.forEach(function (c, i) {
+      o[c] = f[i] instanceof Date ? f[i].toISOString() : String(f[i] || '');
+    });
+    return o;
+  });
+}
+
+
 /** Respuesta JSON. */
 function json_(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
+  return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
 
 /**
- * PRUEBA — selecciona "probar" arriba y dale ▶ Ejecutar.
- * Escribe una solicitud de prueba y la vuelve a leer.
+ * ▶ PRUEBA — selecciona "probar" arriba y dale Ejecutar.
+ * Crea la hoja si no existe, guarda dos registros de ejemplo y te manda
+ * el correo de aviso. Al final imprime el enlace de tu hoja.
  */
 function probar() {
-  var guardado = doPost({ parameter: {
+  doPost({ parameter: {
+    tipo: 'solicitud',
     nombre: 'Solicitud de prueba',
     organizacion: 'Empresa Demo',
     correo: 'prueba@edwcorp.org',
     telefono: '614 000 0000',
-    necesidad: 'Programa de capacitación corporativa',
+    necesidad: 'Programa de capacitación a la medida',
     mensaje: 'Esto es una prueba del formulario.',
     origen: 'prueba'
   }});
-  Logger.log('Guardar: ' + guardado.getContent());
 
-  var leido = JSON.parse(doGet({ parameter: { key: CLAVE } }).getContent());
-  Logger.log('Leer: ' + (leido.solicitudes || []).length + ' solicitud(es)');
+  doPost({ parameter: {
+    tipo: 'diagnostico',
+    puntaje: '15',
+    nivel: 'En desarrollo',
+    area_debil: 'Medición de impacto',
+    correo: 'prueba@edwcorp.org',
+    origen: 'prueba'
+  }});
 
-  if (leido.ok && leido.solicitudes.length > 0) {
+  var datos = JSON.parse(doGet({ parameter: { key: CLAVE } }).getContent());
+  Logger.log('Solicitudes guardadas:  ' + datos.solicitudes.length);
+  Logger.log('Diagnósticos guardados: ' + datos.diagnosticos.length);
+
+  if (datos.ok && datos.solicitudes.length > 0) {
     Logger.log('✅ TODO BIEN — ya puedes implementar.');
-    Logger.log('Borra la fila de prueba de la hoja cuando quieras.');
+    Logger.log('Tu base de datos: ' + verHoja());
+    Logger.log('Revisa que te haya llegado el correo a ' + AVISO_A);
+    Logger.log('Borra las filas de prueba cuando quieras.');
   } else {
-    Logger.log('⚠️ Algo falló. Revisa que HOJA_ID sea correcto.');
+    Logger.log('⚠️ Algo falló. Vuelve a ejecutar y revisa el error de arriba.');
   }
+}
+
+
+/** Imprime el enlace de tu hoja de cálculo. */
+function verHoja() {
+  var url = SpreadsheetApp.openById(idHoja_()).getUrl();
+  Logger.log(url);
+  return url;
 }

@@ -124,11 +124,28 @@
   .reco ul li{font-size:.92rem;color:var(--brand-ink);padding-left:1.3rem;position:relative}
   .reco ul li::before{content:"→";position:absolute;left:0;color:var(--brand)}
 
+  .captura{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:1.4rem;margin-top:1rem}
+  .captura .dim{font-family:var(--fd);font-size:.7rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--brand);margin-bottom:.5rem}
+  .captura .txt{font-size:.94rem;color:var(--ink-2);max-width:56ch}
+  .captura form{margin-top:1rem;display:grid;gap:.6rem}
+  .captura .fila{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+  @media (max-width:560px){.captura .fila{grid-template-columns:1fr}}
+  .captura input{font-family:inherit;font-size:.97rem;color:var(--ink);padding:.72em .85em;
+    border:1px solid var(--line-2);border-radius:9px;background:#fff;width:100%;
+    transition:border-color .2s,box-shadow .2s}
+  .captura input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(11,114,184,.14)}
+  .captura .msg{min-height:1.2em;font-size:.9rem;font-weight:600}
+  .captura .msg.ok{color:#0b6f66}
+  .captura .msg.err{color:#c0392b}
+  .captura.enviado form{display:none}
+
   footer{background:var(--navy);color:#93aec6;padding:2.4rem 0;font-size:.88rem}
   .fin{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;max-width:1200px;
     margin-inline:auto;padding-inline:var(--pad)}
   footer a:hover{color:#fff}
 </style>
+<script src="config.js"></script>
 <script src="analytics.js" defer></script>
 </head>
 <body>
@@ -185,6 +202,22 @@
         <h3 id="recoTitulo"></h3>
         <p id="recoTexto"></p>
         <ul id="recoLista"></ul>
+      </div>
+
+      <div class="captura" id="captura">
+        <p class="dim">¿Te mandamos el plan por correo?</p>
+        <p class="txt">Déjanos tus datos y te enviamos el detalle de tu diagnóstico con los pasos concretos para tu nivel. Sin compromiso.</p>
+        <form id="formCorreo" novalidate>
+          <div class="fila">
+            <input id="cNombre" type="text" placeholder="Tu nombre" autocomplete="name" />
+            <input id="cOrg" type="text" placeholder="Organización" autocomplete="organization" />
+          </div>
+          <div class="fila">
+            <input id="cCorreo" type="email" placeholder="tu@correo.com *" autocomplete="email" required />
+            <button class="btn btn-fill" type="submit" id="cEnviar">Enviar mi plan</button>
+          </div>
+          <p class="msg" id="cMsg" role="status"></p>
+        </form>
       </div>
 
       <div class="acciones">
@@ -330,9 +363,76 @@ verBtn.addEventListener("click", function(e){
     edwEvento("diagnostico_completado", { puntaje: total, nivel: nivel.n, area_debil: AREAS[debil] });
   }
 
+  // guardar el resultado en la base de datos (sin datos personales)
+  ultimo = { puntaje: total, nivel: nivel.n, area_debil: AREAS[debil] };
+  guardar({ tipo: "diagnostico", puntaje: total, nivel: nivel.n,
+            area_debil: AREAS[debil], origen: "diagnostico" });
+
   document.querySelectorAll(".form-q").forEach(function(el){ el.classList.add("off"); });
   document.getElementById("res").classList.add("on");
   window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+/* ---- Envío a la base de datos (Apps Script). Si no hay endpoint, no hace nada. ---- */
+var ultimo = null;
+
+function guardar(datos){
+  var url = (typeof EDW_ENDPOINT !== "undefined") ? EDW_ENDPOINT : "";
+  if (!url) return Promise.resolve({ ok:false, sinEndpoint:true });
+  return fetch(url, { method:"POST", body:new URLSearchParams(datos) })
+    .then(function(r){ return r.json(); })
+    .catch(function(){ return { ok:false }; });
+}
+
+/* ---- Dejar correo para recibir el plan ---- */
+var formCorreo = document.getElementById("formCorreo"),
+    cMsg = document.getElementById("cMsg"),
+    cEnviar = document.getElementById("cEnviar");
+
+formCorreo.addEventListener("submit", function(e){
+  e.preventDefault();
+  var correo = document.getElementById("cCorreo").value.trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(correo)){
+    cMsg.className = "msg err"; cMsg.textContent = "Revisa tu correo electrónico.";
+    return;
+  }
+
+  var datos = {
+    tipo: "diagnostico",
+    correo: correo,
+    nombre: document.getElementById("cNombre").value.trim(),
+    organizacion: document.getElementById("cOrg").value.trim(),
+    puntaje: ultimo ? ultimo.puntaje : "",
+    nivel: ultimo ? ultimo.nivel : "",
+    area_debil: ultimo ? ultimo.area_debil : "",
+    origen: "diagnostico-correo"
+  };
+
+  cEnviar.disabled = true;
+  cMsg.className = "msg"; cMsg.textContent = "Enviando…";
+
+  guardar(datos).then(function(res){
+    cEnviar.disabled = false;
+    if (res && res.ok){
+      document.getElementById("captura").classList.add("enviado");
+      cMsg.className = "msg ok";
+      cMsg.textContent = "Listo. Te mandamos tu plan a " + correo + ".";
+      if (window.edwEvento) edwEvento("diagnostico_correo", { nivel: datos.nivel });
+    } else if (res && res.sinEndpoint){
+      var asunto = encodeURIComponent("Mi diagnóstico EdwCorp — " + datos.puntaje + "/30");
+      var cuerpo = encodeURIComponent(
+        "Hola, completé el diagnóstico.\n\nPuntaje: " + datos.puntaje + "/30\nNivel: " + datos.nivel +
+        "\nÁrea más floja: " + datos.area_debil + "\n\nNombre: " + datos.nombre +
+        "\nOrganización: " + datos.organizacion + "\n\nMe interesa recibir el plan.");
+      window.location.href = "mailto:" + ((typeof EDW_CORREO !== "undefined") ? EDW_CORREO : "admin@edwcorp.org") +
+                             "?subject=" + asunto + "&body=" + cuerpo;
+      cMsg.className = "msg ok";
+      cMsg.textContent = "Abrimos tu correo para enviarlo.";
+    } else {
+      cMsg.className = "msg err";
+      cMsg.textContent = "No pudimos enviarlo. Escríbenos por WhatsApp.";
+    }
+  });
 });
 
 document.getElementById("otraBtn").addEventListener("click", function(){

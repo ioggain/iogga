@@ -5,10 +5,12 @@ Todo se hace desde el navegador. No necesitas instalar nada.
 
 Tiempo aproximado: **30 minutos de trabajo** + hasta 24 horas de espera del DNS.
 
-> ✅ **Estado actual (agosto 2026):** los pasos 1 al 6 ya están hechos. El sitio está publicado
-> en **https://www.edwcorp.org** desde el repositorio `ioggain/edwcorp`, con el DNS apuntando
-> correctamente. Lo que queda pendiente es el **paso 7** (formulario), el **paso 8** (analítica)
-> y el **paso 9** (buscador). Los primeros pasos se conservan aquí como referencia.
+> ✅ **Estado actual:** el sitio ya está publicado en **https://www.edwcorp.org** desde el
+> repositorio `ioggain/edwcorp`, con el DNS apuntando correctamente (pasos 1 al 6 hechos).
+>
+> 👉 **Para conectar el correo, la base de datos y la analítica, usa
+> [`CONECTAR.md`](CONECTAR.md)** — es más claro y trae enlaces directos.
+> Este documento se conserva como referencia de cómo se publicó.
 
 ---
 

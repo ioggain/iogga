@@ -5,6 +5,13 @@ Todo se hace desde el navegador. No necesitas instalar nada.
 
 Tiempo aproximado: **30 minutos de trabajo** + hasta 24 horas de espera del DNS.
 
+> ✅ **Estado actual (agosto 2026):** los pasos 1 al 6 ya están hechos. El sitio está publicado
+> en **https://www.edwcorp.org** desde el repositorio `ioggain/edwcorp`, con el DNS apuntando
+> correctamente. Lo que queda pendiente es el **paso 7** (formulario), el **paso 8** (analítica)
+> y el **paso 9** (buscador). Los primeros pasos se conservan aquí como referencia.
+
+---
+
 > ⚠️ **Antes de empezar:** hoy `edwcorp.org` apunta a tu Google Sites. Cuando cambies el DNS
 > (paso 5), el dominio dejará de mostrar el sitio de Google y mostrará este. El sitio de Google
 > Sites no se borra: sigue existiendo en su dirección de Google, solo deja de usar tu dominio.
@@ -124,8 +131,8 @@ Al terminar, `www.edwcorp.org` y `edwcorp.org` muestran el sitio con candado de 
 ## Paso 7 · Conectar el formulario de contacto
 
 Mientras no hagas esto, el formulario abre el correo del visitante con los datos escritos.
-Funciona, pero se pierden solicitudes. Para que lleguen solas a `proyectos@edwcorp.org`
-y queden en una hoja de cálculo:
+Funciona, pero se pierden solicitudes. Para que lleguen solas a **`admin@edwcorp.org`**
+y queden guardadas en una hoja de cálculo:
 
 1. Crea una **Hoja de Google** nueva. Copia su ID: es lo que va entre `/d/` y `/edit` en la URL.
 2. Entra a [script.google.com](https://script.google.com) → **Nuevo proyecto**.
@@ -133,7 +140,7 @@ y queden en una hoja de cálculo:
 4. Arriba del archivo cambia:
    - `HOJA_ID` → el ID de tu hoja
    - `CLAVE` → cualquier contraseña que inventes
-   - (`AVISO_A` ya dice `proyectos@edwcorp.org`)
+   - (`AVISO_A` ya dice `admin@edwcorp.org`; cámbialo solo si quieres otro destinatario)
 5. Selecciona la función **`probar`** y dale ▶ **Ejecutar**. Acepta los permisos que pida.
    Si en el registro sale «✅ TODO BIEN», quedó. Borra la fila de prueba de la hoja.
 6. **Implementar → Nueva implementación → Aplicación web**
@@ -150,11 +157,57 @@ En 1–2 minutos el sitio se actualiza solo con el cambio.
 
 ---
 
-## Paso 8 · Darlo de alta en Google
+## Paso 8 · Activar la analítica (Google Analytics)
+
+Sirve para saber cuánta gente entra, de dónde llega, qué páginas lee y —lo importante—
+cuántos piden propuesta o hacen el diagnóstico.
+
+1. Entra a [analytics.google.com](https://analytics.google.com) con tu cuenta de Google.
+2. **Administrar** (engrane, abajo a la izquierda) → **Crear** → **Propiedad**.
+   - Nombre: `EdwCorp`
+   - Zona horaria: México · Moneda: peso mexicano
+3. Contesta las dos pantallas de negocio (giro y objetivos) y dale **Crear**.
+4. Al final te pide elegir plataforma: **Web**.
+   - URL del sitio: `https://www.edwcorp.org`
+   - Nombre del flujo: `Sitio EdwCorp`
+5. Te muestra el **ID de medición**, que se ve así: `G-XXXXXXXXXX`. **Cópialo.**
+   (Si cierras la ventana: **Administrar → Flujos de datos → Sitio EdwCorp**.)
+6. En GitHub, abre el archivo **`analytics.js`** → lápiz ✏️ → en la primera línea de código
+   pega tu ID entre las comillas:
+   ```js
+   var GA_ID = "G-XXXXXXXXXX";
+   ```
+7. **Commit changes**. En 1–2 minutos empieza a medir. Compruébalo en Analytics →
+   **Informes → Tiempo real**, abriendo tu sitio en otra pestaña: te debes ver a ti mismo.
+
+### Lo que ya se mide solo
+
+Además de las visitas normales, el sitio registra estos eventos sin que configures nada:
+
+| Evento | Cuándo se registra |
+|---|---|
+| `solicitud_enviada` | Alguien manda el formulario de contacto |
+| `diagnostico_completado` | Alguien termina el diagnóstico (guarda puntaje y nivel) |
+| `whatsapp` | Clic en cualquier botón de WhatsApp |
+| `ver_catalogo` | Entran al catálogo |
+| `abrir_diagnostico` | Entran al diagnóstico |
+| `clic_correo` | Clic en una dirección de correo |
+| `como_llegar` | Clic en el mapa de las oficinas |
+| `red_social` | Clic en Instagram, Facebook o LinkedIn |
+| `scroll_25` … `scroll_100` | Qué tanto alcanzan a leer de cada página |
+
+> **Marca las conversiones.** En Analytics → **Administrar → Eventos**, activa la palomita
+> «Marcar como evento clave» en `solicitud_enviada`, `diagnostico_completado` y `whatsapp`.
+> Así puedes ver de qué canal vienen los clientes reales, no solo las visitas.
+
+---
+
+## Paso 9 · Darlo de alta en el buscador
 
 1. Entra a [Google Search Console](https://search.google.com/search-console).
-2. Agrega la propiedad `https://www.edwcorp.org`.
-3. Verifica la propiedad (la opción más simple es el registro TXT en el DNS).
+2. Agrega la propiedad `https://www.edwcorp.org` (tipo *Prefijo de URL*).
+3. Verifica la propiedad. Como ya tienes Analytics puesto, aparecerá la opción
+   **«Google Analytics»** — es la más rápida, un clic. Si no, usa el registro TXT en el DNS.
 4. En **Sitemaps**, escribe `sitemap.xml` y envíalo.
 
 Con esto Google empieza a indexar el sitio. Tarda de días a un par de semanas.
@@ -181,6 +234,7 @@ Todo se puede hacer desde el navegador, sin instalar nada:
 | Preguntas del diagnóstico | `diagnostico.html` | `var PREGUNTAS` |
 | Empresas del cintillo | `index.html` | `marqueeList` |
 | Teléfono de WhatsApp | Todos | `526146887271` |
+| ID de Google Analytics | `analytics.js` | `var GA_ID` |
 | Colores de la marca | `index.html` | `:root{` |
 
 **Para reemplazar una foto:** entra a la carpeta `assets` en GitHub, borra la vieja y sube la

@@ -369,6 +369,7 @@
   .skip{position:absolute;left:-9999px}
   .skip:focus{left:1rem;top:1rem;z-index:300;background:#fff;padding:.7rem 1rem;border-radius:8px}
 </style>
+<script src="analytics.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Saltar al contenido</a>
@@ -926,7 +927,7 @@
 <script>
   /* Endpoint del formulario (Google Apps Script). Vacío = abre el correo como respaldo. */
   var FORM_ENDPOINT = "";
-  var MAIL_TO = "proyectos@edwcorp.org";
+  var MAIL_TO = "admin@edwcorp.org";
 
   document.getElementById("year").textContent = new Date().getFullYear();
 
@@ -1046,6 +1047,7 @@
       var cuerpo = encodeURIComponent("Nombre: "+d.nombre+"\nOrganización: "+d.organizacion+"\nCorreo: "+d.correo+
         "\nTeléfono: "+d.telefono+"\nNecesidad: "+d.necesidad+"\n\n"+d.mensaje);
       window.location.href = "mailto:" + MAIL_TO + "?subject=" + asunto + "&body=" + cuerpo;
+      if (window.edwEvento) edwEvento("solicitud_enviada", { necesidad: d.necesidad, via: "correo" });
       return show("ok","Abrimos tu correo para enviar la solicitud.");
     }
 
@@ -1053,7 +1055,11 @@
     fetch(FORM_ENDPOINT, { method:"POST", body:new URLSearchParams(d) })
       .then(function(r){ return r.json(); })
       .then(function(res){
-        if (res && res.ok){ form.reset(); show("ok","Recibido. Te contactamos en menos de 48 horas hábiles."); }
+        if (res && res.ok){
+          form.reset();
+          if (window.edwEvento) edwEvento("solicitud_enviada", { necesidad: d.necesidad, via: "formulario" });
+          show("ok","Recibido. Te contactamos en menos de 48 horas hábiles.");
+        }
         else { show("err",(res && res.error) || "No pudimos enviar. Escríbenos a " + MAIL_TO); }
       })
       .catch(function(){ show("err","Sin conexión. Escríbenos a " + MAIL_TO); })

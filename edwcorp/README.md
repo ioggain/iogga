@@ -23,6 +23,7 @@ pensado para publicarse gratis en GitHub Pages y apuntar a **www.edwcorp.org**.
 | `privacidad.html` | Aviso de privacidad (LFPDPPP). |
 | `terminos.html` | Términos de servicio. |
 | `legal.css` | Estilos compartidos por las dos páginas legales. |
+| `analytics.js` | Google Analytics y los eventos del sitio. Se activa pegando el ID en la primera línea. |
 | `apps-script/Codigo.gs` | Script de Google que recibe el formulario y lo guarda en una hoja. |
 | `MODELO-DE-NEGOCIO.md` | Documento interno: líneas de ingreso, precios, sostenibilidad. |
 | `PUBLICAR.md` | **Guía paso a paso para poner el sitio en el dominio.** |
@@ -102,7 +103,7 @@ Mientras no se configure, el formulario abre el correo del visitante con los dat
    var FORM_ENDPOINT = "";
    ```
 
-Las solicitudes llegan a **proyectos@edwcorp.org** (configurado en `AVISO_A` del script).
+Las solicitudes llegan a **admin@edwcorp.org** (configurado en `AVISO_A` del script).
 
 ---
 
@@ -132,10 +133,11 @@ Las solicitudes llegan a **proyectos@edwcorp.org** (configurado en `AVISO_A` del
 ## ✅ Antes de publicar
 
 1. Conectar el formulario (sección de arriba) para que las solicitudes lleguen a
-   `proyectos@edwcorp.org` sin depender del correo del visitante.
+   `admin@edwcorp.org` sin depender del correo del visitante.
 2. Revisar en el celular: menú, botón de WhatsApp, diagnóstico y catálogo.
 3. Publicar en GitHub Pages y apuntar el dominio (sección de arriba).
-4. Después de publicar, dar de alta el sitio en
+4. Pegar el ID de Google Analytics en `analytics.js` (paso 8 de `PUBLICAR.md`).
+5. Después de publicar, dar de alta el sitio en
    [Google Search Console](https://search.google.com/search-console) y subir `sitemap.xml`.
 
 ---

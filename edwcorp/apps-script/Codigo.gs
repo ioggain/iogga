@@ -16,7 +16,7 @@
 
 // ————— Configuración —————
 var HOJA_ID = 'PEGA_AQUI_EL_ID_DE_TU_HOJA';
-var AVISO_A = 'proyectos@edwcorp.org';   // a dónde llega el aviso de cada solicitud
+var AVISO_A = 'admin@edwcorp.org';   // a dónde llega el aviso de cada solicitud
 var CLAVE   = 'CAMBIA-ESTA-CLAVE'; // para consultar las solicitudes por GET
 
 var ENCABEZADOS = ['Fecha', 'Nombre', 'Organización', 'Correo', 'Teléfono', 'Necesidad', 'Mensaje', 'Origen'];

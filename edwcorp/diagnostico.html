@@ -129,6 +129,7 @@
     margin-inline:auto;padding-inline:var(--pad)}
   footer a:hover{color:#fff}
 </style>
+<script src="analytics.js" defer></script>
 </head>
 <body>
 
@@ -324,6 +325,10 @@ verBtn.addEventListener("click", function(e){
               "Área más floja: " + AREAS[debil] + ".\n" +
               "Me interesa saber cómo lo resolverían.";
   document.getElementById("waBtn").href = "https://wa.me/526146887271?text=" + encodeURIComponent(texto);
+
+  if (window.edwEvento) {
+    edwEvento("diagnostico_completado", { puntaje: total, nivel: nivel.n, area_debil: AREAS[debil] });
+  }
 
   document.querySelectorAll(".form-q").forEach(function(el){ el.classList.add("off"); });
   document.getElementById("res").classList.add("on");

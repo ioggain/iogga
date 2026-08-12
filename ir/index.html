@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Conectando con iogga…</title>
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#0c1020" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%236366f1'/%3E%3C/svg%3E" />
+<style>
+  :root{
+    --primary:#6366f1; --accent:#14b8a6;
+    --bg:#0c1020; --card:#151a2e; --line:rgba(255,255,255,.12);
+    --text:#eef0ff; --muted:#a9aecb; --muted-2:#7c82a8;
+    --f:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--f);
+    display:grid;place-items:center;padding:24px;line-height:1.55;
+    background-image:radial-gradient(70% 50% at 50% 0%,rgba(99,102,241,.28),transparent 62%);
+    -webkit-font-smoothing:antialiased}
+  .box{width:100%;max-width:440px;text-align:center}
+  .mark{width:64px;height:64px;border-radius:50%;background:var(--primary);margin:0 auto 1.6rem;
+    box-shadow:0 16px 44px -14px rgba(99,102,241,.85);animation:pulso 1.8s ease-in-out infinite}
+  @keyframes pulso{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.9);opacity:.72}}
+  h1{margin:0;font-size:1.5rem;font-weight:700;letter-spacing:-.03em}
+  p{margin:.7rem 0 0;color:var(--muted);font-size:.98rem}
+  .barra{height:4px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;margin-top:1.8rem}
+  .barra i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--primary),var(--accent));
+    border-radius:3px;transition:width .3s linear}
+  .paso{margin-top:.9rem;font-size:.84rem;color:var(--muted-2);min-height:1.3em}
+
+  .manual{margin-top:2rem;text-align:left;background:var(--card);border:1px solid var(--line);
+    border-radius:18px;padding:1.3rem;display:none}
+  .manual.ver{display:block}
+  .manual h2{margin:0 0 .5rem;font-size:1.05rem;letter-spacing:-.02em}
+  .manual p{font-size:.88rem;margin:0 0 1rem}
+  .manual a{display:flex;align-items:center;justify-content:space-between;gap:.8rem;
+    background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;
+    padding:.75rem .95rem;margin-bottom:.5rem;color:var(--text);text-decoration:none;
+    font-size:.9rem;font-weight:500;transition:.18s}
+  .manual a:hover{background:rgba(99,102,241,.16);border-color:var(--primary)}
+  .manual a span{color:var(--muted-2);font-size:.78rem;font-weight:400}
+  .manual .tip{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--line);
+    font-size:.82rem;color:var(--muted-2)}
+  @media (prefers-reduced-motion:reduce){
+    .mark{animation:none}
+    .barra i{transition:none}
+  }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="mark" aria-hidden="true"></div>
+  <h1>Conectando con iogga…</h1>
+  <p id="msg">Buscando la ruta más rápida</p>
+  <div class="barra" aria-hidden="true"><i id="prog"></i></div>
+  <p class="paso" id="paso"></p>
+
+  <div class="manual" id="manual">
+    <h2>Tu red parece estar bloqueando el sitio</h2>
+    <p>Abre cualquiera de estas direcciones, o entra desde los datos de tu celular:</p>
+    <div id="lista"></div>
+    <p class="tip">Si ninguna abre, prueba desactivar el WiFi y usar tus datos móviles. Algunas redes de oficinas y escuelas bloquean sitios nuevos por defecto.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ====================================================================
+     Espejos del sitio, en orden de preferencia.
+     El primero que responda se lleva al visitante.
+     Agrega aquí la dirección de Netlify en cuanto la tengas.
+     ==================================================================== */
+  var ESPEJOS = [
+    { url: "https://www.iogga.com/",           nombre: "www.iogga.com",        nota: "Principal" },
+    { url: "https://ioggain.github.io/iogga/", nombre: "ioggain.github.io",    nota: "Espejo" }
+    // { url: "https://iogga.netlify.app/",    nombre: "iogga.netlify.app",    nota: "Espejo rápido" }
+  ];
+
+  var LIMITE   = 3000;   // ms máximos de espera por espejo
+  var MEMORIA  = 6 * 60 * 60 * 1000;  // recordar el ganador 6 horas
+
+  /* A dónde va: /ir?to=encuesta/  →  <espejo>/encuesta/ */
+  var destino = "";
+  try {
+    var q = new URLSearchParams(location.search).get("to") || "";
+    // Solo rutas internas: nada de redirigir a sitios ajenos
+    if (q && !/^[a-z]+:|^\/\//i.test(q)) destino = q.replace(/^\/+/, "");
+  } catch (e) {}
+
+  var msg    = document.getElementById("msg");
+  var paso   = document.getElementById("paso");
+  var prog   = document.getElementById("prog");
+  var manual = document.getElementById("manual");
+  var lista  = document.getElementById("lista");
+  var listo  = false;
+
+  function irA(base){
+    if (listo) return;
+    listo = true;
+    prog.style.width = "100%";
+    msg.textContent = "¡Listo! Entrando…";
+    try { localStorage.setItem("iogga_espejo", JSON.stringify({ url: base, t: Date.now() })); } catch(e){}
+    location.replace(base + destino);
+  }
+
+  /* Prueba si un espejo responde. No podemos leer la respuesta por seguridad
+     del navegador, pero si la petición no falla, el host es alcanzable. */
+  function probar(espejo){
+    return new Promise(function(resolve, reject){
+      var ctrl = ("AbortController" in window) ? new AbortController() : null;
+      var reloj = setTimeout(function(){ if (ctrl) ctrl.abort(); reject(new Error("lento")); }, LIMITE);
+
+      fetch(espejo.url + "ping.txt?t=" + Date.now(), {
+        mode: "no-cors", cache: "no-store", signal: ctrl ? ctrl.signal : undefined
+      })
+      .then(function(){ clearTimeout(reloj); resolve(espejo); })
+      .catch(function(err){ clearTimeout(reloj); reject(err); });
+    });
+  }
+
+  /* Barra de progreso mientras se prueba */
+  var t0 = Date.now();
+  var animar = setInterval(function(){
+    if (listo) { clearInterval(animar); return; }
+    var p = Math.min(92, 100 * (Date.now() - t0) / LIMITE);
+    prog.style.width = p + "%";
+  }, 100);
+
+  function rendirse(){
+    clearInterval(animar);
+    prog.style.width = "100%";
+    msg.textContent = "No pudimos conectar automáticamente";
+    paso.textContent = "";
+    lista.innerHTML = ESPEJOS.map(function(e){
+      return '<a href="' + e.url + destino + '">' + e.nombre + ' <span>' + e.nota + '</span></a>';
+    }).join("");
+    manual.classList.add("ver");
+  }
+
+  function arrancar(){
+    /* ¿Ya sabemos cuál funcionó hace poco? Directo para allá. */
+    try {
+      var g = JSON.parse(localStorage.getItem("iogga_espejo") || "null");
+      if (g && g.url && (Date.now() - g.t) < MEMORIA){
+        paso.textContent = "Usando la ruta que funcionó la última vez";
+        probar({ url: g.url }).then(function(){ irA(g.url); }).catch(carrera);
+        return;
+      }
+    } catch(e){}
+    carrera();
+  }
+
+  /* Todos los espejos compiten a la vez: gana el primero que conteste. */
+  function carrera(){
+    if (listo) return;
+    paso.textContent = "Probando " + ESPEJOS.length + " ruta(s)…";
+    var fallos = 0;
+    ESPEJOS.forEach(function(e){
+      probar(e)
+        .then(function(){ irA(e.url); })
+        .catch(function(){
+          fallos++;
+          paso.textContent = "Ruta no disponible (" + fallos + "/" + ESPEJOS.length + ")…";
+          if (fallos >= ESPEJOS.length) rendirse();
+        });
+    });
+    /* Red de seguridad: si nada resolvió a tiempo, mostramos las opciones. */
+    setTimeout(function(){ if (!listo) rendirse(); }, LIMITE + 600);
+  }
+
+  arrancar();
+})();
+</script>
+</body>
+</html>

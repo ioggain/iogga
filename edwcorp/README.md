@@ -23,7 +23,8 @@ pensado para publicarse gratis en GitHub Pages y apuntar a **www.edwcorp.org**.
 | `privacidad.html` | Aviso de privacidad (LFPDPPP). |
 | `terminos.html` | Términos de servicio. |
 | `legal.css` | Estilos compartidos por las dos páginas legales. |
-| `config.js` | **La URL del Apps Script.** Único archivo que conecta el sitio con la base de datos. |
+| `config.js` | El correo de avisos y la URL del Apps Script. |
+| `enviar.js` | Manda cada captura por dos caminos: correo (FormSubmit) y hoja (Apps Script). |
 | `analytics.js` | Google Analytics y los eventos del sitio. Se activa pegando el ID en la primera línea. |
 | `apps-script/Codigo.gs` | Script de Google que recibe el formulario y lo guarda en una hoja. |
 | `MODELO-DE-NEGOCIO.md` | Documento interno: líneas de ingreso, precios, sostenibilidad. |
@@ -86,9 +87,12 @@ guarda y activa **Enforce HTTPS**. El DNS puede tardar de minutos a 24 horas en 
 
 **Sigue [`CONECTAR.md`](CONECTAR.md)** — tiene el paso a paso con enlaces directos.
 
-En resumen: se pega `apps-script/Codigo.gs` en [Apps Script](https://script.google.com), se
-publica como aplicación web y se copia la URL `/exec` en `config.js`. Con eso quedan conectados
-el formulario **y** el diagnóstico a la vez.
+**El correo no necesita configuración.** Sale por FormSubmit y solo pide confirmar la dirección
+`admin@edwcorp.org` una vez, con un clic en el correo que llega tras la primera solicitud.
+
+La hoja de cálculo es aparte y opcional: se pega `apps-script/Codigo.gs` en
+[Apps Script](https://script.google.com), se publica como aplicación web y se copia la URL
+`/exec` en `config.js`.
 
 La hoja de cálculo **se crea sola** la primera vez que se ejecuta la función `probar`, con dos
 pestañas: `Solicitudes` y `Diagnósticos`. Los avisos llegan a **admin@edwcorp.org**.

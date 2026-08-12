@@ -146,6 +146,7 @@
   footer a:hover{color:#fff}
 </style>
 <script src="config.js"></script>
+<script src="enviar.js"></script>
 <script src="analytics.js" defer></script>
 </head>
 <body>
@@ -365,8 +366,8 @@ verBtn.addEventListener("click", function(e){
 
   // guardar el resultado en la base de datos (sin datos personales)
   ultimo = { puntaje: total, nivel: nivel.n, area_debil: AREAS[debil] };
-  guardar({ tipo: "diagnostico", puntaje: total, nivel: nivel.n,
-            area_debil: AREAS[debil], origen: "diagnostico" });
+  guardarSoloHoja({ tipo: "diagnostico", puntaje: total, nivel: nivel.n,
+                    area_debil: AREAS[debil], origen: "diagnostico" });
 
   document.querySelectorAll(".form-q").forEach(function(el){ el.classList.add("off"); });
   document.getElementById("res").classList.add("on");
@@ -376,9 +377,15 @@ verBtn.addEventListener("click", function(e){
 /* ---- Envío a la base de datos (Apps Script). Si no hay endpoint, no hace nada. ---- */
 var ultimo = null;
 
-function guardar(datos){
+function guardar(datos, asunto){
+  if (typeof window.edwEnviar !== "function") return Promise.resolve({ ok:false });
+  return window.edwEnviar(datos, asunto || "EdwCorp — Diagnóstico completado");
+}
+
+/* El resultado anónimo solo se guarda en la hoja; no manda correo. */
+function guardarSoloHoja(datos){
   var url = (typeof EDW_ENDPOINT !== "undefined") ? EDW_ENDPOINT : "";
-  if (!url) return Promise.resolve({ ok:false, sinEndpoint:true });
+  if (!url) return Promise.resolve({ ok:false });
   return fetch(url, { method:"POST", body:new URLSearchParams(datos) })
     .then(function(r){ return r.json(); })
     .catch(function(){ return { ok:false }; });
@@ -411,14 +418,14 @@ formCorreo.addEventListener("submit", function(e){
   cEnviar.disabled = true;
   cMsg.className = "msg"; cMsg.textContent = "Enviando…";
 
-  guardar(datos).then(function(res){
+  guardar(datos, "EdwCorp — Diagnóstico " + datos.puntaje + "/30 de " + correo).then(function(res){
     cEnviar.disabled = false;
     if (res && res.ok){
       document.getElementById("captura").classList.add("enviado");
       cMsg.className = "msg ok";
       cMsg.textContent = "Listo. Te mandamos tu plan a " + correo + ".";
       if (window.edwEvento) edwEvento("diagnostico_correo", { nivel: datos.nivel });
-    } else if (res && res.sinEndpoint){
+    } else if (false){
       var asunto = encodeURIComponent("Mi diagnóstico EdwCorp — " + datos.puntaje + "/30");
       var cuerpo = encodeURIComponent(
         "Hola, completé el diagnóstico.\n\nPuntaje: " + datos.puntaje + "/30\nNivel: " + datos.nivel +

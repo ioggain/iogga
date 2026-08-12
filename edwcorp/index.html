@@ -370,6 +370,7 @@
   .skip:focus{left:1rem;top:1rem;z-index:300;background:#fff;padding:.7rem 1rem;border-radius:8px}
 </style>
 <script src="config.js"></script>
+<script src="enviar.js"></script>
 <script src="analytics.js" defer></script>
 </head>
 <body>
@@ -1044,28 +1045,23 @@
     if (!d.nombre || !d.organizacion || !d.necesidad || !d.mensaje) return show("err","Completa los campos obligatorios.");
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(d.correo)) return show("err","Revisa tu correo electrónico.");
 
-    if (!FORM_ENDPOINT){
-      var asunto = encodeURIComponent("Solicitud — " + d.organizacion);
-      var cuerpo = encodeURIComponent("Nombre: "+d.nombre+"\nOrganización: "+d.organizacion+"\nCorreo: "+d.correo+
-        "\nTeléfono: "+d.telefono+"\nNecesidad: "+d.necesidad+"\n\n"+d.mensaje);
-      window.location.href = "mailto:" + MAIL_TO + "?subject=" + asunto + "&body=" + cuerpo;
-      if (window.edwEvento) edwEvento("solicitud_enviada", { necesidad: d.necesidad, via: "correo" });
-      return show("ok","Abrimos tu correo para enviar la solicitud.");
-    }
-
     btn.disabled = true; show("","Enviando…");
-    fetch(FORM_ENDPOINT, { method:"POST", body:new URLSearchParams(d) })
-      .then(function(r){ return r.json(); })
+
+    window.edwEnviar(d, "EdwCorp — Solicitud de " + (d.organizacion || d.nombre))
       .then(function(res){
-        if (res && res.ok){
+        btn.disabled = false;
+        if (res.ok){
           form.reset();
-          if (window.edwEvento) edwEvento("solicitud_enviada", { necesidad: d.necesidad, via: "formulario" });
-          show("ok","Recibido. Te contactamos en menos de 48 horas hábiles.");
+          if (window.edwEvento) edwEvento("solicitud_enviada", { necesidad: d.necesidad });
+          return show("ok","Recibido. Te contactamos en menos de 48 horas hábiles.");
         }
-        else { show("err",(res && res.error) || "No pudimos enviar. Escríbenos a " + MAIL_TO); }
-      })
-      .catch(function(){ show("err","Sin conexión. Escríbenos a " + MAIL_TO); })
-      .finally(function(){ btn.disabled = false; });
+        // último recurso: abrir el correo del visitante con los datos ya escritos
+        var asunto = encodeURIComponent("Solicitud — " + d.organizacion);
+        var cuerpo = encodeURIComponent("Nombre: "+d.nombre+"\nOrganización: "+d.organizacion+"\nCorreo: "+d.correo+
+          "\nTeléfono: "+d.telefono+"\nNecesidad: "+d.necesidad+"\n\n"+d.mensaje);
+        window.location.href = "mailto:" + MAIL_TO + "?subject=" + asunto + "&body=" + cuerpo;
+        show("ok","Abrimos tu correo para enviar la solicitud.");
+      });
   });
 </script>
 </body>

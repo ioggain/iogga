@@ -1,33 +1,43 @@
-# EdwCorp — Conectar el correo, la base de datos y la analítica
+# EdwCorp — Cómo llega lo que capturas en el sitio
 
-Guía de una sola sentada. Solo EdwCorp. Todo desde el navegador.
-
-**Lo que vas a lograr:** que cada persona que llene el formulario o termine el diagnóstico
-en `www.edwcorp.org` te llegue **por correo a `admin@edwcorp.org`** y quede guardada en una
-**hoja de cálculo** que se crea sola.
+**Lo que la gente manda desde `www.edwcorp.org` sale por dos caminos independientes.**
+Si uno falla, el otro sigue funcionando y no se pierde ninguna solicitud.
 
 ```
-Sitio (www.edwcorp.org)
-        │
-        ├─ Formulario de contacto ─┐
-        └─ Diagnóstico ────────────┤
-                                   ▼
-                          Apps Script (Google)
-                                   │
-                    ┌──────────────┴──────────────┐
-                    ▼                             ▼
-        Correo a admin@edwcorp.org      Hoja de cálculo
-                                        · Solicitudes
-                                        · Diagnósticos
+Formulario de contacto  ─┐
+Diagnóstico ─────────────┤
+                         ▼
+              ┌──────────┴──────────┐
+              ▼                     ▼
+     1. CORREO (FormSubmit)   2. BASE DE DATOS (Apps Script)
+     → admin@edwcorp.org      → Hoja de cálculo
+     Sin configuración        Opcional, para el histórico
 ```
-
-Son **dos cosas que copiar**, nada más:
-1. El código → a Apps Script.
-2. La URL que te dé Apps Script → al archivo `config.js`.
 
 ---
 
-# PARTE 1 · La base de datos y el correo
+# ⚡ ACTIVACIÓN — se hace UNA sola vez
+
+El camino del correo usa **FormSubmit**, un servicio gratuito que no necesita cuenta.
+Lo único que pide es comprobar, una vez, que el correo es tuyo.
+
+1. Entra a 👉 **[www.edwcorp.org/#contacto](https://www.edwcorp.org/#contacto)** y manda el
+   formulario con datos de prueba.
+2. Revisa la bandeja de **admin@edwcorp.org**. Va a llegar un correo de **FormSubmit**
+   pidiendo confirmar la dirección. **Revisa también spam** — suele caer ahí la primera vez.
+3. Haz clic en el botón de confirmación de ese correo.
+
+**Listo.** A partir de ese clic, cada solicitud del sitio llega directo a tu bandeja,
+para siempre y sin más configuración.
+
+> La solicitud de prueba que mandaste queda guardada y también te llega, una vez confirmes.
+
+---
+
+# LA BASE DE DATOS (opcional)
+
+La hoja de cálculo guarda el histórico de todo. El correo ya funciona sin esto,
+así que es un paso que puedes hacer con calma.
 
 ### 1.1 · Abre Apps Script
 
@@ -233,7 +243,8 @@ Google tarda de días a un par de semanas en indexarlo.
 
 | Qué ves | Por qué pasa | Cómo se arregla |
 |---|---|---|
-| El formulario abre el correo en vez de enviarse | `EDW_ENDPOINT` sigue vacío | Parte 2: pega la URL en `config.js` |
+| No llega ningún correo | Falta confirmar la dirección en FormSubmit | Revisa spam en `admin@edwcorp.org` y haz clic en el correo de confirmación |
+| El formulario abre el correo del visitante | Fallaron los dos caminos a la vez | Casi siempre es falta de internet; vuelve a intentar |
 | «No pudimos enviar la solicitud» | La implementación no es pública | Apps Script → Implementar → Administrar implementaciones → ✏️ → *Quién tiene acceso:* **Cualquier persona** |
 | Cambié el código y sigue igual | Guardar no basta en Apps Script | **Implementar → Administrar implementaciones → ✏️ → Versión: Nueva versión → Implementar** |
 | No llega el correo | Está en spam, o el script no tiene permisos | Revisa spam; vuelve a ejecutar `probar` y acepta permisos |

@@ -13,7 +13,7 @@
  */
 
 // ————— Lo único que puedes querer cambiar —————
-var AVISO_A = 'admin@edwcorp.org';   // a dónde llegan los avisos
+var AVISO_A = 'proyectos@edwcorp.org';   // a dónde llegan los avisos
 var CLAVE   = 'edw-8JtWe-rMZLS-RkFUa';  // para consultar los datos desde fuera
 
 

@@ -133,7 +133,7 @@ Al terminar, `www.edwcorp.org` y `edwcorp.org` muestran el sitio con candado de 
 ## Paso 7 · Conectar el formulario de contacto
 
 Mientras no hagas esto, el formulario abre el correo del visitante con los datos escritos.
-Funciona, pero se pierden solicitudes. Para que lleguen solas a **`admin@edwcorp.org`**
+Funciona, pero se pierden solicitudes. Para que lleguen solas a **`proyectos@edwcorp.org`**
 y queden guardadas en una hoja de cálculo:
 
 1. Crea una **Hoja de Google** nueva. Copia su ID: es lo que va entre `/d/` y `/edit` en la URL.
@@ -142,7 +142,7 @@ y queden guardadas en una hoja de cálculo:
 4. Arriba del archivo cambia:
    - `HOJA_ID` → el ID de tu hoja
    - `CLAVE` → cualquier contraseña que inventes
-   - (`AVISO_A` ya dice `admin@edwcorp.org`; cámbialo solo si quieres otro destinatario)
+   - (`AVISO_A` ya dice `proyectos@edwcorp.org`; cámbialo solo si quieres otro destinatario)
 5. Selecciona la función **`probar`** y dale ▶ **Ejecutar**. Acepta los permisos que pida.
    Si en el registro sale «✅ TODO BIEN», quedó. Borra la fila de prueba de la hoja.
 6. **Implementar → Nueva implementación → Aplicación web**

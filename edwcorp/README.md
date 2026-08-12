@@ -88,14 +88,14 @@ guarda y activa **Enforce HTTPS**. El DNS puede tardar de minutos a 24 horas en 
 **Sigue [`CONECTAR.md`](CONECTAR.md)** — tiene el paso a paso con enlaces directos.
 
 **El correo no necesita configuración.** Sale por FormSubmit y solo pide confirmar la dirección
-`admin@edwcorp.org` una vez, con un clic en el correo que llega tras la primera solicitud.
+`proyectos@edwcorp.org` una vez, con un clic en el correo que llega tras la primera solicitud.
 
 La hoja de cálculo es aparte y opcional: se pega `apps-script/Codigo.gs` en
 [Apps Script](https://script.google.com), se publica como aplicación web y se copia la URL
 `/exec` en `config.js`.
 
 La hoja de cálculo **se crea sola** la primera vez que se ejecuta la función `probar`, con dos
-pestañas: `Solicitudes` y `Diagnósticos`. Los avisos llegan a **admin@edwcorp.org**.
+pestañas: `Solicitudes` y `Diagnósticos`. Los avisos llegan a **proyectos@edwcorp.org**.
 
 ---
 
@@ -125,7 +125,7 @@ pestañas: `Solicitudes` y `Diagnósticos`. Los avisos llegan a **admin@edwcorp.
 ## ✅ Antes de publicar
 
 1. Conectar el formulario (sección de arriba) para que las solicitudes lleguen a
-   `admin@edwcorp.org` sin depender del correo del visitante.
+   `proyectos@edwcorp.org` sin depender del correo del visitante.
 2. Revisar en el celular: menú, botón de WhatsApp, diagnóstico y catálogo.
 3. Publicar en GitHub Pages y apuntar el dominio (sección de arriba).
 4. Pegar el ID de Google Analytics en `analytics.js` (paso 8 de `PUBLICAR.md`).

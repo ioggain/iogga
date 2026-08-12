@@ -16,7 +16,7 @@
 (function () {
   "use strict";
 
-  var CORREO = (typeof EDW_CORREO !== "undefined" && EDW_CORREO) ? EDW_CORREO : "admin@edwcorp.org";
+  var CORREO = (typeof EDW_CORREO !== "undefined" && EDW_CORREO) ? EDW_CORREO : "proyectos@edwcorp.org";
 
   /* --- Camino 1: correo por FormSubmit --- */
   function porCorreo(datos, asunto) {

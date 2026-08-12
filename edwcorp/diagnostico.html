@@ -431,7 +431,7 @@ formCorreo.addEventListener("submit", function(e){
         "Hola, completé el diagnóstico.\n\nPuntaje: " + datos.puntaje + "/30\nNivel: " + datos.nivel +
         "\nÁrea más floja: " + datos.area_debil + "\n\nNombre: " + datos.nombre +
         "\nOrganización: " + datos.organizacion + "\n\nMe interesa recibir el plan.");
-      window.location.href = "mailto:" + ((typeof EDW_CORREO !== "undefined") ? EDW_CORREO : "admin@edwcorp.org") +
+      window.location.href = "mailto:" + ((typeof EDW_CORREO !== "undefined") ? EDW_CORREO : "proyectos@edwcorp.org") +
                              "?subject=" + asunto + "&body=" + cuerpo;
       cMsg.className = "msg ok";
       cMsg.textContent = "Abrimos tu correo para enviarlo.";

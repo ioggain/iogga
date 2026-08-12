@@ -10,7 +10,7 @@ Diagnóstico ─────────────┤
               ┌──────────┴──────────┐
               ▼                     ▼
      1. CORREO (FormSubmit)   2. BASE DE DATOS (Apps Script)
-     → admin@edwcorp.org      → Hoja de cálculo
+     → proyectos@edwcorp.org      → Hoja de cálculo
      Sin configuración        Opcional, para el histórico
 ```
 
@@ -23,7 +23,7 @@ Lo único que pide es comprobar, una vez, que el correo es tuyo.
 
 1. Entra a 👉 **[www.edwcorp.org/#contacto](https://www.edwcorp.org/#contacto)** y manda el
    formulario con datos de prueba.
-2. Revisa la bandeja de **admin@edwcorp.org**. Va a llegar un correo de **FormSubmit**
+2. Revisa la bandeja de **proyectos@edwcorp.org**. Va a llegar un correo de **FormSubmit**
    pidiendo confirmar la dirección. **Revisa también spam** — suele caer ahí la primera vez.
 3. Haz clic en el botón de confirmación de ese correo.
 
@@ -65,9 +65,9 @@ EdwCorp — Base de datos del sitio
    (o `Cmd+A` en Mac), bórralo y **pega**.
 4. Guarda con el ícono 💾 o `Ctrl+S`.
 
-> **No tienes que cambiar nada adentro.** El correo ya dice `admin@edwcorp.org` y la hoja
+> **No tienes que cambiar nada adentro.** El correo ya dice `proyectos@edwcorp.org` y la hoja
 > de cálculo se crea sola. Si algún día quieres otro destinatario, cambias la línea
-> `var AVISO_A = 'admin@edwcorp.org';` y ya.
+> `var AVISO_A = 'proyectos@edwcorp.org';` y ya.
 
 ### 1.4 · Ejecuta la prueba
 
@@ -86,13 +86,13 @@ Solicitudes guardadas:  1
 Diagnósticos guardados: 1
 ✅ TODO BIEN — ya puedes implementar.
 Tu base de datos: https://docs.google.com/spreadsheets/d/....../edit
-Revisa que te haya llegado el correo a admin@edwcorp.org
+Revisa que te haya llegado el correo a proyectos@edwcorp.org
 ```
 
 5. **Abre el enlace de tu base de datos** que aparece ahí y guárdalo en favoritos.
    Vas a ver dos pestañas abajo: **Solicitudes** y **Diagnósticos**, con una fila de prueba
    cada una. Bórralas cuando quieras.
-6. **Revisa tu correo `admin@edwcorp.org`.** Te debieron llegar dos avisos.
+6. **Revisa tu correo `proyectos@edwcorp.org`.** Te debieron llegar dos avisos.
 
 > Si no llegó el correo, revisa la carpeta de spam. Google manda desde la cuenta con la que
 > iniciaste sesión en Apps Script.
@@ -165,7 +165,7 @@ En 1–2 minutos el sitio se actualiza solo.
 2. Llena el formulario con datos de prueba y envíalo.
 3. Debe salir: *«Recibido. Te contactamos en menos de 48 horas hábiles.»*
 4. Revisa las tres cosas:
-   - ✉️ Llegó el correo a `admin@edwcorp.org`
+   - ✉️ Llegó el correo a `proyectos@edwcorp.org`
    - 📊 Apareció la fila en la pestaña **Solicitudes** de tu hoja
    - 🔁 El remitente sale en «Responder», para contestar de un clic
 
@@ -243,7 +243,7 @@ Google tarda de días a un par de semanas en indexarlo.
 
 | Qué ves | Por qué pasa | Cómo se arregla |
 |---|---|---|
-| No llega ningún correo | Falta confirmar la dirección en FormSubmit | Revisa spam en `admin@edwcorp.org` y haz clic en el correo de confirmación |
+| No llega ningún correo | Falta confirmar la dirección en FormSubmit | Revisa spam en `proyectos@edwcorp.org` y haz clic en el correo de confirmación |
 | El formulario abre el correo del visitante | Fallaron los dos caminos a la vez | Casi siempre es falta de internet; vuelve a intentar |
 | «No pudimos enviar la solicitud» | La implementación no es pública | Apps Script → Implementar → Administrar implementaciones → ✏️ → *Quién tiene acceso:* **Cualquier persona** |
 | Cambié el código y sigue igual | Guardar no basta en Apps Script | **Implementar → Administrar implementaciones → ✏️ → Versión: Nueva versión → Implementar** |

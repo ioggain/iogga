@@ -12,4 +12,4 @@
 var EDW_ENDPOINT = "https://script.google.com/macros/s/AKfycbwHaqalRMtp0IdNoYeZZYIYv4Y-FEHTJjNm5D9fg6Hoi_uL7o6MpXwrBPLWFmMyfCg5/exec";
 
 /* Correo al que se abre el respaldo si el endpoint está vacío. */
-var EDW_CORREO = "admin@edwcorp.org";
+var EDW_CORREO = "proyectos@edwcorp.org";

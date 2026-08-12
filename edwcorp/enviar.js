@@ -16,16 +16,15 @@
 (function () {
   "use strict";
 
-  var CORREO = (typeof EDW_CORREO !== "undefined" && EDW_CORREO) ? EDW_CORREO : "proyectos@edwcorp.org";
+  function destinos() {
+    if (typeof EDW_CORREOS !== "undefined" && EDW_CORREOS && EDW_CORREOS.length) return EDW_CORREOS;
+    if (typeof EDW_CORREO !== "undefined" && EDW_CORREO) return [EDW_CORREO];
+    return ["proyectos@edwcorp.org"];
+  }
 
-  /* --- Camino 1: correo por FormSubmit --- */
-  function porCorreo(datos, asunto) {
-    var cuerpo = { _subject: asunto, _captcha: "false", _template: "table" };
-    Object.keys(datos).forEach(function (k) {
-      if (k.charAt(0) !== "_" && datos[k] !== "" && datos[k] != null) cuerpo[k] = datos[k];
-    });
-
-    return fetch("https://formsubmit.co/ajax/" + encodeURIComponent(CORREO), {
+  /* --- Camino 1: correo por FormSubmit, a todas las direcciones de la lista --- */
+  function aUno(correo, cuerpo) {
+    return fetch("https://formsubmit.co/ajax/" + encodeURIComponent(correo), {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify(cuerpo)
@@ -33,6 +32,16 @@
       .then(function (r) { return r.json(); })
       .then(function (res) { return !!(res && (res.success === true || res.success === "true")); })
       .catch(function () { return false; });
+  }
+
+  function porCorreo(datos, asunto) {
+    var cuerpo = { _subject: asunto, _captcha: "false", _template: "table" };
+    Object.keys(datos).forEach(function (k) {
+      if (k.charAt(0) !== "_" && datos[k] !== "" && datos[k] != null) cuerpo[k] = datos[k];
+    });
+
+    return Promise.all(destinos().map(function (c) { return aUno(c, cuerpo); }))
+      .then(function (r) { return r.some(Boolean); });
   }
 
   /* --- Camino 2: base de datos por Apps Script --- */

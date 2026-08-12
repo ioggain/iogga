@@ -65,9 +65,9 @@ EdwCorp — Base de datos del sitio
    (o `Cmd+A` en Mac), bórralo y **pega**.
 4. Guarda con el ícono 💾 o `Ctrl+S`.
 
-> **No tienes que cambiar nada adentro.** El correo ya dice `proyectos@edwcorp.org` y la hoja
-> de cálculo se crea sola. Si algún día quieres otro destinatario, cambias la línea
-> `var AVISO_A = 'proyectos@edwcorp.org';` y ya.
+> **No tienes que cambiar nada adentro.** La hoja de cálculo se crea sola.
+> Este script **no manda correos** — de eso ya se encarga el sitio — para que no
+> te lleguen avisos duplicados. Solo guarda el histórico.
 
 ### 1.4 · Ejecuta la prueba
 
@@ -86,16 +86,13 @@ Solicitudes guardadas:  1
 Diagnósticos guardados: 1
 ✅ TODO BIEN — ya puedes implementar.
 Tu base de datos: https://docs.google.com/spreadsheets/d/....../edit
-Revisa que te haya llegado el correo a proyectos@edwcorp.org
+Ábrela, revisa las dos pestañas y borra las filas de prueba.
 ```
 
 5. **Abre el enlace de tu base de datos** que aparece ahí y guárdalo en favoritos.
    Vas a ver dos pestañas abajo: **Solicitudes** y **Diagnósticos**, con una fila de prueba
    cada una. Bórralas cuando quieras.
-6. **Revisa tu correo `proyectos@edwcorp.org`.** Te debieron llegar dos avisos.
-
-> Si no llegó el correo, revisa la carpeta de spam. Google manda desde la cuenta con la que
-> iniciaste sesión en Apps Script.
+> Si la ejecución marca error, vuelve a intentar: casi siempre es que faltó aceptar los permisos.
 
 ### 1.5 · Publícalo como aplicación web
 
@@ -136,17 +133,15 @@ Esa liga te lleva directo al archivo, ya en modo edición.
 
 ### 2.2 · Pega la URL
 
-Busca esta línea:
-
-```js
-var EDW_ENDPOINT = "";
-```
-
-Y pega tu URL **adentro de las comillas**:
+Busca la línea que empieza con `var EDW_ENDPOINT =` y pon tu URL
+**adentro de las comillas**, sin borrar nada más del archivo:
 
 ```js
 var EDW_ENDPOINT = "https://script.google.com/macros/s/AKfycbx.../exec";
 ```
+
+> ⚠️ La URL va **solo ahí**. Si se pega en otra línea del archivo, el sitio deja de enviar.
+> Si prefieres, **mándame la URL por chat y yo la pego** — tengo acceso al repositorio.
 
 ### 2.3 · Guarda
 
@@ -165,7 +160,7 @@ En 1–2 minutos el sitio se actualiza solo.
 2. Llena el formulario con datos de prueba y envíalo.
 3. Debe salir: *«Recibido. Te contactamos en menos de 48 horas hábiles.»*
 4. Revisa las tres cosas:
-   - ✉️ Llegó el correo a `proyectos@edwcorp.org`
+   - ✉️ Llegó el correo a `proyectos@edwcorp.org` *(esto ya funciona)*
    - 📊 Apareció la fila en la pestaña **Solicitudes** de tu hoja
    - 🔁 El remitente sale en «Responder», para contestar de un clic
 
@@ -201,13 +196,15 @@ Para saber cuánta gente entra y de dónde llega.
 
 👉 **[Editar analytics.js](https://github.com/ioggain/edwcorp/edit/main/analytics.js)**
 
-Busca la línea `var GA_ID = "";` y pega tu ID:
+Busca la línea `var GA_ID = "";` y pega tu ID entre las comillas:
 
 ```js
 var GA_ID = "G-XXXXXXXXXX";
 ```
 
 **Commit changes.**
+
+> O más simple: **mándame el ID por chat y yo lo pego.**
 
 ### 4.3 · Compruébalo
 

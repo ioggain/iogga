@@ -1,19 +1,22 @@
 /**
  * EdwCorp — Base de datos del sitio
  * =================================
- * Recibe lo que la gente manda desde www.edwcorp.org, lo guarda en una
- * Hoja de Google y avisa por correo.
- *
- * Guarda dos cosas:
+ * Recibe lo que la gente manda desde www.edwcorp.org y lo guarda en una
+ * Hoja de Google, en dos pestañas:
  *   · Solicitudes  → el formulario de contacto
  *   · Diagnósticos → quien completa el diagnóstico de madurez
+ *
+ * El AVISO POR CORREO ya lo manda el sitio por su cuenta, así que este
+ * script solo se encarga del histórico. Así no llegan correos duplicados.
  *
  * NO HAY QUE CONFIGURAR NADA. La hoja de cálculo se crea sola la primera
  * vez que ejecutas la función "probar". El enlace aparece en el registro.
  */
 
 // ————— Lo único que puedes querer cambiar —————
-var AVISO_A = 'proyectos@edwcorp.org';   // a dónde llegan los avisos
+// Déjalo vacío: el correo ya lo manda el sitio.
+// Si quieres además una copia desde aquí, escribe la dirección entre comillas.
+var AVISO_A = '';
 var CLAVE   = 'edw-8JtWe-rMZLS-RkFUa';  // para consultar los datos desde fuera
 
 
@@ -223,8 +226,7 @@ function probar() {
   if (datos.ok && datos.solicitudes.length > 0) {
     Logger.log('✅ TODO BIEN — ya puedes implementar.');
     Logger.log('Tu base de datos: ' + verHoja());
-    Logger.log('Revisa que te haya llegado el correo a ' + AVISO_A);
-    Logger.log('Borra las filas de prueba cuando quieras.');
+    Logger.log('Ábrela, revisa las dos pestañas y borra las filas de prueba.');
   } else {
     Logger.log('⚠️ Algo falló. Vuelve a ejecutar y revisa el error de arriba.');
   }

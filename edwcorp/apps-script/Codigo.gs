@@ -163,6 +163,7 @@ function doGet(e) {
 
     return json_({
       ok: true,
+      hoja:         SpreadsheetApp.openById(idHoja_()).getUrl(),
       solicitudes:  leer_('Solicitudes',  COL_SOLICITUDES),
       diagnosticos: leer_('Diagnósticos', COL_DIAGNOSTICOS)
     });

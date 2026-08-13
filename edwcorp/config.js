@@ -9,7 +9,7 @@
    formulario deja de enviar.
    ============================================================ */
 
-var EDW_ENDPOINT = "https://script.google.com/macros/s/AKfycbwHaqalRMtp0IdNoYeZZYIYv4Y-FEHTJjNm5D9fg6Hoi_uL7o6MpXwrBPLWFmMyfCg5/exec";
+var EDW_ENDPOINT = "https://script.google.com/macros/s/AKfycbxrQvVPWaxlt_ikZDIGFJjs_qCkS-Z72l63cwP5Et_ZDGNzjND32dobwg0CDNj9cqA0Ag/exec";
 
 /* A DÓNDE LLEGAN LOS AVISOS.
    Puedes poner varias direcciones: la solicitud se manda a todas.

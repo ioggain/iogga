@@ -10,7 +10,7 @@
    ningún rastreador ni cookie.
    ============================================================ */
 
-var GA_ID = "";
+var GA_ID = "G-1208PKTH2Z";
 
 /* ------------------------------------------------------------
    De aquí para abajo no hay nada que cambiar.

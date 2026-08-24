@@ -223,16 +223,78 @@ Así vas a poder ver **de qué canal vienen los clientes de verdad**, no solo la
 
 ---
 
-# PARTE 5 · Que Google lo encuentre
+# PARTE 5 · Google Search Console (que Google lo encuentre y lo mida)
+
+Se llama **Google Search Console**. Es distinto de Analytics:
+
+| | Qué te dice |
+|---|---|
+| **Analytics** (`G-1208PKTH2Z`) | Qué hace la gente **ya que entró** al sitio |
+| **Search Console** | **Qué buscaron en Google** para llegar, en qué posición sales y qué páginas están indexadas |
 
 👉 **[search.google.com/search-console](https://search.google.com/search-console)**
 
-1. Agrega la propiedad `https://www.edwcorp.org` (tipo *Prefijo de URL*).
-2. Para verificar: como ya tienes Analytics, aparece la opción **«Google Analytics»** —
-   un clic y listo.
-3. En **Sitemaps**, escribe `sitemap.xml` y **Enviar**.
+### 5.1 · La propiedad
 
-Google tarda de días a un par de semanas en indexarlo.
+Agrega `https://www.edwcorp.org` como tipo **Prefijo de URL**.
+
+Para verificar, como ya tienes Analytics instalado en el sitio, aparece la opción
+**«Google Analytics»** — un clic y listo, no hay que tocar nada más.
+
+> Si además quieres cubrir `edwcorp.org` (sin www) en la misma propiedad, agrega en vez de
+> eso una propiedad tipo **Dominio** con `edwcorp.org`. Esa se verifica con un registro TXT
+> en el DNS. **No es necesaria**: las dos direcciones llevan al mismo sitio y el www es la
+> oficial.
+
+### 5.2 · Manda el sitemap (esto cubre TODAS las páginas de un golpe)
+
+En el menú de la izquierda: **Sitemaps** → escribe solo `sitemap.xml` → **Enviar**.
+
+```
+https://www.edwcorp.org/sitemap.xml
+```
+
+Con eso Google recibe las 5 páginas del sitio. **No hace falta meterlas una por una.**
+
+### 5.3 · Las URL del sitio
+
+Estas son **todas** las páginas públicas. Es la lista completa — el sitio no tiene más:
+
+| # | URL | Qué es |
+|---|---|---|
+| 1 | `https://www.edwcorp.org/` | Inicio — propuesta de valor, servicios, modalidades, socios, contacto |
+| 2 | `https://www.edwcorp.org/catalogo.html` | Catálogo de los 55 programas |
+| 3 | `https://www.edwcorp.org/diagnostico.html` | Diagnóstico de madurez (herramienta gratuita) |
+| 4 | `https://www.edwcorp.org/privacidad.html` | Aviso de privacidad |
+| 5 | `https://www.edwcorp.org/terminos.html` | Términos y condiciones |
+
+Archivos de apoyo (no son páginas, no se envían a indexar):
+
+```
+https://www.edwcorp.org/sitemap.xml
+https://www.edwcorp.org/robots.txt
+```
+
+### 5.4 · Adelantar la indexación (opcional)
+
+Si tienes prisa, arriba está **«Inspección de URLs»**. Pega ahí una URL de la tabla
+y dale **Solicitar indexación**. Vale la pena hacerlo con las **tres primeras**
+(inicio, catálogo, diagnóstico) — las de privacidad y términos no importan.
+
+Google tarda de días a un par de semanas en indexar. Los datos de **Rendimiento**
+(búsquedas, posiciones, clics) empiezan a aparecer a los 2–3 días.
+
+### 5.5 · Qué revisar después
+
+- **Rendimiento** → «Consultas»: con qué palabras te encuentran. De ahí salen los
+  textos que conviene reforzar en el sitio.
+- **Indexación → Páginas**: deben salir las 5 como «Indexada». Si alguna aparece como
+  «Descubierta, actualmente sin indexar», es normal al principio.
+- **Vincula Analytics con Search Console**: en Analytics → **Administrar → Enlaces de
+  Search Console**. Así ves las búsquedas de Google dentro de los mismos informes.
+
+> Cuando agreguemos páginas nuevas al sitio, hay que añadirlas a `sitemap.xml`.
+> Dímelo y yo lo actualizo.
 
 ---
 

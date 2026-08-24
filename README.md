@@ -98,6 +98,33 @@ Recomendado: cuadradas, mínimo 400×400 px.
 
 ---
 
+## 🔍 SEO — URLs para Google Search Console
+
+**Lo más rápido:** en Search Console ve a **Sitemaps** y envía una sola línea:
+
+```
+sitemap.xml
+```
+
+Con eso Google descubre todas las páginas solo. Para acelerar las importantes,
+usa **Inspección de URLs → Solicitar indexación** con cada una:
+
+| URL | Qué es |
+|---|---|
+| `https://www.iogga.com/` | Portada |
+| `https://www.iogga.com/encuesta/` | Encuesta en vivo |
+| `https://www.iogga.com/inversion.html` | Inversión |
+| `https://www.iogga.com/privacidad.html` | Aviso de Privacidad |
+| `https://www.iogga.com/terminos.html` | Términos y Condiciones |
+
+### ⛔ Páginas que NO deben indexarse
+Llevan `noindex` a propósito. **No las envíes a Google:**
+
+- `https://www.iogga.com/panel.html` — panel privado de registros
+- `https://www.iogga.com/ir/` — puente técnico de redirección
+
+> Al agregar una página nueva, súmala también a `sitemap.xml`.
+
 ## 🎨 Notas de marca
 - **iogga** se escribe siempre en **minúscula** (marca registrada: iogga®).
 - Colores tomados de la app: `#6366f1` (personas), `#14b8a6` (negocios).

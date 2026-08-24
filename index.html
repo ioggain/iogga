@@ -415,6 +415,14 @@
   .skip{position:absolute;left:-999px}
   .skip:focus{left:12px;top:12px;z-index:200;background:var(--ink);color:#fff;padding:.6em 1em;border-radius:8px}
 </style>
+<!-- Google Analytics (GA4) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-KHPF9VBP5S"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-KHPF9VBP5S', { anonymize_ip: true });
+</script>
 </head>
 <body id="top">
 <a href="#hero" class="skip">Saltar al contenido</a>
@@ -1018,7 +1026,10 @@
     var body = new URLSearchParams({ nombre:nombre, email:email, telefono:tel, tipo:tipo, origen:location.hostname || "local" });
 
     fetch(WAITLIST_ENDPOINT, { method:"POST", body:body })
-      .then(function(){ show("ok","¡Listo! Ya estás en la lista. Te avisamos del lanzamiento."); f.reset(); })
+      .then(function(){
+        show("ok","¡Listo! Ya estás en la lista. Te avisamos del lanzamiento."); f.reset();
+        if (window.gtag) gtag("event", "registro_lista_espera", { tipo: tipo });
+      })
       .catch(function(){ show("err","No pudimos guardarlo. Escríbenos por WhatsApp y te anotamos."); })
       .finally(function(){ submit.disabled = false; });
   });

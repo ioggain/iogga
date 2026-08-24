@@ -167,6 +167,14 @@
   .reveal.in{opacity:1;transform:none}
   @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
 </style>
+<!-- Google Analytics (GA4) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-KHPF9VBP5S"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-KHPF9VBP5S', { anonymize_ip: true });
+</script>
 </head>
 <body>
 
@@ -409,6 +417,13 @@
         $("errBox").innerHTML = '<div class="err">No pudimos leer los datos en vivo en este momento. Mostramos el último corte publicado.</div>';
       });
   }
+
+  /* Mide cuántos van del panel al formulario */
+  document.querySelectorAll('a[href*="forms.gle"]').forEach(function(a){
+    a.addEventListener("click", function(){
+      if (window.gtag) gtag("event", "abrir_encuesta", { origen: "panel" });
+    });
+  });
 
   cargar();
   setInterval(cargar, 60000);
